@@ -1,0 +1,104 @@
+//
+//  Track.swift
+//  music
+//
+//  Created by Alexander Vasyukov on 7/1/25.
+//
+
+import UIKit
+import AVFoundation
+
+struct Track: Equatable {
+    let title: String
+    let artist: String
+    let image: UIImage
+    let url: URL
+    
+    static func == (lhs: Track, rhs: Track) -> Bool {
+        return lhs.url == rhs.url
+    }
+}
+
+func loadTracks() async -> [Track] {
+    var tracks = [Track]()
+    let fileManager = FileManager.default
+    
+    guard let songsPath = Bundle.main.url(forResource: "songs", withExtension: nil) else {
+        print("Error: Could not find songs folder.")
+        return tracks
+    }
+    
+    do {
+        let files = try fileManager.contentsOfDirectory(atPath: songsPath.path)
+        
+        for file in files {
+            let filePath = songsPath.appendingPathComponent(file)
+            let asset = AVURLAsset(url: filePath)
+            let metadata = try await asset.load(.commonMetadata)
+            
+            let title = try await metadata.first(where: { $0.commonKey?.rawValue == "title" })?.load(.stringValue) ?? "Unknown Title"
+            let artist = try await metadata.first(where: { $0.commonKey?.rawValue == "artist"})?.load(.stringValue) ?? "Unknown Artist"
+            
+            let imageData = try await metadata.first(where: { $0.commonKey?.rawValue == "artwork"})?.load(.dataValue)
+            let image = imageData != nil ? UIImage(data: imageData!)! : UIImage(systemName: "music.note")!
+            
+            tracks.append(Track(title: title, artist: artist, image: image, url: filePath))
+        }
+    } catch {
+        print("Error reading files: \(error)\n")
+    }
+    
+    return tracks
+}
+
+
+class TrackCell: UITableViewCell {
+    private let titleLabel = UILabel()
+    private let artistLabel = UILabel()
+    private let trackImageView = UIImageView()
+    
+    override init(style: UITableViewCell.CellStyle, reuseIdentifier: String?) {
+        super.init(style: style, reuseIdentifier: reuseIdentifier)
+        
+        trackImageView.translatesAutoresizingMaskIntoConstraints = false
+        trackImageView.contentMode = .scaleAspectFill
+        trackImageView.layer.cornerRadius = 8
+        trackImageView.clipsToBounds = true
+        contentView.addSubview(trackImageView)
+        
+        titleLabel.translatesAutoresizingMaskIntoConstraints = false
+        titleLabel.font = UIFont.boldSystemFont(ofSize: 16)
+        contentView.addSubview(titleLabel)
+        
+        artistLabel.translatesAutoresizingMaskIntoConstraints = false
+        artistLabel.font = UIFont.systemFont(ofSize: 14)
+        artistLabel.textColor = .gray
+        contentView.addSubview(artistLabel)
+        
+        NSLayoutConstraint.activate([
+            trackImageView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 10),
+            trackImageView.centerYAnchor.constraint(equalTo: contentView.centerYAnchor),
+            trackImageView.widthAnchor.constraint(equalToConstant: 50),
+            trackImageView.heightAnchor.constraint(equalToConstant: 50),
+            
+            titleLabel.leadingAnchor.constraint(equalTo: trackImageView.trailingAnchor, constant: 10),
+            titleLabel.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -10),
+            titleLabel.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 10),
+            
+            artistLabel.leadingAnchor.constraint(equalTo: trackImageView.trailingAnchor, constant: 10),
+            artistLabel.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -10),
+            artistLabel.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: 5),
+            artistLabel.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -10)
+        ])
+    }
+    
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+    
+    func configure(with track: Track) {
+        titleLabel.text = track.title
+        artistLabel.text = track.artist
+        trackImageView.image = track.image
+    }
+}
