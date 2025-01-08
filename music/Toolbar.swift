@@ -49,4 +49,15 @@ class Toolbar: UIToolbar {
         navigationHandler?.navigateToProfile()
     }
     
+    func setupToolbar(in view: UIView, navigationController: UINavigationController?) {
+        self.navigationHandler = NavigationHandler(navigationController: navigationController)
+        self.translatesAutoresizingMaskIntoConstraints = false
+        view.addSubview(self)
+        
+        NSLayoutConstraint.activate([
+            self.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            self.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            self.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor),
+        ])
+    }
 }

@@ -9,6 +9,9 @@ import UIKit
 
 class ProfileViewController: UIViewController {
     
+    private let miniPlayer = MiniPlayerView()
+    private let toolbar = Toolbar()
+    
     override func viewDidLoad() {
         super.viewDidLoad()
         setupUI()
@@ -18,10 +21,8 @@ class ProfileViewController: UIViewController {
         title = "Profile"
         view.backgroundColor = .systemBackground
         
-        let toolbar = Toolbar()
-        toolbar.navigationHandler = NavigationHandler(navigationController: navigationController)
-        toolbar.translatesAutoresizingMaskIntoConstraints = false
-        view.addSubview(toolbar)
+        toolbar.setupToolbar(in: view, navigationController: navigationController)
+        miniPlayer.setupMiniPlayer(in: view, toolbar: toolbar)
         
 //        let imageView = UIImageView(image: UIImage(named: "profile_photo"))
         let imageView = UIImageView()
@@ -48,10 +49,6 @@ class ProfileViewController: UIViewController {
         view.addSubview(myMusicButton)
         
         NSLayoutConstraint.activate([
-            toolbar.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            toolbar.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            toolbar.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor),
-            
             imageView.centerXAnchor.constraint(equalTo: view.centerXAnchor),
             imageView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 20),
             imageView.widthAnchor.constraint(equalToConstant: 150),

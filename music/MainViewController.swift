@@ -8,6 +8,9 @@
 import UIKit
 
 class MainViewController: UIViewController {
+    
+    private let miniPlayer = MiniPlayerView()
+    private let toolbar = Toolbar()
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -18,17 +21,8 @@ class MainViewController: UIViewController {
         title = "Main"
         view.backgroundColor = .systemBackground
         
-        let toolbar = Toolbar()
-        toolbar.navigationHandler = NavigationHandler(navigationController: navigationController)
-        toolbar.translatesAutoresizingMaskIntoConstraints = false
-        view.addSubview(toolbar)
-        
-        NSLayoutConstraint.activate([
-            toolbar.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            toolbar.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            toolbar.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor),
-        ])
-
+        toolbar.setupToolbar(in: view, navigationController: navigationController)
+        miniPlayer.setupMiniPlayer(in: view, toolbar: toolbar)
     }
     
 }

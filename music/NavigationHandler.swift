@@ -14,9 +14,9 @@ class NavigationHandler {
         self.navigationController = navigationController
     }
     
-    private func navigateTo(_ viewController: UIViewController) {
+    private func navigateTo(_ viewController: UIViewController, _ animated: Bool = false) {
         viewController.navigationItem.hidesBackButton = true
-        navigationController?.pushViewController(viewController, animated: false)
+        navigationController?.pushViewController(viewController, animated: animated)
     }
     
     func navigateToHome() {
@@ -29,6 +29,10 @@ class NavigationHandler {
     
     func navigateToProfile() {
         navigateTo(ProfileViewController())
+    }
+    
+    func navigateToPlayer() {
+        navigateTo(PlayerViewController(), true)
     }
     
 }
