@@ -42,7 +42,8 @@ func loadTracks() async -> [Track] {
             let imageData = try await metadata.first(where: { $0.commonKey?.rawValue == "artwork"})?.load(.dataValue)
             let image = imageData != nil ? UIImage(data: imageData!)! : UIImage(systemName: "music.note")!
             
-            tracks.append(Track(title: title, artist: artist, image: image, url: filePath))
+            let track = Track(title: title, artist: artist, image: image, url: filePath)
+            tracks.append(track)
         }
     } catch {
         print("Error reading files: \(error)\n")
@@ -51,7 +52,6 @@ func loadTracks() async -> [Track] {
     return tracks
 }
 
-
 class TrackCell: UITableViewCell {
     private let titleLabel = UILabel()
     private let artistLabel = UILabel()
@@ -59,21 +59,34 @@ class TrackCell: UITableViewCell {
     
     override init(style: UITableViewCell.CellStyle, reuseIdentifier: String?) {
         super.init(style: style, reuseIdentifier: reuseIdentifier)
-        
-        trackImageView.translatesAutoresizingMaskIntoConstraints = false
+        setupUI()
+    }
+    
+    required init?(coder: NSCoder) {
+        super.init(coder: coder)
+        setupUI()
+    }
+    
+    private func setupUI() {
         trackImageView.contentMode = .scaleAspectFill
         trackImageView.layer.cornerRadius = 8
         trackImageView.clipsToBounds = true
         contentView.addSubview(trackImageView)
         
-        titleLabel.translatesAutoresizingMaskIntoConstraints = false
         titleLabel.font = UIFont.boldSystemFont(ofSize: 16)
         contentView.addSubview(titleLabel)
         
-        artistLabel.translatesAutoresizingMaskIntoConstraints = false
         artistLabel.font = UIFont.systemFont(ofSize: 14)
         artistLabel.textColor = .gray
         contentView.addSubview(artistLabel)
+        
+        setupConstraints()
+    }
+    
+    private func setupConstraints() {
+        trackImageView.translatesAutoresizingMaskIntoConstraints = false
+        titleLabel.translatesAutoresizingMaskIntoConstraints = false
+        artistLabel.translatesAutoresizingMaskIntoConstraints = false
         
         NSLayoutConstraint.activate([
             trackImageView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 10),
@@ -90,10 +103,6 @@ class TrackCell: UITableViewCell {
             artistLabel.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: 5),
             artistLabel.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -10)
         ])
-    }
-    
-    required init?(coder: NSCoder) {
-        fatalError("init(coder:) has not been implemented")
     }
     
     func configure(with track: Track) {

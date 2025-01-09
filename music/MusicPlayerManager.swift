@@ -37,6 +37,10 @@ class MusicPlayerManager: NSObject {
         NotificationCenter.default.post(name: .trackDidChange, object: nil)
     }
     
+    func startPlaying(track: Track) {
+        setCurrentTrack(track)
+    }
+    
     func getCurrentTrack() -> Track? {
         return currentTrack
     }

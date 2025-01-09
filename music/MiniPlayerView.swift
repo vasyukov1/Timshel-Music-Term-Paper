@@ -9,25 +9,42 @@ import UIKit
 
 class MiniPlayerView: UIView {
     
+    private var navigationHandler: NavigationHandler?
     private let tapGestureRecognizer = UITapGestureRecognizer()
+    
+    private var track: Track? {
+        MusicPlayerManager.shared.getCurrentTrack()
+    }
     
     private let titleLabel = UILabel()
     private let artistLabel = UILabel()
     private let trackImageView = UIImageView()
     private let playPauseButton = UIButton(type: .system)
     
-    private var navigationHandler: NavigationHandler?
-    
     override init(frame: CGRect) {
         super.init(frame: frame)
         setupUI()
         setupTapGesture()
+//        isHidden = true
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(updateTrack),
+            name: .trackDidChange,
+            object: nil
+        )
     }
     
     required init?(coder: NSCoder) {
         super.init(coder: coder)
         setupUI()
         setupTapGesture()
+//        isHidden = true
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(updateTrack),
+            name: .trackDidChange,
+            object: nil
+        )
     }
     
     private func setupUI() {
@@ -53,11 +70,6 @@ class MiniPlayerView: UIView {
         addSubview(playPauseButton)
         
         setupConstraints()
-    }
-    
-    private func setupTapGesture() {
-        tapGestureRecognizer.addTarget(self, action: #selector(miniPlayerTapped))
-        self.addGestureRecognizer(tapGestureRecognizer)
     }
     
     private func setupConstraints() {
@@ -87,6 +99,17 @@ class MiniPlayerView: UIView {
         ])
     }
     
+    private func setupTapGesture() {
+        tapGestureRecognizer.addTarget(self, action: #selector(miniPlayerTapped))
+        self.addGestureRecognizer(tapGestureRecognizer)
+    }
+    
+    @objc private func updateTrack() {
+        if let currentTrack = track {
+            configure(with: currentTrack)
+        }
+    }
+    
     @objc private func playPauseTapped() {
         let currentTrack = MusicPlayerManager.shared.getCurrentTrack()!
         MusicPlayerManager.shared.playOrPauseTrack(currentTrack)
@@ -94,28 +117,32 @@ class MiniPlayerView: UIView {
     
     @objc private func miniPlayerTapped() {
         guard let windowScene = UIApplication.shared.connectedScenes.first(where:{ $0.activationState == .foregroundActive }) as? UIWindowScene,
-           let keyWindow = windowScene.windows.first(where: { $0.isKeyWindow }),
+              let keyWindow = windowScene.windows.first(where: { $0.isKeyWindow }),
               let rootViewController = keyWindow.rootViewController else { return }
         
         let playerVC = PlayerViewController()
         
         if let navigationController = (rootViewController as? UINavigationController) ?? rootViewController.navigationController {
-            navigationController.pushViewController(playerVC, animated: true)
+            navigationController.topViewController?.present(playerVC, animated: true)
         } else {
             rootViewController.present(playerVC, animated: true, completion: nil)
         }
     }
     
-    func configure(_ track: Track) {
+    func configure(with track: Track) {
         titleLabel.text = track.title
         artistLabel.text = track.artist
         trackImageView.image = track.image
     }
     
     func setupMiniPlayer(in view: UIView, toolbar: Toolbar) {
-        guard let currentTrack = MusicPlayerManager.shared.getCurrentTrack() else { return }
+        guard let currentTrack = MusicPlayerManager.shared.getCurrentTrack() else {
+            isHidden = true
+            return
+        }
         
-        self.configure(currentTrack)
+        isHidden = false
+        self.configure(with: currentTrack)
         self.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(self)
         
@@ -127,9 +154,4 @@ class MiniPlayerView: UIView {
         ])
     }
     
-//    @objc private func openPlayer() {
-//        if (MusicPlayerManager.shared.getCurrentTrack() != nil) {
-//            navigationHandler?.navigateToPlayer()
-//        }
-//    }
 }

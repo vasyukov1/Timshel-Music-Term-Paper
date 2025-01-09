@@ -19,12 +19,6 @@ class PlayerViewController: UIViewController {
     
     private var track: Track? = MusicPlayerManager.shared.getCurrentTrack()
     
-//    private var track: Track? {
-//        didSet {
-//            configure(with: track!)
-//        }
-//    }
-    
     override func viewDidLoad() {
         super.viewDidLoad()
         setupUI()
@@ -43,40 +37,45 @@ class PlayerViewController: UIViewController {
         
         configure(with: track!)
         
-        titleLabel.translatesAutoresizingMaskIntoConstraints = false
         titleLabel.font = UIFont.systemFont(ofSize: 24)
         view.addSubview(titleLabel)
         
-        artistLabel.translatesAutoresizingMaskIntoConstraints = false
         artistLabel.font = UIFont.systemFont(ofSize: 18)
         artistLabel.textColor = .gray
         view.addSubview(artistLabel)
         
-        trackImageView.translatesAutoresizingMaskIntoConstraints = false
         trackImageView.contentMode = .scaleAspectFill
         trackImageView.layer.cornerRadius = 20
         trackImageView.clipsToBounds = true
         view.addSubview(trackImageView)
         
-        playButton.translatesAutoresizingMaskIntoConstraints = false
         playButton.setImage(UIImage(systemName: "play.fill"), for: .normal)
         playButton.addTarget(self, action: #selector(playOrStopTapped), for: .touchUpInside)
         view.addSubview(playButton)
         
-        previousTrackButton.translatesAutoresizingMaskIntoConstraints = false
         previousTrackButton.setImage(UIImage(systemName: "backward.end.fill"), for: .normal)
         previousTrackButton.addTarget(self, action: #selector(playPreviousTrackTapped), for: .touchUpInside)
         view.addSubview(previousTrackButton)
         
-        nextTrackButton.translatesAutoresizingMaskIntoConstraints = false
         nextTrackButton.setImage(UIImage(systemName: "forward.end.fill"), for: .normal)
         nextTrackButton.addTarget(self, action: #selector(playNextTrackTapped), for: .touchUpInside)
         view.addSubview(nextTrackButton)
         
-        minimizeScreenButton.translatesAutoresizingMaskIntoConstraints = false
         minimizeScreenButton.setImage(UIImage(systemName: "chevron.down"), for: .normal)
         minimizeScreenButton.addTarget(self, action: #selector(minimizeScreenTapped), for: .touchUpInside)
         view.addSubview(minimizeScreenButton)
+        
+        setupConstraints()
+    }
+    
+    private func setupConstraints() {
+        titleLabel.translatesAutoresizingMaskIntoConstraints = false
+        artistLabel.translatesAutoresizingMaskIntoConstraints = false
+        trackImageView.translatesAutoresizingMaskIntoConstraints = false
+        playButton.translatesAutoresizingMaskIntoConstraints = false
+        previousTrackButton.translatesAutoresizingMaskIntoConstraints = false
+        nextTrackButton.translatesAutoresizingMaskIntoConstraints = false
+        minimizeScreenButton.translatesAutoresizingMaskIntoConstraints = false
         
         NSLayoutConstraint.activate([
             minimizeScreenButton.centerXAnchor.constraint(equalTo: view.centerXAnchor),
@@ -92,12 +91,10 @@ class PlayerViewController: UIViewController {
             titleLabel.leadingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.leadingAnchor, constant: 20),
             titleLabel.trailingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.trailingAnchor, constant: -20),
             titleLabel.topAnchor.constraint(equalTo: trackImageView.bottomAnchor, constant: 20),
-//            titleLabel.heightAnchor.constraint(equalToConstant: 20),
             
             artistLabel.leadingAnchor.constraint(equalTo: titleLabel.leadingAnchor),
             artistLabel.trailingAnchor.constraint(equalTo: titleLabel.trailingAnchor),
             artistLabel.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: 10),
-//            artistLabel.heightAnchor.constraint(equalToConstant: 16),
             
             playButton.centerXAnchor.constraint(equalTo: view.centerXAnchor),
             playButton.topAnchor.constraint(equalTo: artistLabel.bottomAnchor, constant: 20),
@@ -113,7 +110,6 @@ class PlayerViewController: UIViewController {
             nextTrackButton.centerYAnchor.constraint(equalTo: playButton.centerYAnchor),
             nextTrackButton.heightAnchor.constraint(equalToConstant: 50),
             nextTrackButton.widthAnchor.constraint(equalToConstant: 50),
-            
         ])
     }
     
@@ -136,11 +132,14 @@ class PlayerViewController: UIViewController {
     }
     
     @objc private func minimizeScreenTapped() {
-        navigationController?.popViewController(animated: true)
+        dismiss(animated: true, completion: nil)
     }
     
     @objc private func updateTrack() {
         track = MusicPlayerManager.shared.getCurrentTrack()
+        if (track != nil) {
+            configure(with: track!)
+        }
     }
     
 }

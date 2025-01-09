@@ -11,7 +11,11 @@ import AVFoundation
 class MyMusicViewController: UIViewController, UITableViewDelegate, UITableViewDataSource, UIDocumentPickerDelegate {
 
     private var tracks = [Track]()
+    
+    private let miniPlayer = MiniPlayerView()
     private let tableView = UITableView()
+    private let toolbar = Toolbar()
+    private let addTrackButton = UIButton()
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -28,29 +32,28 @@ class MyMusicViewController: UIViewController, UITableViewDelegate, UITableViewD
         title = "My Music"
         view.backgroundColor = .systemBackground
         
-        let toolbar = Toolbar()
-        toolbar.navigationHandler = NavigationHandler(navigationController: navigationController)
-        toolbar.translatesAutoresizingMaskIntoConstraints = false
-        view.addSubview(toolbar)
+        toolbar.setupToolbar(in: view, navigationController: navigationController)
         
-        tableView.translatesAutoresizingMaskIntoConstraints = false
         tableView.delegate = self
         tableView.dataSource = self
         tableView.register(TrackCell.self, forCellReuseIdentifier: "TrackCell")
         view.addSubview(tableView)
         
-        let addTrackButton = UIButton()
-        addTrackButton.translatesAutoresizingMaskIntoConstraints = false
+        miniPlayer.setupMiniPlayer(in: view, toolbar: toolbar)
+        
         addTrackButton.setTitle("Add Track", for: .normal)
         addTrackButton.backgroundColor = .systemBlue
         addTrackButton.addTarget(self, action: #selector(addTrack), for: .touchUpInside)
         view.addSubview(addTrackButton)
         
+        setupConstraints()
+    }
+    
+    private func setupConstraints() {
+        tableView.translatesAutoresizingMaskIntoConstraints = false
+        addTrackButton.translatesAutoresizingMaskIntoConstraints = false
+        
         NSLayoutConstraint.activate([
-            toolbar.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            toolbar.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            toolbar.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor),
-            
             addTrackButton.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 15),
             addTrackButton.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -15),
             addTrackButton.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 10),

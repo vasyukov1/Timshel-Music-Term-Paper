@@ -11,6 +11,9 @@ class ProfileViewController: UIViewController {
     
     private let miniPlayer = MiniPlayerView()
     private let toolbar = Toolbar()
+    let nameLabel = UILabel()
+    let imageView = UIImageView()
+    let myMusicButton = UIButton()
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -25,28 +28,30 @@ class ProfileViewController: UIViewController {
         miniPlayer.setupMiniPlayer(in: view, toolbar: toolbar)
         
 //        let imageView = UIImageView(image: UIImage(named: "profile_photo"))
-        let imageView = UIImageView()
         imageView.image = UIImage(systemName: "person.crop.circle")
-        imageView.translatesAutoresizingMaskIntoConstraints = false
         imageView.contentMode = .scaleAspectFill
 //        imageView.layer.cornerRadius = 75
         imageView.tintColor = .systemGray
         imageView.clipsToBounds = true
         view.addSubview(imageView)
         
-        let nameLabel = UILabel()
         nameLabel.text = "Alexander Vasyukov"
         nameLabel.font = UIFont.systemFont(ofSize: 20, weight: .bold)
         nameLabel.textAlignment = .center
-        nameLabel.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(nameLabel)
         
-        let myMusicButton = UIButton()
-        myMusicButton.translatesAutoresizingMaskIntoConstraints = false
         myMusicButton.setTitle("My Music", for: .normal)
         myMusicButton.backgroundColor = .green
         myMusicButton.addTarget(self, action: #selector(navigateToMyMusic), for: .touchUpInside)
         view.addSubview(myMusicButton)
+        
+        setupConstraints()
+    }
+    
+    private func setupConstraints() {
+        imageView.translatesAutoresizingMaskIntoConstraints = false
+        nameLabel.translatesAutoresizingMaskIntoConstraints = false
+        myMusicButton.translatesAutoresizingMaskIntoConstraints = false
         
         NSLayoutConstraint.activate([
             imageView.centerXAnchor.constraint(equalTo: view.centerXAnchor),
@@ -62,7 +67,6 @@ class ProfileViewController: UIViewController {
             myMusicButton.topAnchor.constraint(equalTo: nameLabel.bottomAnchor, constant: 20),
             myMusicButton.heightAnchor.constraint(equalToConstant: 50),
         ])
-        
     }
     
     @objc private func navigateToMyMusic() {
