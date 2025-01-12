@@ -8,7 +8,7 @@
 import UIKit
 
 class NavigationHandler {
-    weak var navigationController: UINavigationController?
+    private weak var navigationController: UINavigationController?
     
     init(navigationController: UINavigationController?) {
         self.navigationController = navigationController
@@ -35,4 +35,7 @@ class NavigationHandler {
         navigateTo(PlayerViewController(), true)
     }
     
+    func navigateToMyMusic() {
+        navigateTo(MyMusicViewController())
+    }
 }

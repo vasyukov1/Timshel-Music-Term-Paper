@@ -11,12 +11,23 @@ import AVFoundation
 class MusicPlayerManager: NSObject {
     static let shared = MusicPlayerManager()
 
-    private var audioPlayer: AVAudioPlayer?
+    var audioPlayer: AVAudioPlayer?
     private var trackQueue: [Track] = []
-    private var currentTrack: Track?
+    private var currentTrack: Track? {
+        didSet {
+            NotificationCenter.default.post(name: .trackDidChange, object: currentTrack)
+            updateMiniPlayer()
+        }
+    }
     private var currentTrackIndex: Int?
+    var lastTrack: Track?
     
-    private let miniPlayer = MiniPlayerView()
+    private var currentTime: TimeInterval {
+        audioPlayer?.currentTime ?? 0
+    }
+    private var duration: TimeInterval {
+        audioPlayer?.duration ?? 0
+    }
     
     private override init() {
         super.init()
@@ -32,65 +43,82 @@ class MusicPlayerManager: NSObject {
         NotificationCenter.default.removeObserver(self)
     }
     
-    func setCurrentTrack(_ track: Track) {
-        currentTrack = track
-        NotificationCenter.default.post(name: .trackDidChange, object: nil)
+    private func updateMiniPlayer() {
+        guard let track = currentTrack else {
+            MiniPlayerView.shared.hide()
+            return
+        }
+        MiniPlayerView.shared.configure(with: track)
+        MiniPlayerView.shared.show()
     }
     
     func startPlaying(track: Track) {
-        setCurrentTrack(track)
+        guard let index = trackQueue.firstIndex(of: track) else { return }
+        MiniPlayerView.shared.show()
+        playTrack(at: index)
     }
     
     func getCurrentTrack() -> Track? {
+        updateMiniPlayer()
         return currentTrack
     }
     
-    func setQueue(traks: [Track]) {
-        if (trackQueue.isEmpty) {
-            trackQueue = traks
-            currentTrackIndex = nil
+    func setQueue(tracks: [Track]) {
+        trackQueue = tracks
+        currentTrackIndex = nil
+    }
+    
+    func playOrPauseTrack(in view: UIView, _ track: Track) {
+        if currentTrack == track {
+            togglePlayPause()
+        } else {
+            startPlaying(track: track)
         }
     }
     
-    func playOrPauseTrack(_ track: Track) {
-        if currentTrack != nil && currentTrack! == track {
-            if let player = audioPlayer, player.isPlaying {
-                player.pause()
-                print("Track paused: \(track.title)")
-            } else {
-                audioPlayer?.play()
-                print("Track resumed: \(track.title)")
-            }
-        } else if let index = trackQueue.firstIndex(of: track) {
-            playTrack(at: index)
+    private func togglePlayPause() {
+        guard let player = audioPlayer else { return }
+        if player.isPlaying {
+            player.pause()
         } else {
-            print("Track not found in queue")
+            player.play()
         }
+        NotificationCenter.default.post(name: .playbackStateDidChange, object: nil)
     }
     
     func playTrack(at index: Int) {
-        guard 0 <= index && index < trackQueue.count else {
-            print("Uncorrect index")
-            return
-        }
-        
-        let track = trackQueue[index]
+        guard 0 <= index && index < trackQueue.count else { return }
         do {
+            let track = trackQueue[index]
             audioPlayer = try AVAudioPlayer(contentsOf: track.url)
             audioPlayer?.delegate = self
             audioPlayer?.play()
-            setCurrentTrack(track)
+            currentTrack = track
             currentTrackIndex = index
-            print("Start playing track: \(track.title)")
+            lastTrack = track
         } catch {
             print("Error playing track: \(error)\n")
         }
         
     }
     
+    func hasPreviousTrack() -> Bool {
+        guard let index = currentTrackIndex else {
+            return false
+        }
+        return index > 0
+    }
+    
+    func hasNextTrack() -> Bool {
+        guard let index = currentTrackIndex else {
+            return false
+        }
+        return index + 1 < trackQueue.count
+    }
+    
     func playNextTrack() {
         guard let index = currentTrackIndex, index + 1 < trackQueue.count else {
-            print("No next track in queue")
+            stopPlayback()
             return
         }
         playTrack(at: index + 1)
@@ -98,7 +126,7 @@ class MusicPlayerManager: NSObject {
     
     func playPreviousTrack() {
         guard let index = currentTrackIndex, index > 0 else {
-            print("No previous track in queue")
+            stopPlayback()
             return
         }
         playTrack(at: index - 1)
@@ -106,10 +134,17 @@ class MusicPlayerManager: NSObject {
     
     func stopPlayback() {
         audioPlayer?.stop()
-        audioPlayer = nil
-        currentTrack = nil
-        currentTrackIndex = nil
-        print("Playback stopped")
+        if let last = lastTrack {
+            currentTrack = last
+            PlayerViewController().configure(with: last)
+            MiniPlayerView.shared.configure(with: last)
+        } else {
+            MiniPlayerView.shared.hide()
+        }
+    }
+    
+    func getPlaybackProgress() -> (currentTime: TimeInterval, duration: TimeInterval) {
+        return (currentTime, duration)
     }
     
     @objc private func handleTrackEnd() {
@@ -125,4 +160,5 @@ extension MusicPlayerManager: AVAudioPlayerDelegate {
 
 extension Notification.Name {
     static let trackDidChange = Notification.Name("trackDidChange")
+    static let playbackStateDidChange = Notification.Name("playbackStateDidChange")
 }

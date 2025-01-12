@@ -7,10 +7,8 @@
 
 import UIKit
 
-class ProfileViewController: UIViewController {
+class ProfileViewController: BaseViewController {
     
-    private let miniPlayer = MiniPlayerView()
-    private let toolbar = Toolbar()
     let nameLabel = UILabel()
     let imageView = UIImageView()
     let myMusicButton = UIButton()
@@ -24,13 +22,8 @@ class ProfileViewController: UIViewController {
         title = "Profile"
         view.backgroundColor = .systemBackground
         
-        toolbar.setupToolbar(in: view, navigationController: navigationController)
-        miniPlayer.setupMiniPlayer(in: view, toolbar: toolbar)
-        
-//        let imageView = UIImageView(image: UIImage(named: "profile_photo"))
         imageView.image = UIImage(systemName: "person.crop.circle")
         imageView.contentMode = .scaleAspectFill
-//        imageView.layer.cornerRadius = 75
         imageView.tintColor = .systemGray
         imageView.clipsToBounds = true
         view.addSubview(imageView)

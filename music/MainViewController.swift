@@ -7,7 +7,7 @@
 
 import UIKit
 
-class MainViewController: UIViewController {
+class MainViewController: BaseViewController {
     
     private let miniPlayer = MiniPlayerView()
     private let toolbar = Toolbar()
@@ -20,9 +20,5 @@ class MainViewController: UIViewController {
     private func setupUI() {
         title = "Main"
         view.backgroundColor = .systemBackground
-        
-        toolbar.setupToolbar(in: view, navigationController: navigationController)
-        miniPlayer.setupMiniPlayer(in: view, toolbar: toolbar)
     }
-    
 }

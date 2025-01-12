@@ -8,22 +8,18 @@
 import UIKit
 import AVFoundation
 
-class MyMusicViewController: UIViewController, UITableViewDelegate, UITableViewDataSource, UIDocumentPickerDelegate {
+class MyMusicViewController: BaseViewController, UITableViewDelegate, UITableViewDataSource, UIDocumentPickerDelegate {
 
     private var tracks = [Track]()
-    
-    private let miniPlayer = MiniPlayerView()
     private let tableView = UITableView()
-    private let toolbar = Toolbar()
     private let addTrackButton = UIButton()
     
     override func viewDidLoad() {
-        super.viewDidLoad()
         setupUI()
-        
+        super.viewDidLoad()
         Task {
             tracks = await loadTracks()
-            MusicPlayerManager.shared.setQueue(traks: self.tracks)
+            MusicPlayerManager.shared.setQueue(tracks: self.tracks)
             tableView.reloadData()
         }
     }
@@ -32,17 +28,14 @@ class MyMusicViewController: UIViewController, UITableViewDelegate, UITableViewD
         title = "My Music"
         view.backgroundColor = .systemBackground
         
-        toolbar.setupToolbar(in: view, navigationController: navigationController)
-        
         tableView.delegate = self
         tableView.dataSource = self
         tableView.register(TrackCell.self, forCellReuseIdentifier: "TrackCell")
         view.addSubview(tableView)
         
-        miniPlayer.setupMiniPlayer(in: view, toolbar: toolbar)
-        
-        addTrackButton.setTitle("Add Track", for: .normal)
+        addTrackButton.setTitle("Add Tracks", for: .normal)
         addTrackButton.backgroundColor = .systemBlue
+        addTrackButton.layer.cornerRadius = 8
         addTrackButton.addTarget(self, action: #selector(addTrack), for: .touchUpInside)
         view.addSubview(addTrackButton)
         
@@ -59,11 +52,10 @@ class MyMusicViewController: UIViewController, UITableViewDelegate, UITableViewD
             addTrackButton.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 10),
             addTrackButton.heightAnchor.constraint(equalToConstant: 40),
             
-            
             tableView.topAnchor.constraint(equalTo: addTrackButton.bottomAnchor),
             tableView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             tableView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            tableView.bottomAnchor.constraint(equalTo: toolbar.topAnchor)
+            tableView.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -50)
         ])
     }
     
@@ -80,7 +72,7 @@ class MyMusicViewController: UIViewController, UITableViewDelegate, UITableViewD
     
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         let selectedTrack = tracks[indexPath.row]
-        MusicPlayerManager.shared.playOrPauseTrack(selectedTrack)
+        MusicPlayerManager.shared.startPlaying(track: selectedTrack)
         tableView.deselectRow(at: indexPath, animated: true)
     }
     
@@ -90,5 +82,4 @@ class MyMusicViewController: UIViewController, UITableViewDelegate, UITableViewD
         documentPicker.allowsMultipleSelection = false
         present(documentPicker, animated: true)
     }
-    
 }

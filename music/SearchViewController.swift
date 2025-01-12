@@ -7,10 +7,7 @@
 
 import UIKit
 
-class SearchViewController: UIViewController {
-    
-    private let miniPlayer = MiniPlayerView()
-    private let toolbar = Toolbar()
+class SearchViewController: BaseViewController {
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -20,9 +17,5 @@ class SearchViewController: UIViewController {
     private func setupUI() {
         title = "Search"
         view.backgroundColor = .systemBackground
-        
-        toolbar.setupToolbar(in: view, navigationController: navigationController)
-        miniPlayer.setupMiniPlayer(in: view, toolbar: toolbar)
-        
     }
 }

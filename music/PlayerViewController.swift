@@ -12,23 +12,40 @@ class PlayerViewController: UIViewController {
     private var titleLabel = UILabel()
     private var artistLabel = UILabel()
     private var trackImageView = UIImageView()
-    private let playButton = UIButton()
+    private let playPauseButton = UIButton()
     private let previousTrackButton = UIButton()
     private let nextTrackButton = UIButton()
     private let minimizeScreenButton = UIButton()
+    private let progressSlider = UISlider()
     
     private var track: Track? = MusicPlayerManager.shared.getCurrentTrack()
+    private let miniPlayer = MiniPlayerView()
     
     override func viewDidLoad() {
         super.viewDidLoad()
         setupUI()
         track = MusicPlayerManager.shared.getCurrentTrack()
+        updatePlayPauseButton()
+        updateTrackButtons()
+        Timer.scheduledTimer(timeInterval: 0.5, target: self, selector: #selector(updateProgressBar), userInfo: nil, repeats: true)
         NotificationCenter.default.addObserver(
             self,
             selector: #selector(updateTrack),
             name: .trackDidChange,
             object: nil
         )
+    }
+    
+    override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
+
+        guard let audioPlayer = MusicPlayerManager.shared.audioPlayer else { return }
+        let progressValue = Float(audioPlayer.currentTime / audioPlayer.duration)
+        progressSlider.value = progressValue
+    }
+    
+    deinit {
+        NotificationCenter.default.removeObserver(self)
     }
     
     private func setupUI() {
@@ -49,9 +66,8 @@ class PlayerViewController: UIViewController {
         trackImageView.clipsToBounds = true
         view.addSubview(trackImageView)
         
-        playButton.setImage(UIImage(systemName: "play.fill"), for: .normal)
-        playButton.addTarget(self, action: #selector(playOrStopTapped), for: .touchUpInside)
-        view.addSubview(playButton)
+        playPauseButton.addTarget(self, action: #selector(playOrStopTapped), for: .touchUpInside)
+        view.addSubview(playPauseButton)
         
         previousTrackButton.setImage(UIImage(systemName: "backward.end.fill"), for: .normal)
         previousTrackButton.addTarget(self, action: #selector(playPreviousTrackTapped), for: .touchUpInside)
@@ -65,17 +81,23 @@ class PlayerViewController: UIViewController {
         minimizeScreenButton.addTarget(self, action: #selector(minimizeScreenTapped), for: .touchUpInside)
         view.addSubview(minimizeScreenButton)
         
+        progressSlider.minimumValue = 0
+        progressSlider.maximumValue = 1
+        progressSlider.addTarget(self, action: #selector(progressSliderValueChanged(_:)), for: .valueChanged)
+        view.addSubview(progressSlider)
+        
         setupConstraints()
     }
     
     private func setupConstraints() {
+        minimizeScreenButton.translatesAutoresizingMaskIntoConstraints = false
+        trackImageView.translatesAutoresizingMaskIntoConstraints = false
         titleLabel.translatesAutoresizingMaskIntoConstraints = false
         artistLabel.translatesAutoresizingMaskIntoConstraints = false
-        trackImageView.translatesAutoresizingMaskIntoConstraints = false
-        playButton.translatesAutoresizingMaskIntoConstraints = false
+        progressSlider.translatesAutoresizingMaskIntoConstraints = false
+        playPauseButton.translatesAutoresizingMaskIntoConstraints = false
         previousTrackButton.translatesAutoresizingMaskIntoConstraints = false
         nextTrackButton.translatesAutoresizingMaskIntoConstraints = false
-        minimizeScreenButton.translatesAutoresizingMaskIntoConstraints = false
         
         NSLayoutConstraint.activate([
             minimizeScreenButton.centerXAnchor.constraint(equalTo: view.centerXAnchor),
@@ -96,18 +118,22 @@ class PlayerViewController: UIViewController {
             artistLabel.trailingAnchor.constraint(equalTo: titleLabel.trailingAnchor),
             artistLabel.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: 10),
             
-            playButton.centerXAnchor.constraint(equalTo: view.centerXAnchor),
-            playButton.topAnchor.constraint(equalTo: artistLabel.bottomAnchor, constant: 20),
-            playButton.heightAnchor.constraint(equalToConstant: 50),
-            playButton.widthAnchor.constraint(equalToConstant: 50),
+            progressSlider.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 20),
+            progressSlider.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -20),
+            progressSlider.topAnchor.constraint(equalTo: artistLabel.bottomAnchor, constant: 20),
             
-            previousTrackButton.trailingAnchor.constraint(equalTo: playButton.leadingAnchor, constant: -30),
-            previousTrackButton.centerYAnchor.constraint(equalTo: playButton.centerYAnchor),
+            playPauseButton.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+            playPauseButton.topAnchor.constraint(equalTo: progressSlider.bottomAnchor, constant: 20),
+            playPauseButton.heightAnchor.constraint(equalToConstant: 50),
+            playPauseButton.widthAnchor.constraint(equalToConstant: 50),
+            
+            previousTrackButton.trailingAnchor.constraint(equalTo: playPauseButton.leadingAnchor, constant: -30),
+            previousTrackButton.centerYAnchor.constraint(equalTo: playPauseButton.centerYAnchor),
             previousTrackButton.heightAnchor.constraint(equalToConstant: 50),
             previousTrackButton.widthAnchor.constraint(equalToConstant: 50),
             
-            nextTrackButton.leadingAnchor.constraint(equalTo: playButton.trailingAnchor, constant: 30),
-            nextTrackButton.centerYAnchor.constraint(equalTo: playButton.centerYAnchor),
+            nextTrackButton.leadingAnchor.constraint(equalTo: playPauseButton.trailingAnchor, constant: 30),
+            nextTrackButton.centerYAnchor.constraint(equalTo: playPauseButton.centerYAnchor),
             nextTrackButton.heightAnchor.constraint(equalToConstant: 50),
             nextTrackButton.widthAnchor.constraint(equalToConstant: 50),
         ])
@@ -117,18 +143,37 @@ class PlayerViewController: UIViewController {
         titleLabel.text = track.title
         artistLabel.text = track.artist
         trackImageView.image = track.image
+        updatePlayPauseButton()
+    }
+    
+    private func updateTrackButtons() {
+        previousTrackButton.isHidden = !MusicPlayerManager.shared.hasPreviousTrack()
+        nextTrackButton.isHidden = !MusicPlayerManager.shared.hasNextTrack()
+    }
+    
+    private func updatePlayPauseButton() {
+        let isPlaying = MusicPlayerManager.shared.audioPlayer?.isPlaying ?? false
+        let buttonImage = UIImage(systemName: isPlaying ? "pause.fill" : "play.fill")
+        playPauseButton.setImage(buttonImage, for: .normal)
     }
     
     @objc private func playOrStopTapped() {
-        MusicPlayerManager.shared.playOrPauseTrack(track!)
+        MusicPlayerManager.shared.playOrPauseTrack(in: view, track!)
+        updatePlayPauseButton()
     }
     
     @objc private func playPreviousTrackTapped() {
+        print("Play previous button is tapped")
         MusicPlayerManager.shared.playPreviousTrack()
+        updateTrackButtons()
+        updatePlayPauseButton()
     }
     
     @objc private func playNextTrackTapped() {
+        print("Play next button is tapped")
         MusicPlayerManager.shared.playNextTrack()
+        updateTrackButtons()
+        updatePlayPauseButton()
     }
     
     @objc private func minimizeScreenTapped() {
@@ -140,7 +185,20 @@ class PlayerViewController: UIViewController {
         if (track != nil) {
             configure(with: track!)
         }
+        progressSlider.value = 0
+        updateTrackButtons()
     }
     
+    @objc private func updateProgressBar() {
+        let progress = MusicPlayerManager.shared.getPlaybackProgress()
+        let progressValue = Float(progress.currentTime / progress.duration)
+        progressSlider.value = progressValue
+    }
+    
+    @objc private func progressSliderValueChanged(_ sender: UISlider) {
+        guard let audioPlayer = MusicPlayerManager.shared.audioPlayer else { return }
+        let newTime = Double(sender.value) * audioPlayer.duration
+        audioPlayer.currentTime = newTime
+    }
 }
 

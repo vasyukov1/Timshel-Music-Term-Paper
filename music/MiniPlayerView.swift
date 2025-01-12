@@ -9,12 +9,10 @@ import UIKit
 
 class MiniPlayerView: UIView {
     
+    static let shared = MiniPlayerView()
+    
     private var navigationHandler: NavigationHandler?
     private let tapGestureRecognizer = UITapGestureRecognizer()
-    
-    private var track: Track? {
-        MusicPlayerManager.shared.getCurrentTrack()
-    }
     
     private let titleLabel = UILabel()
     private let artistLabel = UILabel()
@@ -25,32 +23,34 @@ class MiniPlayerView: UIView {
         super.init(frame: frame)
         setupUI()
         setupTapGesture()
-//        isHidden = true
         NotificationCenter.default.addObserver(
             self,
-            selector: #selector(updateTrack),
+            selector: #selector(updateUI),
             name: .trackDidChange,
+            object: nil
+        )
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(handlePlaybackStateChange),
+            name: .playbackStateDidChange,
             object: nil
         )
     }
     
     required init?(coder: NSCoder) {
-        super.init(coder: coder)
-        setupUI()
-        setupTapGesture()
-//        isHidden = true
-        NotificationCenter.default.addObserver(
-            self,
-            selector: #selector(updateTrack),
-            name: .trackDidChange,
-            object: nil
-        )
+        fatalError("init(coder:) has not been implemented")
+    }
+    
+    deinit {
+        NotificationCenter.default.removeObserver(self)
     }
     
     private func setupUI() {
-        backgroundColor = .systemGray5
-        layer.cornerRadius = 10
-        layer.masksToBounds = true
+        backgroundColor = .systemGray6
+        layer.cornerRadius = 8
+        layer.shadowColor = UIColor.black.cgColor
+        layer.shadowOpacity = 0.1
+        layer.shadowRadius = 5
         
         trackImageView.contentMode = .scaleAspectFit
         trackImageView.clipsToBounds = true
@@ -65,7 +65,6 @@ class MiniPlayerView: UIView {
         artistLabel.textColor = .darkGray
         addSubview(artistLabel)
         
-        playPauseButton.setImage(UIImage(systemName: "play"), for: .normal)
         playPauseButton.addTarget(self, action: #selector(playPauseTapped), for: .touchUpInside)
         addSubview(playPauseButton)
         
@@ -81,21 +80,21 @@ class MiniPlayerView: UIView {
         NSLayoutConstraint.activate([
             trackImageView.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 10),
             trackImageView.centerYAnchor.constraint(equalTo: centerYAnchor),
-            trackImageView.widthAnchor.constraint(equalToConstant: 40),
-            trackImageView.heightAnchor.constraint(equalToConstant: 40),
+            trackImageView.widthAnchor.constraint(equalToConstant: 50),
+            trackImageView.heightAnchor.constraint(equalToConstant: 50),
             
             titleLabel.leadingAnchor.constraint(equalTo: trackImageView.trailingAnchor, constant: 10),
-            titleLabel.topAnchor.constraint(equalTo: topAnchor, constant: 10),
             titleLabel.trailingAnchor.constraint(equalTo: playPauseButton.leadingAnchor, constant: -10),
+            titleLabel.topAnchor.constraint(equalTo: topAnchor, constant: 10),
             
             artistLabel.leadingAnchor.constraint(equalTo: trackImageView.trailingAnchor, constant: 10),
-            artistLabel.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: 5),
             artistLabel.trailingAnchor.constraint(equalTo: playPauseButton.leadingAnchor, constant: -10),
+            artistLabel.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: 5),
             
             playPauseButton.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -10),
             playPauseButton.centerYAnchor.constraint(equalTo: centerYAnchor),
-            playPauseButton.widthAnchor.constraint(equalToConstant: 30),
-            playPauseButton.heightAnchor.constraint(equalToConstant: 30)
+            playPauseButton.widthAnchor.constraint(equalToConstant: 40),
+            playPauseButton.heightAnchor.constraint(equalToConstant: 40)
         ])
     }
     
@@ -104,15 +103,29 @@ class MiniPlayerView: UIView {
         self.addGestureRecognizer(tapGestureRecognizer)
     }
     
-    @objc private func updateTrack() {
-        if let currentTrack = track {
-            configure(with: currentTrack)
-        }
+    private func updatePlayPauseButton() {
+        let isPlaying = MusicPlayerManager.shared.audioPlayer?.isPlaying ?? false
+        let buttonImage = UIImage(systemName: isPlaying ? "pause.fill" : "play.fill")
+        playPauseButton.setImage(buttonImage, for: .normal)
+    }
+    
+    @objc private func handlePlaybackStateChange() {
+        updatePlayPauseButton()
     }
     
     @objc private func playPauseTapped() {
-        let currentTrack = MusicPlayerManager.shared.getCurrentTrack()!
-        MusicPlayerManager.shared.playOrPauseTrack(currentTrack)
+        guard let currentTrack = MusicPlayerManager.shared.getCurrentTrack() else { return }
+        MusicPlayerManager.shared.playOrPauseTrack(in: superview!, currentTrack)
+        updatePlayPauseButton()
+    }
+    
+    @objc private func updateUI() {
+        guard let currentTrack = MusicPlayerManager.shared.getCurrentTrack() else {
+            hide()
+            return
+        }
+        configure(with: currentTrack)
+        show()
     }
     
     @objc private func miniPlayerTapped() {
@@ -133,25 +146,16 @@ class MiniPlayerView: UIView {
         titleLabel.text = track.title
         artistLabel.text = track.artist
         trackImageView.image = track.image
+        updatePlayPauseButton()
     }
     
-    func setupMiniPlayer(in view: UIView, toolbar: Toolbar) {
-        guard let currentTrack = MusicPlayerManager.shared.getCurrentTrack() else {
-            isHidden = true
-            return
-        }
-        
+    func show() {
         isHidden = false
-        self.configure(with: currentTrack)
-        self.translatesAutoresizingMaskIntoConstraints = false
-        view.addSubview(self)
-        
-        NSLayoutConstraint.activate([
-            self.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 10),
-            self.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -10),
-            self.bottomAnchor.constraint(equalTo: toolbar.topAnchor, constant: -10),
-            self.heightAnchor.constraint(equalToConstant: 60)
-        ])
+        alpha = 1
     }
     
+    func hide() {
+        isHidden = true
+        alpha = 0
+    }
 }
