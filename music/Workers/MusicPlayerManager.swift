@@ -1,10 +1,3 @@
-//
-//  MusicPlayerManager.swift
-//  music
-//
-//  Created by Alexander Vasyukov on 8/1/25.
-//
-
 import UIKit
 import AVFoundation
 
@@ -12,14 +5,14 @@ class MusicPlayerManager: NSObject {
     static let shared = MusicPlayerManager()
 
     var audioPlayer: AVAudioPlayer?
-    private var trackQueue: [Track] = []
+    var trackQueue: [Track] = []
     private var currentTrack: Track? {
         didSet {
             NotificationCenter.default.post(name: .trackDidChange, object: currentTrack)
             updateMiniPlayer()
         }
     }
-    private var currentTrackIndex: Int?
+    var currentTrackIndex: Int?
     var lastTrack: Track?
     
     private var currentTime: TimeInterval {
@@ -63,9 +56,13 @@ class MusicPlayerManager: NSObject {
         return currentTrack
     }
     
-    func setQueue(tracks: [Track]) {
+    func setQueue(tracks: [Track], startIndex: Int? = nil) {
         trackQueue = tracks
-        currentTrackIndex = nil
+        currentTrackIndex = startIndex
+        NotificationCenter.default.post(name: .trackDidChange, object: nil)
+//        if let index = startIndex {
+//            playTrack(at: index)
+//        }
     }
     
     func playOrPauseTrack(in view: UIView, _ track: Track) {
@@ -96,6 +93,7 @@ class MusicPlayerManager: NSObject {
             currentTrack = track
             currentTrackIndex = index
             lastTrack = track
+            NotificationCenter.default.post(name: .trackDidChange, object: nil)
         } catch {
             print("Error playing track: \(error)\n")
         }

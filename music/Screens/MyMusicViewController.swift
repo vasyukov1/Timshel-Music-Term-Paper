@@ -1,10 +1,3 @@
-//
-//  MyMusicViewController.swift
-//  music
-//
-//  Created by Alexander Vasyukov on 7/1/25.
-//
-
 import UIKit
 import AVFoundation
 
@@ -71,8 +64,8 @@ class MyMusicViewController: BaseViewController, UITableViewDelegate, UITableVie
     }
     
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
-        let selectedTrack = tracks[indexPath.row]
-        MusicPlayerManager.shared.startPlaying(track: selectedTrack)
+        MusicPlayerManager.shared.setQueue(tracks: Array(tracks[indexPath.row...]), startIndex: 0)
+        MusicPlayerManager.shared.playTrack(at: 0)
         tableView.deselectRow(at: indexPath, animated: true)
     }
     
@@ -81,5 +74,42 @@ class MyMusicViewController: BaseViewController, UITableViewDelegate, UITableVie
         documentPicker.delegate = self
         documentPicker.allowsMultipleSelection = false
         present(documentPicker, animated: true)
+    }
+    
+    func documentPicker(_ controller: UIDocumentPickerViewController, didPickDocumentsAt urls: [URL]) {
+        guard let url = urls.first else { return }
+        
+        if url.startAccessingSecurityScopedResource() {
+            defer { url.stopAccessingSecurityScopedResource() }
+            
+            let asset = AVURLAsset(url: url)
+            Task {
+                do {
+                    let metadata = try await asset.load(.commonMetadata)
+                    
+                    let title = try await metadata.first(where: { $0.commonKey?.rawValue == "title" })?.load(.stringValue) ?? "Unknown Title"
+                    let artist = try await metadata.first(where: { $0.commonKey?.rawValue == "artist"})?.load(.stringValue) ?? "Unknown Artist"
+                    
+                    let imageData = try await metadata.first(where: { $0.commonKey?.rawValue == "artwork"})?.load(.dataValue)
+                    let image = imageData != nil ? UIImage(data: imageData!)! : UIImage(systemName: "music.note")!
+                    
+                    let newTrack = Track(title: title, artist: artist, image: image, url: url)
+                    if !tracks.contains(newTrack) {
+                        tracks.append(newTrack)
+                        MusicPlayerManager.shared.setQueue(tracks: self.tracks)
+                        tableView.reloadData()
+                    } else {
+                        print("Track already exists in the list.")
+                    }
+                    
+                } catch {
+                    print("Failed to process track: \(error)")
+                }
+            }
+        }
+    }
+    
+    func documentPickerWasCancelled(_ controller: UIDocumentPickerViewController) {
+        print("Document picker was cancelled.")
     }
 }

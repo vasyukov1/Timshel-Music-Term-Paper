@@ -1,14 +1,7 @@
-//
-//  BaseViewController.swift
-//  music
-//
-//  Created by Alexander Vasyukov on 11/1/25.
-//
-
 import UIKit
 
 class BaseViewController: UIViewController {
-    private let toolbar = Toolbar()
+    let toolbar = Toolbar()
     private let miniPlayer = MiniPlayerView.shared
     private var track = MusicPlayerManager.shared.getCurrentTrack()
     

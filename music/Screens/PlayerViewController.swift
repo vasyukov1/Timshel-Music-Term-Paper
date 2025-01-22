@@ -17,6 +17,7 @@ class PlayerViewController: UIViewController {
     private let nextTrackButton = UIButton()
     private let minimizeScreenButton = UIButton()
     private let progressSlider = UISlider()
+    private let queueButton = UIButton()
     
     private var track: Track? = MusicPlayerManager.shared.getCurrentTrack()
     private let miniPlayer = MiniPlayerView()
@@ -86,6 +87,10 @@ class PlayerViewController: UIViewController {
         progressSlider.addTarget(self, action: #selector(progressSliderValueChanged(_:)), for: .valueChanged)
         view.addSubview(progressSlider)
         
+        queueButton.setImage(UIImage(systemName: "line.3.horizontal"), for: .normal)
+        queueButton.addTarget(self, action: #selector(queueButtonTapped), for: .touchUpInside)
+        view.addSubview(queueButton)
+        
         setupConstraints()
     }
     
@@ -98,6 +103,7 @@ class PlayerViewController: UIViewController {
         playPauseButton.translatesAutoresizingMaskIntoConstraints = false
         previousTrackButton.translatesAutoresizingMaskIntoConstraints = false
         nextTrackButton.translatesAutoresizingMaskIntoConstraints = false
+        queueButton.translatesAutoresizingMaskIntoConstraints = false
         
         NSLayoutConstraint.activate([
             minimizeScreenButton.centerXAnchor.constraint(equalTo: view.centerXAnchor),
@@ -136,6 +142,11 @@ class PlayerViewController: UIViewController {
             nextTrackButton.centerYAnchor.constraint(equalTo: playPauseButton.centerYAnchor),
             nextTrackButton.heightAnchor.constraint(equalToConstant: 50),
             nextTrackButton.widthAnchor.constraint(equalToConstant: 50),
+            
+            queueButton.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -20),
+            queueButton.topAnchor.constraint(equalTo: playPauseButton.bottomAnchor, constant: 20),
+            queueButton.heightAnchor.constraint(equalToConstant: 40),
+            queueButton.widthAnchor.constraint(equalToConstant: 40),
         ])
     }
     
@@ -199,6 +210,13 @@ class PlayerViewController: UIViewController {
         guard let audioPlayer = MusicPlayerManager.shared.audioPlayer else { return }
         let newTime = Double(sender.value) * audioPlayer.duration
         audioPlayer.currentTime = newTime
+    }
+    
+    @objc private func queueButtonTapped() {
+        let trackQueueVC = TrackQueueViewController()
+        trackQueueVC.modalPresentationStyle = .overFullScreen
+        trackQueueVC.modalTransitionStyle = .coverVertical
+        present(trackQueueVC, animated: true)
     }
 }
 

@@ -52,6 +52,13 @@ func loadTracks() async -> [Track] {
     return tracks
 }
 
+func getTopTracks() -> [Track] {
+    return [
+        // FIXME
+        Track(title: "Popular Song 1", artist: "Artist 1", image: UIImage(systemName: "music.note")!, url: URL(filePath: ""))
+    ]
+}
+
 class TrackCell: UITableViewCell {
     private let titleLabel = UILabel()
     private let artistLabel = UILabel()
