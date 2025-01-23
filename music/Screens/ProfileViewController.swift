@@ -1,17 +1,9 @@
-//
-//  ProfileViewController.swift
-//  music
-//
-//  Created by Alexander Vasyukov on 7/1/25.
-//
-
 import UIKit
 
 class ProfileViewController: BaseViewController {
     
     let nameLabel = UILabel()
     let imageView = UIImageView()
-    let myMusicButton = UIButton()
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -33,18 +25,12 @@ class ProfileViewController: BaseViewController {
         nameLabel.textAlignment = .center
         view.addSubview(nameLabel)
         
-        myMusicButton.setTitle("My Music", for: .normal)
-        myMusicButton.backgroundColor = .green
-        myMusicButton.addTarget(self, action: #selector(navigateToMyMusic), for: .touchUpInside)
-        view.addSubview(myMusicButton)
-        
         setupConstraints()
     }
     
     private func setupConstraints() {
         imageView.translatesAutoresizingMaskIntoConstraints = false
         nameLabel.translatesAutoresizingMaskIntoConstraints = false
-        myMusicButton.translatesAutoresizingMaskIntoConstraints = false
         
         NSLayoutConstraint.activate([
             imageView.centerXAnchor.constraint(equalTo: view.centerXAnchor),
@@ -55,16 +41,6 @@ class ProfileViewController: BaseViewController {
             nameLabel.centerXAnchor.constraint(equalTo: view.centerXAnchor),
             nameLabel.topAnchor.constraint(equalTo: imageView.bottomAnchor, constant: 20),
             
-            myMusicButton.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 20),
-            myMusicButton.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -20),
-            myMusicButton.topAnchor.constraint(equalTo: nameLabel.bottomAnchor, constant: 20),
-            myMusicButton.heightAnchor.constraint(equalToConstant: 50),
         ])
-    }
-    
-    @objc private func navigateToMyMusic() {
-        let myMusicVC = MyMusicViewController()
-        myMusicVC.navigationItem.hidesBackButton = true
-        navigationController?.pushViewController(myMusicVC, animated: false)
     }
 }

@@ -1,10 +1,3 @@
-//
-//  Track.swift
-//  music
-//
-//  Created by Alexander Vasyukov on 7/1/25.
-//
-
 import UIKit
 import AVFoundation
 
@@ -118,3 +111,66 @@ class TrackCell: UITableViewCell {
         trackImageView.image = track.image
     }
 }
+
+class TrackCollectionCell: UICollectionViewCell {
+    private let titleLabel = UILabel()
+    private let artistLabel = UILabel()
+    private let trackImageView = UIImageView()
+
+    override init(frame: CGRect) {
+        super.init(frame: frame)
+        setupUI()
+    }
+
+    required init?(coder: NSCoder) {
+        super.init(coder: coder)
+        setupUI()
+    }
+
+    private func setupUI() {
+        trackImageView.contentMode = .scaleAspectFill
+        trackImageView.layer.cornerRadius = 8
+        trackImageView.clipsToBounds = true
+        contentView.addSubview(trackImageView)
+
+        titleLabel.font = UIFont.boldSystemFont(ofSize: 14)
+        titleLabel.numberOfLines = 1
+        contentView.addSubview(titleLabel)
+
+        artistLabel.font = UIFont.systemFont(ofSize: 12)
+        artistLabel.textColor = .gray
+        artistLabel.numberOfLines = 1
+        contentView.addSubview(artistLabel)
+
+        setupConstraints()
+    }
+
+    private func setupConstraints() {
+        trackImageView.translatesAutoresizingMaskIntoConstraints = false
+        titleLabel.translatesAutoresizingMaskIntoConstraints = false
+        artistLabel.translatesAutoresizingMaskIntoConstraints = false
+
+        NSLayoutConstraint.activate([
+            trackImageView.topAnchor.constraint(equalTo: contentView.topAnchor),
+            trackImageView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor),
+            trackImageView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor),
+            trackImageView.heightAnchor.constraint(equalTo: trackImageView.widthAnchor),
+
+            titleLabel.topAnchor.constraint(equalTo: trackImageView.bottomAnchor, constant: 4),
+            titleLabel.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 4),
+            titleLabel.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -4),
+
+            artistLabel.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: 2),
+            artistLabel.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 4),
+            artistLabel.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -4),
+            artistLabel.bottomAnchor.constraint(lessThanOrEqualTo: contentView.bottomAnchor, constant: -4)
+        ])
+    }
+
+    func configure(with track: Track) {
+        titleLabel.text = track.title
+        artistLabel.text = track.artist
+        trackImageView.image = track.image
+    }
+}
+
