@@ -133,13 +133,11 @@ class TrackCollectionCell: UICollectionViewCell {
         trackImageView.clipsToBounds = true
         contentView.addSubview(trackImageView)
 
-        titleLabel.font = UIFont.boldSystemFont(ofSize: 14)
-        titleLabel.numberOfLines = 1
+        titleLabel.font = UIFont.boldSystemFont(ofSize: 16)
         contentView.addSubview(titleLabel)
 
-        artistLabel.font = UIFont.systemFont(ofSize: 12)
+        artistLabel.font = UIFont.systemFont(ofSize: 14)
         artistLabel.textColor = .gray
-        artistLabel.numberOfLines = 1
         contentView.addSubview(artistLabel)
 
         setupConstraints()
@@ -151,19 +149,19 @@ class TrackCollectionCell: UICollectionViewCell {
         artistLabel.translatesAutoresizingMaskIntoConstraints = false
 
         NSLayoutConstraint.activate([
-            trackImageView.topAnchor.constraint(equalTo: contentView.topAnchor),
-            trackImageView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor),
-            trackImageView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor),
-            trackImageView.heightAnchor.constraint(equalTo: trackImageView.widthAnchor),
-
-            titleLabel.topAnchor.constraint(equalTo: trackImageView.bottomAnchor, constant: 4),
-            titleLabel.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 4),
-            titleLabel.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -4),
-
-            artistLabel.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: 2),
-            artistLabel.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 4),
-            artistLabel.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -4),
-            artistLabel.bottomAnchor.constraint(lessThanOrEqualTo: contentView.bottomAnchor, constant: -4)
+            trackImageView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 10),
+            trackImageView.centerYAnchor.constraint(equalTo: contentView.centerYAnchor),
+            trackImageView.widthAnchor.constraint(equalToConstant: 50),
+            trackImageView.heightAnchor.constraint(equalToConstant: 50),
+            
+            titleLabel.leadingAnchor.constraint(equalTo: trackImageView.trailingAnchor, constant: 10),
+            titleLabel.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -10),
+            titleLabel.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 10),
+            
+            artistLabel.leadingAnchor.constraint(equalTo: trackImageView.trailingAnchor, constant: 10),
+            artistLabel.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -10),
+            artistLabel.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: 5),
+            artistLabel.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -10)
         ])
     }
 

@@ -60,9 +60,6 @@ class MusicPlayerManager: NSObject {
         trackQueue = tracks
         currentTrackIndex = startIndex
         NotificationCenter.default.post(name: .trackDidChange, object: nil)
-//        if let index = startIndex {
-//            playTrack(at: index)
-//        }
     }
     
     func playOrPauseTrack(in view: UIView, _ track: Track) {

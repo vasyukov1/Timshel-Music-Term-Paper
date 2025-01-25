@@ -50,10 +50,9 @@ class SearchViewController: BaseViewController {
     }
     
     private func loadData() {
-        userTracks = [
-            Track(title: "Popular Song 1", artist: "Artist 1", image: UIImage(systemName: "music.note")!, url: URL(filePath: "")),
-            Track(title: "Popular Song 2", artist: "Artist 2", image: UIImage(systemName: "music.note")!, url: URL(filePath: ""))
-        ]
+        Task {
+            userTracks = await loadTracks()
+        }
         
         popularTracks = getTopTracks()
         

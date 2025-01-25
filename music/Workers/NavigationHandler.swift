@@ -1,10 +1,3 @@
-//
-//  NavigationHandler.swift
-//  music
-//
-//  Created by Alexander Vasyukov on 7/1/25.
-//
-
 import UIKit
 
 class NavigationHandler {

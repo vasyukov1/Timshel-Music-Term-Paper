@@ -6,13 +6,13 @@ class MainViewController: BaseViewController {
     private let myTracksLabel = UILabel()
     private var myTracksCollectionView: UICollectionView = {
         let tracksLayout = UICollectionViewFlowLayout()
-        tracksLayout.scrollDirection = .vertical
-        tracksLayout.itemSize = CGSize(width: 150, height: 150)
+        tracksLayout.scrollDirection = .horizontal
+        tracksLayout.itemSize = CGSize(width: 230, height: 60)
         tracksLayout.minimumInteritemSpacing = 10
         tracksLayout.minimumLineSpacing = 10
         return UICollectionView(frame: .zero, collectionViewLayout: tracksLayout)
     }()
-    private var myTracks: [Track] = PlaylistManager.shared.getRecentTracks()
+    private var myTracks = [Track]()
     
     private let playlistsLabel = UILabel()
     private var playlistsCollectionView: UICollectionView = {
@@ -23,14 +23,6 @@ class MainViewController: BaseViewController {
         return UICollectionView(frame: .zero, collectionViewLayout: playlistLayout)
     }()
     private var playlists: [Playlist] = PlaylistManager.shared.getPlaylists()
-
-    
-    
-//    override init(nibName nibNameOrNil: String?, bundle nibBundleOrNil: Bundle?) {
-
-//        
-//        super.init(nibName: nibNameOrNil, bundle: nibBundleOrNil)
-//    }
 
     override func viewDidLoad() {
         setupUI()
@@ -88,16 +80,16 @@ class MainViewController: BaseViewController {
             myTracksLabel.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 15),
             
             myTracksCollectionView.topAnchor.constraint(equalTo: myTracksLabel.bottomAnchor, constant: 10),
-            myTracksCollectionView.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 15),
-            myTracksCollectionView.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -15),
-            myTracksCollectionView.heightAnchor.constraint(equalToConstant: 300),
+            myTracksCollectionView.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 10),
+            myTracksCollectionView.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -10),
+            myTracksCollectionView.heightAnchor.constraint(equalToConstant: 200),
                         
             playlistsLabel.topAnchor.constraint(equalTo: myTracksCollectionView.bottomAnchor, constant: 20),
             playlistsLabel.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 15),
                         
             playlistsCollectionView.topAnchor.constraint(equalTo: playlistsLabel.bottomAnchor, constant: 10),
-            playlistsCollectionView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            playlistsCollectionView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            playlistsCollectionView.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 10),
+            playlistsCollectionView.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -10),
             playlistsCollectionView.heightAnchor.constraint(equalToConstant: 200),
         ])
     }
@@ -109,10 +101,15 @@ class MainViewController: BaseViewController {
     }
     
     private func loadRecentTracksAndPlaylists() {
-        myTracks = Array(MusicPlayerManager.shared.trackQueue.prefix(6))
         playlists = PlaylistManager.shared.getPlaylists()
-        myTracksCollectionView.reloadData()
+        
         playlistsCollectionView.reloadData()
+        Task {
+            myTracks = await loadTracks()
+            MusicPlayerManager.shared.setQueue(tracks: myTracks)
+            myTracks = Array(myTracks.prefix(9))
+            myTracksCollectionView.reloadData()
+        }
     }
     
 }
@@ -148,8 +145,8 @@ extension MainViewController: UICollectionViewDelegate, UICollectionViewDataSour
         } else {
             let playlist = playlists[indexPath.row]
             let playlistVC = PlaylistViewController(playlist: playlist)
-            collectionView.deselectItem(at: indexPath, animated: true)
             navigationController?.pushViewController(playlistVC, animated: false)
+            collectionView.deselectItem(at: indexPath, animated: true)
         }
     }
 }

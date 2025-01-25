@@ -1,11 +1,5 @@
-//
-//  PlayerViewController.swift
-//  music
-//
-//  Created by Alexander Vasyukov on 8/1/25.
-//
-
 import UIKit
+import CoreImage
 
 class PlayerViewController: UIViewController {
     
@@ -51,7 +45,6 @@ class PlayerViewController: UIViewController {
     
     private func setupUI() {
         title = "Player"
-        view.backgroundColor = .lightGray
         
         configure(with: track!)
         
@@ -144,9 +137,9 @@ class PlayerViewController: UIViewController {
             nextTrackButton.widthAnchor.constraint(equalToConstant: 50),
             
             queueButton.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -20),
-            queueButton.topAnchor.constraint(equalTo: playPauseButton.bottomAnchor, constant: 20),
-            queueButton.heightAnchor.constraint(equalToConstant: 40),
-            queueButton.widthAnchor.constraint(equalToConstant: 40),
+            queueButton.topAnchor.constraint(equalTo: playPauseButton.topAnchor),
+            queueButton.heightAnchor.constraint(equalToConstant: 50),
+            queueButton.widthAnchor.constraint(equalToConstant: 50),
         ])
     }
     
@@ -154,6 +147,11 @@ class PlayerViewController: UIViewController {
         titleLabel.text = track.title
         artistLabel.text = track.artist
         trackImageView.image = track.image
+        if let dominantColor = track.image.dominnatColor() {
+            UIView.animate(withDuration: 0.5) {
+                self.view.backgroundColor = dominantColor
+            }
+        }
         updatePlayPauseButton()
     }
     
@@ -216,7 +214,31 @@ class PlayerViewController: UIViewController {
         let trackQueueVC = TrackQueueViewController()
         trackQueueVC.modalPresentationStyle = .overFullScreen
         trackQueueVC.modalTransitionStyle = .coverVertical
-        present(trackQueueVC, animated: true)
+        present(trackQueueVC, animated: false)
     }
 }
 
+extension UIImage {
+    func dominnatColor() -> UIColor? {
+        guard let ciImage = CIImage(image: self) else { return nil }
+        
+        let context = CIContext()
+        let parameters = [
+            kCIInputImageKey: ciImage,
+            kCIInputExtentKey: CIVector(cgRect: ciImage.extent)
+        ]
+        
+        guard let filter = CIFilter(name: "CIAreaAverage", parameters: parameters) else { return nil }
+        guard let outputImage = filter.outputImage else { return nil }
+                
+        let bitmap = context.createCGImage(outputImage, from: outputImage.extent)
+        let rawData = bitmap?.dataProvider?.data
+        let data = CFDataGetBytePtr(rawData)
+        
+        let r = CGFloat(data![0]) / 255.0
+        let g = CGFloat(data![1]) / 255.0
+        let b = CGFloat(data![2]) / 255.0
+        
+        return UIColor(red: r, green: g, blue: b, alpha: 1.0)
+    }
+}

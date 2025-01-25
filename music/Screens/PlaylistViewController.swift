@@ -4,6 +4,12 @@ class PlaylistViewController: BaseViewController {
     
     private let playlist: Playlist
     private let tableView = UITableView()
+    private let returnButton: UIButton = {
+        let button = UIButton(type: .system)
+        button.setTitle("Back", for: .normal)
+        button.addTarget(PlaylistViewController.self, action: #selector(backButtonTapped), for: .touchUpInside)
+        return button
+    }()
     
     init(playlist: Playlist) {
         self.playlist = playlist
@@ -27,21 +33,29 @@ class PlaylistViewController: BaseViewController {
         tableView.delegate = self
         tableView.register(TrackCell.self, forCellReuseIdentifier: "TrackCell")
         view.addSubview(tableView)
+        view.addSubview(returnButton)
         
         setupConstraints()
     }
     
     private func setupConstraints() {
+        returnButton.translatesAutoresizingMaskIntoConstraints = false
         tableView.translatesAutoresizingMaskIntoConstraints = false
         
         NSLayoutConstraint.activate([
-            tableView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
+            returnButton.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 20),
+            returnButton.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 20),
+            
+            tableView.topAnchor.constraint(equalTo: returnButton.bottomAnchor, constant: 20),
             tableView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             tableView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             tableView.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -100)
         ])
     }
     
+    @objc private func backButtonTapped() {
+        navigationController?.popViewController(animated: false)
+    }
 }
 
 extension PlaylistViewController: UITableViewDataSource, UITableViewDelegate {

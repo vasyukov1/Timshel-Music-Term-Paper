@@ -20,7 +20,6 @@ class TrackQueueViewController: UIViewController, UITableViewDataSource, UITable
     }
     
     private func setupUI() {
-        print("TrackQueueViewController is setuped")
         title = "Queue"
         view.backgroundColor = .systemBackground
         
@@ -60,7 +59,9 @@ class TrackQueueViewController: UIViewController, UITableViewDataSource, UITable
         let cell = tableView.dequeueReusableCell(withIdentifier: "TrackCell", for: indexPath) as! TrackCell
         let track = trackQueue[indexPath.row]
         cell.configure(with: track)
-        cell.backgroundColor = indexPath.row == currentTrackIndex ? .lightGray : .clear
+        if track == MusicPlayerManager.shared.getCurrentTrack() {
+            cell.backgroundColor = .lightGray
+        }
         return cell
     }
     
@@ -79,6 +80,6 @@ class TrackQueueViewController: UIViewController, UITableViewDataSource, UITable
     }
     
     @objc private func returnButtonTapped() {
-        dismiss(animated: true)
+        dismiss(animated: false)
     }
 }

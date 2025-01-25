@@ -10,11 +10,18 @@ class MyMusicViewController: BaseViewController, UITableViewDelegate, UITableVie
     override func viewDidLoad() {
         setupUI()
         super.viewDidLoad()
+        
+        NotificationCenter.default.addObserver(self, selector: #selector(trackDidChange), name: .trackDidChange, object: nil)
+
         Task {
             tracks = await loadTracks()
             MusicPlayerManager.shared.setQueue(tracks: self.tracks)
             tableView.reloadData()
         }
+    }
+    
+    deinit {
+        NotificationCenter.default.removeObserver(self)
     }
     
     private func setupUI() {
@@ -60,13 +67,23 @@ class MyMusicViewController: BaseViewController, UITableViewDelegate, UITableVie
         let cell = tableView.dequeueReusableCell(withIdentifier: "TrackCell", for: indexPath) as! TrackCell
         let track = tracks[indexPath.row]
         cell.configure(with: track)
+        if track == MusicPlayerManager.shared.getCurrentTrack() {
+            cell.backgroundColor = .systemGray2
+        } else {
+            cell.backgroundColor = .clear
+        }
         return cell
     }
     
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         MusicPlayerManager.shared.setQueue(tracks: Array(tracks[indexPath.row...]), startIndex: 0)
         MusicPlayerManager.shared.playTrack(at: 0)
+        tableView.reloadData()
         tableView.deselectRow(at: indexPath, animated: true)
+    }
+    
+    @objc private func trackDidChange() {
+        tableView.reloadData()
     }
     
     @objc private func addTrack() {
