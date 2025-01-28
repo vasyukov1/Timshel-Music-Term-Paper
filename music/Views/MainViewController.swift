@@ -1,6 +1,10 @@
 import UIKit
+import Combine
 
 class MainViewController: BaseViewController {
+    
+    private let viewModel = MainViewModel()
+    private var cancellables = Set<AnyCancellable>()
     
     private let myMusicButton = UIButton()
     private let myTracksLabel = UILabel()
@@ -12,7 +16,6 @@ class MainViewController: BaseViewController {
         tracksLayout.minimumLineSpacing = 10
         return UICollectionView(frame: .zero, collectionViewLayout: tracksLayout)
     }()
-    private var myTracks = [Track]()
     
     private let playlistsLabel = UILabel()
     private var playlistsCollectionView: UICollectionView = {
@@ -22,12 +25,29 @@ class MainViewController: BaseViewController {
         playlistLayout.minimumLineSpacing = 10
         return UICollectionView(frame: .zero, collectionViewLayout: playlistLayout)
     }()
-    private var playlists: [Playlist] = PlaylistManager.shared.getPlaylists()
 
     override func viewDidLoad() {
         setupUI()
         super.viewDidLoad()
-        loadRecentTracksAndPlaylists()
+        bindViewModel()
+        viewModel.loadMyTracksAndPlaylists()
+    }
+    
+    private func bindViewModel() {
+        viewModel.$myTracks
+            .receive(on: RunLoop.main)
+            .sink { [weak self] tracks in
+                self?.myTracksCollectionView.reloadData()
+            }
+            .store(in: &cancellables)
+        
+        viewModel.$myPlaylists
+            .receive(on: RunLoop.main)
+            .sink { [weak self] playlists in
+                self?.playlistsCollectionView.reloadData()
+            }
+            .store(in: &cancellables)
+        
     }
     
     private func setupUI() {
@@ -100,38 +120,26 @@ class MainViewController: BaseViewController {
         navigationController?.pushViewController(myMusicVC, animated: false)
     }
     
-    private func loadRecentTracksAndPlaylists() {
-        playlists = PlaylistManager.shared.getPlaylists()
-        
-        playlistsCollectionView.reloadData()
-        Task {
-            myTracks = await loadTracks()
-            MusicPlayerManager.shared.setQueue(tracks: myTracks)
-            myTracks = Array(myTracks.prefix(9))
-            myTracksCollectionView.reloadData()
-        }
-    }
-    
 }
 
 extension MainViewController: UICollectionViewDelegate, UICollectionViewDataSource {
     func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
         if collectionView == myTracksCollectionView {
-            return myTracks.count
+            return viewModel.getMyTracks().count
         } else {
-            return playlists.count
+            return viewModel.getMyPlaylists().count
         }
     }
     
     func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
         if collectionView == myTracksCollectionView {
             let cell = collectionView.dequeueReusableCell(withReuseIdentifier: "TrackCollectionCell", for: indexPath) as! TrackCollectionCell
-            let track = myTracks[indexPath.row]
+            let track = viewModel.myTracks[indexPath.row]
             cell.configure(with: track)
             return cell
         } else {
             let cell = collectionView.dequeueReusableCell(withReuseIdentifier: "PlaylistCell", for: indexPath) as! PlaylistCell
-            let playlist = playlists[indexPath.row]
+            let playlist = viewModel.myPlaylists[indexPath.row]
             cell.configure(with: playlist)
             return cell
         }
@@ -139,12 +147,13 @@ extension MainViewController: UICollectionViewDelegate, UICollectionViewDataSour
     
     func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
         if collectionView == myTracksCollectionView {
-            MusicPlayerManager.shared.setQueue(tracks: Array(myTracks[indexPath.row...]), startIndex: 0)
+            MusicPlayerManager.shared.setQueue(tracks: Array(viewModel.myTracks[indexPath.row...]), startIndex: 0)
             MusicPlayerManager.shared.playTrack(at: 0)
             collectionView.deselectItem(at: indexPath, animated: true)
         } else {
-            let playlist = playlists[indexPath.row]
+            let playlist = viewModel.myPlaylists[indexPath.row]
             let playlistVC = PlaylistViewController(playlist: playlist)
+            navigationItem.hidesBackButton = true
             navigationController?.pushViewController(playlistVC, animated: false)
             collectionView.deselectItem(at: indexPath, animated: true)
         }

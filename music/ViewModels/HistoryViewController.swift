@@ -1,26 +1,29 @@
 import UIKit
 
-class TrackQueueViewController: UIViewController, UITableViewDataSource, UITableViewDelegate {
+class HistoryViewController: UIViewController, UITableViewDelegate, UITableViewDataSource {
     
     private var tableView = UITableView()
-    private var trackQueue: [Track] = []
-    private var currentTrackIndex: Int?
+    private var historyQueue: [Track] = []
     private let returnButton = UIButton()
-       
+    
     override func viewDidLoad() {
         super.viewDidLoad()
         setupUI()
-        loadQueue()
+        loadHistory()
         NotificationCenter.default.addObserver(
             self,
-            selector: #selector(loadQueue),
+            selector: #selector(loadHistory),
             name: .trackDidChange,
             object: nil
         )
     }
     
+    deinit {
+        NotificationCenter.default.removeObserver(self)
+    }
+    
     private func setupUI() {
-        title = "Queue"
+        title = "History"
         view.backgroundColor = .systemBackground
         
         tableView.delegate = self
@@ -46,40 +49,35 @@ class TrackQueueViewController: UIViewController, UITableViewDataSource, UITable
             tableView.topAnchor.constraint(equalTo: returnButton.bottomAnchor, constant: 20),
             tableView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             tableView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            tableView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
-            
+            tableView.bottomAnchor.constraint(equalTo: view.bottomAnchor)
         ])
     }
     
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        return trackQueue.count
+        return historyQueue.count
     }
     
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         let cell = tableView.dequeueReusableCell(withIdentifier: "TrackCell", for: indexPath) as! TrackCell
-        let track = trackQueue[indexPath.row]
+        let track = historyQueue[indexPath.row]
         cell.configure(with: track)
-        if track == MusicPlayerManager.shared.getCurrentTrack() {
-            cell.backgroundColor = .lightGray
-        }
         return cell
     }
     
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
-        MusicPlayerManager.shared.setQueue(tracks: Array(trackQueue[indexPath.row...]), startIndex: 0)
-        MusicPlayerManager.shared.playTrack(at: 0)
+//        MusicPlayerManager.shared.playTrack(at: MusicPlayerManager.shared.currentTrackIndex! + indexPath.row)
         tableView.deselectRow(at: indexPath, animated: true)
-        loadQueue()
-    }
-    
-    @objc private func loadQueue() {
-        guard let currentTrackIndex = MusicPlayerManager.shared.currentTrackIndex else { return }
-        trackQueue = Array(MusicPlayerManager.shared.trackQueue[currentTrackIndex...])
-        self.currentTrackIndex = 0
-        tableView.reloadData()
+//        loadQueue()
     }
     
     @objc private func returnButtonTapped() {
+//        navigationItem.hidesBackButton = true
+//        navigationController?.pushViewController(TrackQueueViewController(), animated: false)
         dismiss(animated: false)
+    }
+    
+    @objc private func loadHistory() {
+        historyQueue = MusicPlayerManager.shared.getHistory()
+        tableView.reloadData()
     }
 }

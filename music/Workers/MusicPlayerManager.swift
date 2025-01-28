@@ -5,7 +5,8 @@ class MusicPlayerManager: NSObject {
     static let shared = MusicPlayerManager()
 
     var audioPlayer: AVAudioPlayer?
-    var trackQueue: [Track] = []
+    private var trackQueue: [Track] = []
+    private var history: [Track] = []
     private var currentTrack: Track? {
         didSet {
             NotificationCenter.default.post(name: .trackDidChange, object: currentTrack)
@@ -56,11 +57,21 @@ class MusicPlayerManager: NSObject {
         return currentTrack
     }
     
-    func setQueue(tracks: [Track], startIndex: Int? = nil) {
+    func setQueue(tracks: [Track], startIndex: Int) {
         trackQueue = tracks
         currentTrackIndex = startIndex
-        NotificationCenter.default.post(name: .trackDidChange, object: nil)
+        playTrack(at: currentTrackIndex!)
     }
+    
+    func getQueue() -> [Track] {
+        return trackQueue
+    }
+    
+    func getHistory() -> [Track] {
+        return history
+    }
+    
+    // _____________________ PLAY/PAUSE TRACK _____________________
     
     func playOrPauseTrack(in view: UIView, _ track: Track) {
         if currentTrack == track {
@@ -91,6 +102,9 @@ class MusicPlayerManager: NSObject {
             currentTrackIndex = index
             lastTrack = track
             NotificationCenter.default.post(name: .trackDidChange, object: nil)
+            if history.first != track {
+                history.insert(track, at: 0)
+            }
         } catch {
             print("Error playing track: \(error)\n")
         }

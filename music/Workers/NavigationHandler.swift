@@ -31,4 +31,8 @@ class NavigationHandler {
     func navigateToMyMusic() {
         navigateTo(MyMusicViewController())
     }
+    
+    func navigateToHistory() {
+        navigateTo(HistoryViewController())
+    }
 }

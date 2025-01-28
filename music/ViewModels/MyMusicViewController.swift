@@ -15,7 +15,6 @@ class MyMusicViewController: BaseViewController, UITableViewDelegate, UITableVie
 
         Task {
             tracks = await loadTracks()
-            MusicPlayerManager.shared.setQueue(tracks: self.tracks)
             tableView.reloadData()
         }
     }
@@ -76,8 +75,7 @@ class MyMusicViewController: BaseViewController, UITableViewDelegate, UITableVie
     }
     
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
-        MusicPlayerManager.shared.setQueue(tracks: Array(tracks[indexPath.row...]), startIndex: 0)
-        MusicPlayerManager.shared.playTrack(at: 0)
+        MusicPlayerManager.shared.setQueue(tracks: tracks, startIndex: indexPath.row)
         tableView.reloadData()
         tableView.deselectRow(at: indexPath, animated: true)
     }
@@ -113,7 +111,6 @@ class MyMusicViewController: BaseViewController, UITableViewDelegate, UITableVie
                     let newTrack = Track(title: title, artist: artist, image: image, url: url)
                     if !tracks.contains(newTrack) {
                         tracks.append(newTrack)
-                        MusicPlayerManager.shared.setQueue(tracks: self.tracks)
                         tableView.reloadData()
                     } else {
                         print("Track already exists in the list.")
