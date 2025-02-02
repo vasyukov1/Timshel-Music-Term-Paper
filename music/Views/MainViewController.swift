@@ -152,8 +152,8 @@ extension MainViewController: UICollectionViewDelegate, UICollectionViewDataSour
             collectionView.deselectItem(at: indexPath, animated: true)
         } else {
             let playlist = viewModel.myPlaylists[indexPath.row]
-            let playlistVC = PlaylistViewController(playlist: playlist)
-            navigationItem.hidesBackButton = true
+            let playlistVC = PlaylistViewController(viewModel: PlaylistViewModel(playlist: playlist))
+            playlistVC.navigationItem.hidesBackButton = true
             navigationController?.pushViewController(playlistVC, animated: false)
             collectionView.deselectItem(at: indexPath, animated: true)
         }

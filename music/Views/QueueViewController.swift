@@ -1,28 +1,31 @@
 import UIKit
+import Combine
 
-class TrackQueueViewController: UIViewController, UITableViewDataSource, UITableViewDelegate {
+class QueueViewController: UIViewController, UITableViewDataSource, UITableViewDelegate {
+    
+    private var viewModel = QueueViewModel()
+    private var cancellables = Set<AnyCancellable>()
     
     private var tableView = UITableView()
-    private var trackQueue: [Track] = []
     private let returnButton = UIButton()
     private let historyButton = UIButton()
        
     override func viewDidLoad() {
         super.viewDidLoad()
         setupUI()
-        loadQueue()
-        NotificationCenter.default.addObserver(
-            self,
-            selector: #selector(loadQueue),
-            name: .trackDidChange,
-            object: nil
-        )
+        MiniPlayerView.shared.hide()
+        bindViewModel()
     }
     
-    deinit {
-        NotificationCenter.default.removeObserver(self)
+    private func bindViewModel() {
+        viewModel.$queue
+            .receive(on: RunLoop.main)
+            .sink { [weak self] _ in
+                self?.tableView.reloadData()
+            }
+            .store(in: &cancellables)
     }
-    
+
     private func setupUI() {
         title = "Queue"
         view.backgroundColor = .systemBackground
@@ -30,25 +33,26 @@ class TrackQueueViewController: UIViewController, UITableViewDataSource, UITable
         tableView.delegate = self
         tableView.dataSource = self
         tableView.register(TrackCell.self, forCellReuseIdentifier: "TrackCell")
-        view.addSubview(tableView)
         
         returnButton.setImage(UIImage(systemName: "arrow.left"), for: .normal)
         returnButton.addTarget(self, action: #selector(returnButtonTapped), for: .touchUpInside)
-        view.addSubview(returnButton)
         
         historyButton.setImage(UIImage(systemName: "arrow.right"), for: .normal)
-//        setTitle("History", for: .normal)
         historyButton.addTarget(self, action: #selector(historyButtonTapped), for: .touchUpInside)
-        view.addSubview(historyButton)
+        
+        for subview in [
+            tableView,
+            returnButton,
+            historyButton
+        ] {
+            view.addSubview(subview)
+            subview.translatesAutoresizingMaskIntoConstraints = false
+        }
         
         setupConstraints()
     }
     
     private func setupConstraints() {
-        tableView.translatesAutoresizingMaskIntoConstraints = false
-        returnButton.translatesAutoresizingMaskIntoConstraints = false
-        historyButton.translatesAutoresizingMaskIntoConstraints = false
-        
         NSLayoutConstraint.activate([
             returnButton.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 20),
             returnButton.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 20),
@@ -64,12 +68,12 @@ class TrackQueueViewController: UIViewController, UITableViewDataSource, UITable
     }
     
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        return trackQueue.count
+        return viewModel.queue.count
     }
     
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         let cell = tableView.dequeueReusableCell(withIdentifier: "TrackCell", for: indexPath) as! TrackCell
-        let track = trackQueue[indexPath.row]
+        let track = viewModel.queue[indexPath.row]
         cell.configure(with: track)
         if track == MusicPlayerManager.shared.getCurrentTrack() {
             cell.backgroundColor = .lightGray
@@ -80,27 +84,18 @@ class TrackQueueViewController: UIViewController, UITableViewDataSource, UITable
     }
     
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
-        MusicPlayerManager.shared.playTrack(at: MusicPlayerManager.shared.currentTrackIndex! + indexPath.row)
+        viewModel.playTrack(at: indexPath.row)
         tableView.deselectRow(at: indexPath, animated: true)
-        loadQueue()
-    }
-    
-    @objc private func loadQueue() {
-        guard let currentTrackIndex = MusicPlayerManager.shared.currentTrackIndex else { return }
-        trackQueue = Array(MusicPlayerManager.shared.getQueue()[currentTrackIndex...])
-        tableView.reloadData()
     }
     
     @objc private func returnButtonTapped() {
-        dismiss(animated: false)
+        navigationItem.hidesBackButton = true
+        navigationController?.popViewController(animated: false)
     }
     
     @objc private func historyButtonTapped() {
-//        navigationItem.hidesBackButton = true
-//        navigationController?.pushViewController(HistoryViewController(), animated: false)
         let historyVC = HistoryViewController()
-        historyVC.modalPresentationStyle = .overFullScreen
-        historyVC.modalTransitionStyle = .coverVertical
-        present(historyVC, animated: false)
+        historyVC.navigationItem.hidesBackButton = true
+        navigationController?.pushViewController(historyVC, animated: false)
     }
 }

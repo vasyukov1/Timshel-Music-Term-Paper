@@ -53,7 +53,6 @@ class MusicPlayerManager: NSObject {
     }
     
     func getCurrentTrack() -> Track? {
-        updateMiniPlayer()
         return currentTrack
     }
     
@@ -70,8 +69,6 @@ class MusicPlayerManager: NSObject {
     func getHistory() -> [Track] {
         return history
     }
-    
-    // _____________________ PLAY/PAUSE TRACK _____________________
     
     func playOrPauseTrack(in view: UIView, _ track: Track) {
         if currentTrack == track {

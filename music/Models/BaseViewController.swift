@@ -1,14 +1,42 @@
 import UIKit
+import Combine
+import AVFoundation
 
 class BaseViewController: UIViewController {
+    
+    private let viewModel = BaseViewModel()
+    private var cancellables = Set<AnyCancellable>()
+    
     let toolbar = Toolbar()
     private let miniPlayer = MiniPlayerView.shared
-    private var track = MusicPlayerManager.shared.getCurrentTrack()
     
     override func viewDidLoad() {
         super.viewDidLoad()
         setupToolbar()
         setupMiniPlayer()
+        bindViewModel()
+    }
+    
+    private func bindViewModel() {
+        viewModel.$isMiniPlayerVisible
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] isVisible in
+                if isVisible {
+                    self?.miniPlayer.show()
+                } else {
+                    self?.miniPlayer.hide()
+                }
+            }
+            .store(in: &cancellables)
+        
+        viewModel.$currentTrack
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] track in
+                if let track = track {
+                    self?.miniPlayer.configure(with: track)
+                }
+            }
+            .store(in: &cancellables)
     }
     
     private func setupToolbar() {
@@ -25,20 +53,19 @@ class BaseViewController: UIViewController {
     }
     
     private func setupMiniPlayer() {
+        guard let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+              let window = windowScene.windows.first(where: { $0.isKeyWindow }) else {
+            return
+        }
+        
         miniPlayer.translatesAutoresizingMaskIntoConstraints = false
-        view.addSubview(miniPlayer)
+        window.addSubview(miniPlayer)
         
         NSLayoutConstraint.activate([
-            miniPlayer.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 10),
-            miniPlayer.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -10),
-            miniPlayer.bottomAnchor.constraint(equalTo: toolbar.topAnchor, constant: -10),
+            miniPlayer.leadingAnchor.constraint(equalTo: window.leadingAnchor, constant: 10),
+            miniPlayer.trailingAnchor.constraint(equalTo: window.trailingAnchor, constant: -10),
+            miniPlayer.bottomAnchor.constraint(equalTo: window.safeAreaLayoutGuide.bottomAnchor, constant: -70),
             miniPlayer.heightAnchor.constraint(equalToConstant: 60)
         ])
-        
-        if track != nil {
-            miniPlayer.show()
-        } else {
-            miniPlayer.hide()
-        }
     }
 }

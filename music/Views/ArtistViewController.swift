@@ -1,22 +1,23 @@
 import UIKit
+import Combine
+import AVFoundation
 
 class ArtistViewController: BaseViewController, UITableViewDelegate, UITableViewDataSource {
     
-    let artist: Artist
-    let topTracks: [Track] = []
-    let albums: [Album] = []
+    private let viewModel: ArtistViewModel
+    private var cancellable = Set<AnyCancellable>()
     
     let coverImageView = UIImageView()
     let photoImageView = UIImageView()
     let titleLabel = UILabel()
-    let topTracksTableView = UITableView()
+    let tracksTableView = UITableView()
     let allTracksButton = UIButton()
     let albumsTableView = UITableView()
     let allAlbumsButton = UIButton()
     let infoLabel = UILabel()
     
-    init(artist: Artist) {
-        self.artist = artist
+    init(viewModel: ArtistViewModel) {
+        self.viewModel = viewModel
         super.init(nibName: nil, bundle: nil)
     }
     
@@ -27,25 +28,44 @@ class ArtistViewController: BaseViewController, UITableViewDelegate, UITableView
     override func viewDidLoad() {
         setupUI()
         super.viewDidLoad()
+        bindViewModel()
+    }
+    
+    private func bindViewModel() {
+        viewModel.$albums
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in
+                self?.albumsTableView.reloadData()
+            }
+            .store(in: &cancellable)
+        
+        viewModel.$tracks
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in
+                self?.tracksTableView.reloadData()
+            }
+            .store(in: &cancellable)
     }
     
     private func setupUI() {
         title = "Artist"
         view.backgroundColor = .systemBackground
         
+        photoImageView.image = viewModel.artist.image
+        titleLabel.text = viewModel.artist.name
+        infoLabel.text = viewModel.artist.info
+        
         coverImageView.image = UIImage(named: "placeholder")
         coverImageView.contentMode = .scaleAspectFill
         
-        photoImageView.image = artist.image
         photoImageView.layer.cornerRadius = 50
         
-        titleLabel.text = artist.name
         titleLabel.font = UIFont.systemFont(ofSize: 20, weight: .bold)
         titleLabel.textAlignment = .center
         
-        topTracksTableView.delegate = self
-        topTracksTableView.dataSource = self
-        topTracksTableView.register(TrackCell.self, forCellReuseIdentifier: "TrackCell")
+        tracksTableView.delegate = self
+        tracksTableView.dataSource = self
+        tracksTableView.register(TrackCell.self, forCellReuseIdentifier: "TrackCell")
         
         allTracksButton.titleLabel?.font = UIFont.systemFont(ofSize: 16, weight: .regular)
         allTracksButton.setTitle("See discography", for: .normal)
@@ -63,7 +83,6 @@ class ArtistViewController: BaseViewController, UITableViewDelegate, UITableView
         allAlbumsButton.layer.cornerRadius = 15
         allAlbumsButton.addTarget(self, action: #selector(allAlbumsButtonTapped), for: .touchUpInside)
         
-        infoLabel.text = artist.info
         infoLabel.font = UIFont.systemFont(ofSize: 16, weight: .regular)
         infoLabel.textAlignment = .left
         
@@ -71,7 +90,7 @@ class ArtistViewController: BaseViewController, UITableViewDelegate, UITableView
             coverImageView,
             photoImageView,
             titleLabel,
-            topTracksTableView,
+            tracksTableView,
             allTracksButton,
             albumsTableView,
             allAlbumsButton,
@@ -103,11 +122,11 @@ class ArtistViewController: BaseViewController, UITableViewDelegate, UITableView
             titleLabel.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -20),
             titleLabel.bottomAnchor.constraint(equalTo: photoImageView.bottomAnchor),
             
-            topTracksTableView.topAnchor.constraint(equalTo: coverImageView.bottomAnchor, constant: 20),
-            topTracksTableView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            topTracksTableView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            tracksTableView.topAnchor.constraint(equalTo: coverImageView.bottomAnchor, constant: 20),
+            tracksTableView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            tracksTableView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             
-            allTracksButton.topAnchor.constraint(equalTo: topTracksTableView.bottomAnchor, constant: 20),
+            allTracksButton.topAnchor.constraint(equalTo: tracksTableView.bottomAnchor, constant: 20),
             allTracksButton.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 20),
             allTracksButton.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -20),
             allTracksButton.heightAnchor.constraint(equalToConstant: 50),
@@ -129,24 +148,24 @@ class ArtistViewController: BaseViewController, UITableViewDelegate, UITableView
     }
     
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        if tableView == topTracksTableView {
-            let tracksCount = artist.tracks.count
+        if tableView == tracksTableView {
+            let tracksCount = viewModel.artist.tracks.count
             return tracksCount > 5 ? 5 : tracksCount
         } else {
-            let albumsCount = artist.albums.count
+            let albumsCount = viewModel.artist.albums.count
             return albumsCount > 3 ? 3 : albumsCount
         }
     }
     
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
-        if tableView == topTracksTableView {
+        if tableView == tracksTableView {
             let cell = tableView.dequeueReusableCell(withIdentifier: "TrackCell", for: indexPath) as! TrackCell
-            let track = topTracks[indexPath.row]
+            let track = viewModel.tracks[indexPath.row]
             cell.configure(with: track)
             return cell
         } else {
             let cell = tableView.dequeueReusableCell(withIdentifier: "AlbumCell", for: indexPath) as! AlbumCell
-            let album = albums[indexPath.row]
+            let album = viewModel.albums[indexPath.row]
             cell.configure(with: album)
             return cell
         }

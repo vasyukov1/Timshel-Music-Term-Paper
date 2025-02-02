@@ -14,9 +14,9 @@ class PlaylistManager {
         ]
         
         playlists = [
-            Playlist(title: "Chill Vibes", user: "Alex", image: UIImage(systemName: "music.note.list")!, tracks: sampleTracks),
-            Playlist(title: "Workout Mix", user: "Timshel", image: UIImage(systemName: "music.note.list")!, tracks: sampleTracks),
-            Playlist(title: "Party Hits", user: "Gregor", image: UIImage(systemName: "music.note.list")!, tracks: sampleTracks)
+            Playlist(title: "Chill Vibes", author: "Alex", image: UIImage(systemName: "music.note.list")!, tracks: sampleTracks),
+            Playlist(title: "Workout Mix", author: "Timshel", image: UIImage(systemName: "music.note.list")!, tracks: sampleTracks),
+            Playlist(title: "Party Hits", author: "Gregor", image: UIImage(systemName: "music.note.list")!, tracks: sampleTracks)
         ]
         
         recentTracks = Array(sampleTracks.prefix(6))

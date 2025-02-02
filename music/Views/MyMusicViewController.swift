@@ -1,26 +1,43 @@
 import UIKit
 import AVFoundation
+import Combine
 
 class MyMusicViewController: BaseViewController, UITableViewDelegate, UITableViewDataSource, UIDocumentPickerDelegate {
+    
+    private let viewModel = MyMusicViewModel()
+    private var cancellables = Set<AnyCancellable>()
 
-    private var tracks = [Track]()
     private let tableView = UITableView()
     private let addTrackButton = UIButton()
     
     override func viewDidLoad() {
         setupUI()
         super.viewDidLoad()
+        bindViewModel()
         
-        NotificationCenter.default.addObserver(self, selector: #selector(trackDidChange), name: .trackDidChange, object: nil)
-
-        Task {
-            tracks = await loadTracks()
-            tableView.reloadData()
-        }
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(trackDidChange),
+            name: .trackDidChange,
+            object: nil
+        )
     }
     
     deinit {
         NotificationCenter.default.removeObserver(self)
+    }
+    
+    private func bindViewModel() {
+        viewModel.$tracks
+            .receive(on: RunLoop.main)
+            .sink { [weak self] tracks in
+                self?.tableView.reloadData()
+            }
+            .store(in: &cancellables)
+        
+        Task {
+            viewModel.tracks = await viewModel.loadMyTracks()
+        }
     }
     
     private func setupUI() {
@@ -30,20 +47,23 @@ class MyMusicViewController: BaseViewController, UITableViewDelegate, UITableVie
         tableView.delegate = self
         tableView.dataSource = self
         tableView.register(TrackCell.self, forCellReuseIdentifier: "TrackCell")
-        view.addSubview(tableView)
         
         addTrackButton.setTitle("Add Tracks", for: .normal)
         addTrackButton.backgroundColor = .systemBlue
         addTrackButton.layer.cornerRadius = 8
         addTrackButton.addTarget(self, action: #selector(addTrack), for: .touchUpInside)
-        view.addSubview(addTrackButton)
+        
+        for subview in [tableView, addTrackButton] {
+            view.addSubview(subview)
+        }
         
         setupConstraints()
     }
     
     private func setupConstraints() {
-        tableView.translatesAutoresizingMaskIntoConstraints = false
-        addTrackButton.translatesAutoresizingMaskIntoConstraints = false
+        for subview in view.subviews {
+            subview.translatesAutoresizingMaskIntoConstraints = false
+        }
         
         NSLayoutConstraint.activate([
             addTrackButton.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 15),
@@ -59,12 +79,12 @@ class MyMusicViewController: BaseViewController, UITableViewDelegate, UITableVie
     }
     
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        return tracks.count
+        return viewModel.tracks.count
     }
     
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         let cell = tableView.dequeueReusableCell(withIdentifier: "TrackCell", for: indexPath) as! TrackCell
-        let track = tracks[indexPath.row]
+        let track = viewModel.tracks[indexPath.row]
         cell.configure(with: track)
         if track == MusicPlayerManager.shared.getCurrentTrack() {
             cell.backgroundColor = .systemGray2
@@ -75,7 +95,7 @@ class MyMusicViewController: BaseViewController, UITableViewDelegate, UITableVie
     }
     
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
-        MusicPlayerManager.shared.setQueue(tracks: tracks, startIndex: indexPath.row)
+        viewModel.selectTrack(at: indexPath.row)
         tableView.reloadData()
         tableView.deselectRow(at: indexPath, animated: true)
     }
@@ -93,37 +113,8 @@ class MyMusicViewController: BaseViewController, UITableViewDelegate, UITableVie
     
     func documentPicker(_ controller: UIDocumentPickerViewController, didPickDocumentsAt urls: [URL]) {
         guard let url = urls.first else { return }
-        
-        if url.startAccessingSecurityScopedResource() {
-            defer { url.stopAccessingSecurityScopedResource() }
-            
-            let asset = AVURLAsset(url: url)
-            Task {
-                do {
-                    let metadata = try await asset.load(.commonMetadata)
-                    
-                    let title = try await metadata.first(where: { $0.commonKey?.rawValue == "title" })?.load(.stringValue) ?? "Unknown Title"
-                    let artist = try await metadata.first(where: { $0.commonKey?.rawValue == "artist"})?.load(.stringValue) ?? "Unknown Artist"
-                    
-                    let imageData = try await metadata.first(where: { $0.commonKey?.rawValue == "artwork"})?.load(.dataValue)
-                    let image = imageData != nil ? UIImage(data: imageData!)! : UIImage(systemName: "music.note")!
-                    
-                    let newTrack = Track(title: title, artist: artist, image: image, url: url)
-                    if !tracks.contains(newTrack) {
-                        tracks.append(newTrack)
-                        tableView.reloadData()
-                    } else {
-                        print("Track already exists in the list.")
-                    }
-                    
-                } catch {
-                    print("Failed to process track: \(error)")
-                }
-            }
+        Task {
+            await viewModel.addTrack(from: url)
         }
-    }
-    
-    func documentPickerWasCancelled(_ controller: UIDocumentPickerViewController) {
-        print("Document picker was cancelled.")
     }
 }

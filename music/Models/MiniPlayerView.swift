@@ -1,7 +1,6 @@
 import UIKit
 
 class MiniPlayerView: UIView {
-    
     static let shared = MiniPlayerView()
     
     private var navigationHandler: NavigationHandler?
@@ -29,6 +28,7 @@ class MiniPlayerView: UIView {
             name: .trackDidChange,
             object: nil
         )
+        
         NotificationCenter.default.addObserver(
             self,
             selector: #selector(handlePlaybackStateChange),
@@ -71,15 +71,21 @@ class MiniPlayerView: UIView {
         progressBar.tintColor = .lightGray
         addSubview(progressBar)
         
+        for subview in [
+            trackImageView,
+            titleLabel,
+            artistLabel,
+            playPauseButton,
+            progressBar
+        ] {
+            addSubview(subview)
+            subview.translatesAutoresizingMaskIntoConstraints = false
+        }
+        
         setupConstraints()
     }
     
     private func setupConstraints() {
-        trackImageView.translatesAutoresizingMaskIntoConstraints = false
-        titleLabel.translatesAutoresizingMaskIntoConstraints = false
-        artistLabel.translatesAutoresizingMaskIntoConstraints = false
-        playPauseButton.translatesAutoresizingMaskIntoConstraints = false
-        progressBar.translatesAutoresizingMaskIntoConstraints = false
         
         NSLayoutConstraint.activate([
             trackImageView.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 10),
@@ -131,6 +137,7 @@ class MiniPlayerView: UIView {
         guard let currentTrack = MusicPlayerManager.shared.getCurrentTrack() else { return }
         MusicPlayerManager.shared.playOrPauseTrack(in: superview!, currentTrack)
         updatePlayPauseButton()
+        
         if MusicPlayerManager.shared.audioPlayer?.isPlaying ?? false {
             Timer.scheduledTimer(timeInterval: 0.5, target: self, selector: #selector(updateProgressBar), userInfo: nil, repeats: true)
         }
@@ -142,7 +149,6 @@ class MiniPlayerView: UIView {
             return
         }
         configure(with: currentTrack)
-        show()
     }
     
     @objc private func updateProgressBar() {
@@ -159,9 +165,9 @@ class MiniPlayerView: UIView {
         let playerVC = PlayerViewController()
         
         if let navigationController = (rootViewController as? UINavigationController) ?? rootViewController.navigationController {
-            navigationController.topViewController?.present(playerVC, animated: true)
-        } else {
-            rootViewController.present(playerVC, animated: true, completion: nil)
+            hide()
+            playerVC.navigationItem.hidesBackButton = true
+            navigationController.pushViewController(playerVC, animated: false)
         }
     }
     
@@ -190,29 +196,24 @@ class MiniPlayerView: UIView {
                 resetPosition()
                 return
             }
-            UIView.animate(withDuration: 0.2, animations: {
-                self.center = CGPoint(x: -self.frame.width / 2, y: self.center.y)
-            }) { _ in
-                MusicPlayerManager.shared.playNextTrack()
-                self.center = CGPoint(x: UIScreen.main.bounds.width + self.frame.width / 2, y: self.center.y)
-                UIView.animate(withDuration: 0.2) {
-                    self.center = self.initialCenter
-                }
-            }
+            animateSwipe(direction: .left)
+            MusicPlayerManager.shared.playNextTrack()
         } else {
             guard MusicPlayerManager.shared.hasPreviousTrack() else {
                 resetPosition()
                 return
             }
-            UIView.animate(withDuration: 0.2, animations: {
-                self.center = CGPoint(x: UIScreen.main.bounds.width + self.frame.width / 2, y: self.center.y)
-            }) { _ in
-                MusicPlayerManager.shared.playPreviousTrack()
-                self.center = CGPoint(x: -self.frame.width / 2, y: self.center.y)
-                UIView.animate(withDuration: 0.2) {
-                    self.center = self.initialCenter
-                }
-            }
+            animateSwipe(direction: .right)
+            MusicPlayerManager.shared.playPreviousTrack()
+        }
+    }
+    
+    private func animateSwipe(direction: UIRectEdge) {
+        let targetX = direction == .left ? -frame.width / 2 : UIScreen.main.bounds.width + frame.width / 2
+        UIView.animate(withDuration: 0.2, animations: {
+            self.center = CGPoint(x: targetX, y: self.center.y)
+        }) { _ in
+            self.center = self.initialCenter
         }
     }
     
@@ -230,12 +231,12 @@ class MiniPlayerView: UIView {
     }
     
     func show() {
-        isHidden = false
-        alpha = 1
+        self.isHidden = false
+        self.alpha = 1
     }
     
     func hide() {
-        isHidden = true
-        alpha = 0
+        self.isHidden = true
+        self.alpha = 0
     }
 }

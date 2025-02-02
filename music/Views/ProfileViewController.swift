@@ -58,10 +58,9 @@ class ProfileViewController: BaseViewController {
         ])
     }
     
-    @objc
-    private func TESTartistButtonTapped() {
+    @objc private func TESTartistButtonTapped() {
         let artist = Artist(name: "Oxxxymiron", image: UIImage(systemName: "shareplay")!, info: "Признан иностранным агентом в РФ")
-        let artistVC = ArtistViewController(artist: artist)
+        let artistVC = ArtistViewController(viewModel: ArtistViewModel(artist: artist))
         navigationItem.hidesBackButton = true
         navigationController?.pushViewController(artistVC, animated: false)
     }

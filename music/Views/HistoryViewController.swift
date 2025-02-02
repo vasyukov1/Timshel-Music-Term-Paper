@@ -1,25 +1,28 @@
 import UIKit
+import Combine
 
 class HistoryViewController: UIViewController, UITableViewDelegate, UITableViewDataSource {
     
+    private let viewModel = HistoryViewModel()
+    private var cancellable = Set<AnyCancellable>()
+    
     private var tableView = UITableView()
-    private var historyQueue: [Track] = []
     private let returnButton = UIButton()
     
     override func viewDidLoad() {
         super.viewDidLoad()
         setupUI()
-        loadHistory()
-        NotificationCenter.default.addObserver(
-            self,
-            selector: #selector(loadHistory),
-            name: .trackDidChange,
-            object: nil
-        )
+        MiniPlayerView.shared.hide()
+        bindViewModel()
     }
     
-    deinit {
-        NotificationCenter.default.removeObserver(self)
+    private func bindViewModel() {
+        viewModel.$historyQueue
+            .receive(on: RunLoop.main)
+            .sink { [weak self] _ in
+                self?.tableView.reloadData()
+            }
+            .store(in: &cancellable)
     }
     
     private func setupUI() {
@@ -29,19 +32,19 @@ class HistoryViewController: UIViewController, UITableViewDelegate, UITableViewD
         tableView.delegate = self
         tableView.dataSource = self
         tableView.register(TrackCell.self, forCellReuseIdentifier: "TrackCell")
-        view.addSubview(tableView)
         
         returnButton.setImage(UIImage(systemName: "arrow.left"), for: .normal)
         returnButton.addTarget(self, action: #selector(returnButtonTapped), for: .touchUpInside)
-        view.addSubview(returnButton)
+        
+        for subview in [tableView, returnButton] {
+            view.addSubview(subview)
+            subview.translatesAutoresizingMaskIntoConstraints = false
+        }
         
         setupConstraints()
     }
     
-    private func setupConstraints() {
-        tableView.translatesAutoresizingMaskIntoConstraints = false
-        returnButton.translatesAutoresizingMaskIntoConstraints = false
-        
+    private func setupConstraints() {        
         NSLayoutConstraint.activate([
             returnButton.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 20),
             returnButton.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 20),
@@ -54,30 +57,29 @@ class HistoryViewController: UIViewController, UITableViewDelegate, UITableViewD
     }
     
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        return historyQueue.count
+        return viewModel.historyQueue.count
     }
     
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         let cell = tableView.dequeueReusableCell(withIdentifier: "TrackCell", for: indexPath) as! TrackCell
-        let track = historyQueue[indexPath.row]
+        let track = viewModel.historyQueue[indexPath.row]
         cell.configure(with: track)
+        if track == MusicPlayerManager.shared.getCurrentTrack() {
+            cell.backgroundColor = .lightGray
+        } else {
+            cell.backgroundColor = .clear
+        }
         return cell
     }
     
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
-//        MusicPlayerManager.shared.playTrack(at: MusicPlayerManager.shared.currentTrackIndex! + indexPath.row)
+        viewModel.playTrack(at: indexPath.row)
+        MiniPlayerView.shared.hide()
         tableView.deselectRow(at: indexPath, animated: true)
-//        loadQueue()
     }
     
     @objc private func returnButtonTapped() {
-//        navigationItem.hidesBackButton = true
-//        navigationController?.pushViewController(TrackQueueViewController(), animated: false)
-        dismiss(animated: false)
-    }
-    
-    @objc private func loadHistory() {
-        historyQueue = MusicPlayerManager.shared.getHistory()
-        tableView.reloadData()
+        navigationItem.hidesBackButton = true
+        navigationController?.popViewController(animated: false)
     }
 }

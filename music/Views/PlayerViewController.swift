@@ -1,7 +1,11 @@
 import UIKit
+import Combine
 import CoreImage
 
 class PlayerViewController: UIViewController {
+    
+    private let viewModel = PlayerViewModel()
+    private var cancellables = Set<AnyCancellable>()
     
     private var titleLabel = UILabel()
     private var artistLabel = UILabel()
@@ -13,91 +17,126 @@ class PlayerViewController: UIViewController {
     private let progressSlider = UISlider()
     private let queueButton = UIButton()
     
-    private var track: Track? = MusicPlayerManager.shared.getCurrentTrack()
-    private let miniPlayer = MiniPlayerView()
-    
     override func viewDidLoad() {
         super.viewDidLoad()
         setupUI()
-        track = MusicPlayerManager.shared.getCurrentTrack()
-        updatePlayPauseButton()
-        updateTrackButtons()
-        Timer.scheduledTimer(timeInterval: 0.5, target: self, selector: #selector(updateProgressBar), userInfo: nil, repeats: true)
-        NotificationCenter.default.addObserver(
-            self,
-            selector: #selector(updateTrack),
-            name: .trackDidChange,
-            object: nil
-        )
+        bindViewModel()
     }
     
-    override func viewWillAppear(_ animated: Bool) {
-        super.viewWillAppear(animated)
-
-        guard let audioPlayer = MusicPlayerManager.shared.audioPlayer else { return }
-        let progressValue = Float(audioPlayer.currentTime / audioPlayer.duration)
-        progressSlider.value = progressValue
+    private func bindViewModel() {
+        viewModel.$track
+            .receive(on: RunLoop.main)
+            .sink { [weak self] track in
+                self?.configure(with: track!)
+            }
+            .store(in: &cancellables)
+        
+        viewModel.$isPlaying
+            .receive(on: RunLoop.main)
+            .sink { [weak self] isPlaying in
+                self?.updatePlayPauseButton()
+            }
+            .store(in: &cancellables)
+        
+        viewModel.$playbackProgress
+            .receive(on: RunLoop.main)
+            .sink { [weak self] progress in
+                let progressValue = Float(progress.currentTime / progress.duration)
+                self?.progressSlider.value = progressValue
+            }
+            .store(in: &cancellables)
     }
     
-    deinit {
-        NotificationCenter.default.removeObserver(self)
+    func configure(with track: Track) {
+        titleLabel.text = track.title
+        artistLabel.text = track.artist
+        viewModel.updateButtons(previousTrackButton, nextTrackButton)
+        trackImageView.image = track.image
+        if let dominantColor = track.image.dominnatColor() {
+            self.view.backgroundColor = dominantColor
+        }
+    }
+    
+    private func updatePlayPauseButton() {
+        let buttonImage = UIImage(systemName: viewModel.isPlaying ? "pause.fill" : "play.fill")
+        playPauseButton.setImage(buttonImage, for: .normal)
+    }
+    
+    @objc private func playOrStopTapped() {
+        viewModel.playOrPause()
+    }
+    
+    @objc private func playPreviousTrackTapped() {
+        viewModel.playPreviousTrack()
+    }
+    
+    @objc private func playNextTrackTapped() {
+        viewModel.playNextTrack()
+    }
+    
+    @objc private func minimizeScreenTapped() {
+        navigationController?.popViewController(animated: false)
+        MiniPlayerView.shared.show()
+    }
+    
+    @objc private func progressSliderValueChanged(_ sender: UISlider) {
+        viewModel.seek(to: sender.value)
+    }
+    
+    @objc private func queueButtonTapped() {
+        let trackQueueVC = QueueViewController()
+        trackQueueVC.navigationItem.hidesBackButton = true
+        navigationController?.pushViewController(trackQueueVC, animated: false)
     }
     
     private func setupUI() {
         title = "Player"
         
-        configure(with: track!)
-        
         titleLabel.font = UIFont.systemFont(ofSize: 24)
-        view.addSubview(titleLabel)
-        
         artistLabel.font = UIFont.systemFont(ofSize: 18)
         artistLabel.textColor = .gray
-        view.addSubview(artistLabel)
         
         trackImageView.contentMode = .scaleAspectFill
         trackImageView.layer.cornerRadius = 20
         trackImageView.clipsToBounds = true
-        view.addSubview(trackImageView)
         
         playPauseButton.addTarget(self, action: #selector(playOrStopTapped), for: .touchUpInside)
-        view.addSubview(playPauseButton)
         
         previousTrackButton.setImage(UIImage(systemName: "backward.end.fill"), for: .normal)
         previousTrackButton.addTarget(self, action: #selector(playPreviousTrackTapped), for: .touchUpInside)
-        view.addSubview(previousTrackButton)
         
         nextTrackButton.setImage(UIImage(systemName: "forward.end.fill"), for: .normal)
         nextTrackButton.addTarget(self, action: #selector(playNextTrackTapped), for: .touchUpInside)
-        view.addSubview(nextTrackButton)
         
         minimizeScreenButton.setImage(UIImage(systemName: "chevron.down"), for: .normal)
         minimizeScreenButton.addTarget(self, action: #selector(minimizeScreenTapped), for: .touchUpInside)
-        view.addSubview(minimizeScreenButton)
         
         progressSlider.minimumValue = 0
         progressSlider.maximumValue = 1
         progressSlider.addTarget(self, action: #selector(progressSliderValueChanged(_:)), for: .valueChanged)
-        view.addSubview(progressSlider)
         
         queueButton.setImage(UIImage(systemName: "line.3.horizontal"), for: .normal)
         queueButton.addTarget(self, action: #selector(queueButtonTapped), for: .touchUpInside)
-        view.addSubview(queueButton)
+        
+        for subview in [
+            titleLabel,
+            artistLabel,
+            trackImageView,
+            playPauseButton,
+            previousTrackButton,
+            nextTrackButton,
+            minimizeScreenButton,
+            progressSlider,
+            queueButton
+        ] {
+            view.addSubview(subview)
+            subview.translatesAutoresizingMaskIntoConstraints = false
+        }
         
         setupConstraints()
     }
     
     private func setupConstraints() {
-        minimizeScreenButton.translatesAutoresizingMaskIntoConstraints = false
-        trackImageView.translatesAutoresizingMaskIntoConstraints = false
-        titleLabel.translatesAutoresizingMaskIntoConstraints = false
-        artistLabel.translatesAutoresizingMaskIntoConstraints = false
-        progressSlider.translatesAutoresizingMaskIntoConstraints = false
-        playPauseButton.translatesAutoresizingMaskIntoConstraints = false
-        previousTrackButton.translatesAutoresizingMaskIntoConstraints = false
-        nextTrackButton.translatesAutoresizingMaskIntoConstraints = false
-        queueButton.translatesAutoresizingMaskIntoConstraints = false
-        
         NSLayoutConstraint.activate([
             minimizeScreenButton.centerXAnchor.constraint(equalTo: view.centerXAnchor),
             minimizeScreenButton.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 10),
@@ -141,80 +180,6 @@ class PlayerViewController: UIViewController {
             queueButton.heightAnchor.constraint(equalToConstant: 50),
             queueButton.widthAnchor.constraint(equalToConstant: 50),
         ])
-    }
-    
-    func configure(with track: Track) {
-        titleLabel.text = track.title
-        artistLabel.text = track.artist
-        trackImageView.image = track.image
-        if let dominantColor = track.image.dominnatColor() {
-            UIView.animate(withDuration: 0.5) {
-                self.view.backgroundColor = dominantColor
-            }
-        }
-        updatePlayPauseButton()
-    }
-    
-    private func updateTrackButtons() {
-        previousTrackButton.isHidden = !MusicPlayerManager.shared.hasPreviousTrack()
-        nextTrackButton.isHidden = !MusicPlayerManager.shared.hasNextTrack()
-    }
-    
-    private func updatePlayPauseButton() {
-        let isPlaying = MusicPlayerManager.shared.audioPlayer?.isPlaying ?? false
-        let buttonImage = UIImage(systemName: isPlaying ? "pause.fill" : "play.fill")
-        playPauseButton.setImage(buttonImage, for: .normal)
-    }
-    
-    @objc private func playOrStopTapped() {
-        MusicPlayerManager.shared.playOrPauseTrack(in: view, track!)
-        updatePlayPauseButton()
-    }
-    
-    @objc private func playPreviousTrackTapped() {
-        print("Play previous button is tapped")
-        MusicPlayerManager.shared.playPreviousTrack()
-        updateTrackButtons()
-        updatePlayPauseButton()
-    }
-    
-    @objc private func playNextTrackTapped() {
-        print("Play next button is tapped")
-        MusicPlayerManager.shared.playNextTrack()
-        updateTrackButtons()
-        updatePlayPauseButton()
-    }
-    
-    @objc private func minimizeScreenTapped() {
-        dismiss(animated: true, completion: nil)
-    }
-    
-    @objc private func updateTrack() {
-        track = MusicPlayerManager.shared.getCurrentTrack()
-        if (track != nil) {
-            configure(with: track!)
-        }
-        progressSlider.value = 0
-        updateTrackButtons()
-    }
-    
-    @objc private func updateProgressBar() {
-        let progress = MusicPlayerManager.shared.getPlaybackProgress()
-        let progressValue = Float(progress.currentTime / progress.duration)
-        progressSlider.value = progressValue
-    }
-    
-    @objc private func progressSliderValueChanged(_ sender: UISlider) {
-        guard let audioPlayer = MusicPlayerManager.shared.audioPlayer else { return }
-        let newTime = Double(sender.value) * audioPlayer.duration
-        audioPlayer.currentTime = newTime
-    }
-    
-    @objc private func queueButtonTapped() {
-        let trackQueueVC = TrackQueueViewController()
-        trackQueueVC.modalPresentationStyle = .overFullScreen
-        trackQueueVC.modalTransitionStyle = .coverVertical
-        present(trackQueueVC, animated: false)
     }
 }
 
