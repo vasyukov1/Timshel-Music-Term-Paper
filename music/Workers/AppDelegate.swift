@@ -1,10 +1,3 @@
-//
-//  AppDelegate.swift
-//  music
-//
-//  Created by Alexander Vasyukov on 6/1/25.
-//
-
 import UIKit
 
 @main
