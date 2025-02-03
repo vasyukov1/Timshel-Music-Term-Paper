@@ -48,8 +48,8 @@ class MusicPlayerManager: NSObject {
     
     func startPlaying(track: Track) {
         guard let index = trackQueue.firstIndex(of: track) else { return }
-        MiniPlayerView.shared.show()
         playTrack(at: index)
+        MiniPlayerView.shared.show()
     }
     
     func getCurrentTrack() -> Track? {
@@ -70,7 +70,7 @@ class MusicPlayerManager: NSObject {
         return history
     }
     
-    func playOrPauseTrack(in view: UIView, _ track: Track) {
+    func playOrPauseTrack(_ track: Track) {
         if currentTrack == track {
             togglePlayPause()
         } else {
@@ -99,6 +99,7 @@ class MusicPlayerManager: NSObject {
             currentTrackIndex = index
             lastTrack = track
             NotificationCenter.default.post(name: .trackDidChange, object: nil)
+            NotificationCenter.default.post(name: .playbackStateDidChange, object: nil)
             if history.first != track {
                 history.insert(track, at: 0)
             }

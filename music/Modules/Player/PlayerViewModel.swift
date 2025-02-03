@@ -17,6 +17,12 @@ class PlayerViewModel {
             }
             .store(in: &cancellables)
         
+        NotificationCenter.default.publisher(for: .playbackStateDidChange)
+            .sink { [weak self] _ in
+                self?.updateIsPlaying()
+            }
+            .store(in: &cancellables)
+        
         Timer.publish(every: 0.5, on: .main, in: .default)
             .autoconnect()
             .sink { [weak self] _ in
@@ -30,12 +36,16 @@ class PlayerViewModel {
         MiniPlayerView.shared.hide()
     }
     
+    private func updateIsPlaying() {
+        isPlaying = MusicPlayerManager.shared.audioPlayer?.isPlaying ?? false
+    }
+    
     func updateProgressBar() {
         playbackProgress = MusicPlayerManager.shared.getPlaybackProgress()
     }
     
     func playOrPause() {
-        MusicPlayerManager.shared.playOrPauseTrack(in: UIView(), track!)
+        MusicPlayerManager.shared.playOrPauseTrack(track!)
         isPlaying = MusicPlayerManager.shared.audioPlayer!.isPlaying
     }
     

@@ -40,7 +40,7 @@ class BaseViewController: UIViewController {
     }
     
     private func setupToolbar() {
-        toolbar.navigationHandler = NavigationHandler(navigationController: navigationController)
+        toolbar.setNavigationHandler(NavigationHandler(navigationController: navigationController))
         toolbar.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(toolbar)
         

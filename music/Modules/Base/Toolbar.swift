@@ -1,7 +1,8 @@
 import UIKit
 
 class Toolbar: UIToolbar {
-    var navigationHandler: NavigationHandler?
+    
+    private let viewModel = ToolbarViewModel()
     
     var homeButton = UIBarButtonItem()
     var searchButton = UIBarButtonItem()
@@ -18,6 +19,23 @@ class Toolbar: UIToolbar {
         setupToolbar()
     }
     
+    func setNavigationHandler(_ navigationHandler: NavigationHandler?) {
+        self.viewModel.navigationHandler = navigationHandler
+    }
+    
+    @objc private func homeTapped() {
+        viewModel.homeTapped()
+    }
+    
+    @objc private func searchTapped() {
+        viewModel.searchTapped()
+    }
+    
+    @objc private func profileTapped() {
+        viewModel.profileTapped()
+    }
+    
+    
     private func setupToolbar() {
         homeButton = createButton(title: "Home", systemImageName: "house.fill", action: #selector(homeTapped))
         searchButton = createButton(title: "Search", systemImageName: "magnifyingglass", action: #selector(searchTapped))
@@ -30,18 +48,6 @@ class Toolbar: UIToolbar {
             flexibleSpace,
             profileButton
         ], animated: false)
-    }
-    
-    @objc private func homeTapped() {
-        navigationHandler?.navigateToHome()
-    }
-    
-    @objc private func searchTapped() {
-        navigationHandler?.navigateToSearch()
-    }
-    
-    @objc private func profileTapped() {
-        navigationHandler?.navigateToProfile()
     }
     
     private func createButton(title: String, systemImageName: String, action: Selector) -> UIBarButtonItem {
