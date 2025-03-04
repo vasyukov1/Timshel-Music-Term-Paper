@@ -9,7 +9,7 @@ class SearchViewModel {
     
     func loadData() {
         Task {
-            userTracks = await loadTracks()
+            userTracks = await Track.loadTracks()
         }
         
         popularTracks = getTopTracks()

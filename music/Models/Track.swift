@@ -1,48 +1,59 @@
 import UIKit
 import AVFoundation
 
-struct Track: Equatable {
+class Track: Equatable {
     let title: String
     let artist: String
-    let image: UIImage
-    let url: URL
+    var id = ""
+    private(set) var image: UIImage
+    private(set) var url: URL
     
     static func == (lhs: Track, rhs: Track) -> Bool {
         return lhs.url == rhs.url
     }
-}
-
-func loadTracks() async -> [Track] {
-    var tracks = [Track]()
-    let fileManager = FileManager.default
     
-    guard let songsPath = Bundle.main.url(forResource: "songs", withExtension: nil) else {
-        print("Error: Could not find songs folder.")
+    init(title: String, artist: String, image: UIImage, url: URL) {
+        self.title = title
+        self.artist = artist
+        self.id = title + "_" + artist
+        self.image = image
+        self.url = url
+    }
+    
+    static func loadTracks() async -> [Track] {
+        var tracks = [Track]()
+        let fileManager = FileManager.default
+        
+        guard let songsDir = fileManager.urls(for: .libraryDirectory, in: .userDomainMask).first?.appendingPathComponent("songs") else {
+            print("Error: Could not access songs directory")
+            return tracks
+        }
+        
+        do {
+            let files = try fileManager.contentsOfDirectory(atPath: songsDir.path)
+            
+            for file in files {
+                let filePath = songsDir.appendingPathComponent(file)
+                let asset = AVURLAsset(url: filePath)
+                let metadata = try await asset.load(.commonMetadata)
+
+                let title = try await metadata.first(where: { $0.commonKey?.rawValue == "title" })?.load(.stringValue) ?? "Unknown Title"
+                let artist = try await metadata.first(where: { $0.commonKey?.rawValue == "artist"})?.load(.stringValue) ?? "Unknown Artist"
+                
+                let imageData = try await metadata.first(where: { $0.commonKey?.rawValue == "artwork"})?.load(.dataValue)
+                let image = imageData != nil ? UIImage(data: imageData!)! : UIImage(systemName: "music.note")!
+
+                let track = Track(title: title, artist: artist, image: image, url: filePath)
+                tracks.append(track)
+            }
+            
+        } catch {
+            print("Error reading files: \(error)")
+        }
+        
         return tracks
     }
     
-    do {
-        let files = try fileManager.contentsOfDirectory(atPath: songsPath.path)
-        
-        for file in files {
-            let filePath = songsPath.appendingPathComponent(file)
-            let asset = AVURLAsset(url: filePath)
-            let metadata = try await asset.load(.commonMetadata)
-            
-            let title = try await metadata.first(where: { $0.commonKey?.rawValue == "title" })?.load(.stringValue) ?? "Unknown Title"
-            let artist = try await metadata.first(where: { $0.commonKey?.rawValue == "artist"})?.load(.stringValue) ?? "Unknown Artist"
-            
-            let imageData = try await metadata.first(where: { $0.commonKey?.rawValue == "artwork"})?.load(.dataValue)
-            let image = imageData != nil ? UIImage(data: imageData!)! : UIImage(systemName: "music.note")!
-            
-            let track = Track(title: title, artist: artist, image: image, url: filePath)
-            tracks.append(track)
-        }
-    } catch {
-        print("Error reading files: \(error)\n")
-    }
-    
-    return tracks
 }
 
 func getTopTracks() -> [Track] {
