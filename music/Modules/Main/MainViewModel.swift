@@ -12,7 +12,7 @@ class MainViewModel {
     
     func loadMyTracksAndPlaylists() {
         Task {
-            let tracks = await loadTracks()
+            let tracks = await Track.loadTracks()
             self.myTracks = Array(tracks.prefix(9))
         }
         myPlaylists = PlaylistManager.shared.getPlaylists()

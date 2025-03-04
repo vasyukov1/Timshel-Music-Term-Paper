@@ -3,8 +3,8 @@ import AVFoundation
 
 class MusicPlayerManager: NSObject {
     static let shared = MusicPlayerManager()
-
     var audioPlayer: AVAudioPlayer?
+    
     private var trackQueue: [Track] = []
     private var history: [Track] = []
     private var currentTrack: Track? {
@@ -23,6 +23,7 @@ class MusicPlayerManager: NSObject {
         audioPlayer?.duration ?? 0
     }
     
+    // Инициализация
     private override init() {
         super.init()
         NotificationCenter.default.addObserver(
@@ -37,6 +38,7 @@ class MusicPlayerManager: NSObject {
         NotificationCenter.default.removeObserver(self)
     }
     
+    // Обновление мини-плеера
     private func updateMiniPlayer() {
         guard let track = currentTrack else {
             MiniPlayerView.shared.hide()
@@ -46,30 +48,36 @@ class MusicPlayerManager: NSObject {
         MiniPlayerView.shared.show()
     }
     
+    // Включить проигрывание
     func startPlaying(track: Track) {
         guard let index = trackQueue.firstIndex(of: track) else { return }
         playTrack(at: index)
         MiniPlayerView.shared.show()
     }
     
+    // Получение текущего трека
     func getCurrentTrack() -> Track? {
         return currentTrack
     }
     
+    // Установка очереди треков
     func setQueue(tracks: [Track], startIndex: Int) {
         trackQueue = tracks
         currentTrackIndex = startIndex
         playTrack(at: currentTrackIndex!)
     }
     
+    // Получение очереди треков
     func getQueue() -> [Track] {
         return trackQueue
     }
     
+    // Получение истории
     func getHistory() -> [Track] {
         return history
     }
     
+    // Запуск либо остановка трека
     func playOrPauseTrack(_ track: Track) {
         if currentTrack == track {
             togglePlayPause()
@@ -78,6 +86,7 @@ class MusicPlayerManager: NSObject {
         }
     }
     
+    // Нажатие на кнопку play/pause
     private func togglePlayPause() {
         guard let player = audioPlayer else { return }
         if player.isPlaying {
@@ -88,6 +97,7 @@ class MusicPlayerManager: NSObject {
         NotificationCenter.default.post(name: .playbackStateDidChange, object: nil)
     }
     
+    // Включить трек
     func playTrack(at index: Int) {
         guard 0 <= index && index < trackQueue.count else { return }
         do {
@@ -109,6 +119,7 @@ class MusicPlayerManager: NSObject {
         
     }
     
+    // Проверка на существование предыдущего трека
     func hasPreviousTrack() -> Bool {
         guard let index = currentTrackIndex else {
             return false
@@ -116,6 +127,7 @@ class MusicPlayerManager: NSObject {
         return index > 0
     }
     
+    // Проверка на существование следующего трека
     func hasNextTrack() -> Bool {
         guard let index = currentTrackIndex else {
             return false
@@ -123,6 +135,7 @@ class MusicPlayerManager: NSObject {
         return index + 1 < trackQueue.count
     }
     
+    // Включение следующего трека
     func playNextTrack() {
         guard let index = currentTrackIndex, index + 1 < trackQueue.count else {
             stopPlayback()
@@ -131,6 +144,7 @@ class MusicPlayerManager: NSObject {
         playTrack(at: index + 1)
     }
     
+    // Включение предыдущего трека
     func playPreviousTrack() {
         guard let index = currentTrackIndex, index > 0 else {
             stopPlayback()
@@ -139,6 +153,7 @@ class MusicPlayerManager: NSObject {
         playTrack(at: index - 1)
     }
     
+    // Остановка проигрывания
     func stopPlayback() {
         audioPlayer?.stop()
         if let last = lastTrack {
@@ -150,12 +165,19 @@ class MusicPlayerManager: NSObject {
         }
     }
     
+    // Получение текущего положения прослушивания трека
     func getPlaybackProgress() -> (currentTime: TimeInterval, duration: TimeInterval) {
         return (currentTime, duration)
     }
     
+    // Запуск следующего трека
     @objc private func handleTrackEnd() {
         playNextTrack()
+    }
+    
+    // Загрузка плейлиста в очередь
+    func loadPlaylist(name: String) async {
+       
     }
 }
 
