@@ -17,41 +17,40 @@ class LoginViewController: UIViewController {
             errorLabel.isHidden = false
             return
         }
+        
+        let dbPath = getDocumentsFilePath(filename: "testdb")
+        do {
+            let dbContent = try String(contentsOfFile: dbPath, encoding: .utf8)
+            let dbLines = dbContent.components(separatedBy: .newlines)
+            var storedLogin = ""
+            var storedPassword = ""
 
-        if let dbPath = Bundle.main.path(forResource: "testdb", ofType: "txt") {
-            do {
-                let dbContent = try String(contentsOfFile: dbPath, encoding: .utf8)
-                let dbLines = dbContent.components(separatedBy: .newlines)
-                var storedLogin = ""
-                var storedPassword = ""
-
-                for line in dbLines {
-                    if line.contains("login=") {
-                        storedLogin = line.replacingOccurrences(of: "login=", with: "")
-                    } else if line.contains("password=") {
-                        storedPassword = line.replacingOccurrences(of: "password=", with: "")
-                    }
+            for line in dbLines {
+                if line.contains("login=") {
+                    storedLogin = line.replacingOccurrences(of: "login=", with: "")
+                } else if line.contains("password=") {
+                    storedPassword = line.replacingOccurrences(of: "password=", with: "")
                 }
-
-                if login != storedLogin {
-                    errorLabel.text = "Login is incorrect"
-                    errorLabel.isHidden = false
-                } else if password != storedPassword {
-                    errorLabel.text = "Password is wrong"
-                    errorLabel.isHidden = false
-                } else {
-                    errorLabel.isHidden = true
-                    
-                    UserDefaults.standard.set(login, forKey: "savedLogin")
-                    UserDefaults.standard.set(password, forKey: "savedPassword")
-                    
-                    let mainVC = MainViewController()
-                    navigationItem.hidesBackButton = true
-                    navigationController?.pushViewController(mainVC, animated: true)
-                }
-            } catch {
-                print("Error file reading: \(error)")
             }
+
+            if login != storedLogin {
+                errorLabel.text = "Login is incorrect"
+                errorLabel.isHidden = false
+            } else if password != storedPassword {
+                errorLabel.text = "Password is wrong"
+                errorLabel.isHidden = false
+            } else {
+                errorLabel.isHidden = true
+                
+                UserDefaults.standard.set(login, forKey: "savedLogin")
+                UserDefaults.standard.set(password, forKey: "savedPassword")
+                
+                let mainVC = MainViewController()
+                navigationItem.hidesBackButton = true
+                navigationController?.pushViewController(mainVC, animated: true)
+            }
+        } catch {
+            print("Error file reading: \(error)")
         }
     }
     

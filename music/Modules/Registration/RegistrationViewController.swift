@@ -41,6 +41,10 @@ class RegistrationViewController: UIViewController {
 
         if addUserToDatabase(firstName: firstName, lastName: lastName, login: login, password: password) {
             errorLabel.isHidden = true
+            
+            UserDefaults.standard.set(login, forKey: "savedLogin")
+            UserDefaults.standard.set(password, forKey: "savedPassword")
+            
             let mainVC = MainViewController()
             navigationItem.hidesBackButton = true
             navigationController?.pushViewController(mainVC, animated: true)
@@ -84,18 +88,18 @@ class RegistrationViewController: UIViewController {
     }
     
     private func addUserToDatabase(firstName: String, lastName: String, login: String, password: String) -> Bool {
-        guard let dbPath = Bundle.main.path(forResource: "testdb", ofType: "txt") else { return false }
+        let documentsDirectory = NSSearchPathForDirectoriesInDomains(.documentDirectory, .userDomainMask, true)[0]
+        
+        let dbPath = (documentsDirectory as NSString).appendingPathComponent("testdb.txt")
         do {
-            print("In file")
             let newUser = "\nlogin=\(login)\npassword=\(password)"
             try newUser.appendLine(to: dbPath)
-            return true
         } catch {
             print("Error file reading: \(error)")
             return false
         }
         
-        guard let infoPath = Bundle.main.path(forResource: "testdb_info", ofType: "txt") else { return false }
+        let infoPath = (documentsDirectory as NSString).appendingPathComponent("testdb_info.txt")
         do {
             let newInfo = "\(login),\(firstName),\(lastName)\n"
             try newInfo.appendLine(to: infoPath)

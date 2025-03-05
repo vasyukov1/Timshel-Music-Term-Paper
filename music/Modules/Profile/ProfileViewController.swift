@@ -92,7 +92,8 @@ class ProfileViewController: BaseViewController {
     }
     
     private func readUserInfo(login: String) -> (firstName: String, lastName: String)? {
-        guard let infoPath = Bundle.main.path(forResource: "testdb_info", ofType: "txt") else { return nil }
+        let infoPath = getDocumentsFilePath(filename: "testdb_info")
+        
         do {
             let infoContent = try String(contentsOfFile: infoPath, encoding: .utf8)
             let infoLines = infoContent.components(separatedBy: .newlines)
