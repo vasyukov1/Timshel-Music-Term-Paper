@@ -165,6 +165,15 @@ class MusicPlayerManager: NSObject {
         }
     }
     
+    func stopPlayer() {
+        stopPlayback()
+        trackQueue = []
+        history = []
+        currentTrack = nil
+        currentTrackIndex = nil
+        lastTrack = nil
+    }
+    
     // Получение текущего положения прослушивания трека
     func getPlaybackProgress() -> (currentTime: TimeInterval, duration: TimeInterval) {
         return (currentTime, duration)

@@ -1,2 +1,1 @@
-login=alex
-password=123
+alex:1234567890

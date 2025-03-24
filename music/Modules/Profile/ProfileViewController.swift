@@ -126,6 +126,8 @@ class ProfileViewController: BaseViewController {
     @objc private func logoutTapped() {
         UserDefaults.standard.removeObject(forKey: "savedLogin")
         UserDefaults.standard.removeObject(forKey: "savedPassword")
+        
+        MusicPlayerManager.shared.stopPlayer()
 
         let loginVC = LoginViewController()
         navigationItem.hidesBackButton = true

@@ -22,35 +22,53 @@ class LoginViewController: UIViewController {
         do {
             let dbContent = try String(contentsOfFile: dbPath, encoding: .utf8)
             let dbLines = dbContent.components(separatedBy: .newlines)
-            var storedLogin = ""
-            var storedPassword = ""
-
+            
+            var isLoginCorrect = false
+            var isPasswordCorrect = false
+            
             for line in dbLines {
-                if line.contains("login=") {
-                    storedLogin = line.replacingOccurrences(of: "login=", with: "")
-                } else if line.contains("password=") {
-                    storedPassword = line.replacingOccurrences(of: "password=", with: "")
+                let trimmedLine = line.trimmingCharacters(in: .whitespacesAndNewlines)
+                if trimmedLine.isEmpty {
+                    continue
+                }
+                
+                let components = trimmedLine.components(separatedBy: ":")
+                if components.count == 2 {
+                    let storedLogin = components[0]
+                    let storedPassword = components[1]
+                    
+                    if login == storedLogin {
+                        isLoginCorrect = true
+                        if password == storedPassword {
+                            isPasswordCorrect = true
+                            break
+                        }
+                    }
                 }
             }
-
-            if login != storedLogin {
+            
+            if !isLoginCorrect {
                 errorLabel.text = "Login is incorrect"
                 errorLabel.isHidden = false
-            } else if password != storedPassword {
+            } else if !isPasswordCorrect {
                 errorLabel.text = "Password is wrong"
                 errorLabel.isHidden = false
             } else {
                 errorLabel.isHidden = true
                 
+                // Сохраняем логин и пароль в UserDefaults
                 UserDefaults.standard.set(login, forKey: "savedLogin")
                 UserDefaults.standard.set(password, forKey: "savedPassword")
                 
+                // Переходим на главный экран
                 let mainVC = MainViewController()
-                navigationItem.hidesBackButton = true
+                mainVC.navigationItem.hidesBackButton = true
                 navigationController?.pushViewController(mainVC, animated: true)
             }
         } catch {
             print("Error file reading: \(error)")
+            errorLabel.text = "An error occurred. Please try again."
+            errorLabel.isHidden = false
         }
     }
     
@@ -62,7 +80,7 @@ class LoginViewController: UIViewController {
     
     @objc private func registerTapped() {
         let registrationVC = RegistrationViewController()
-        navigationItem.hidesBackButton = true
+        registrationVC.navigationItem.hidesBackButton = true
         navigationController?.pushViewController(registrationVC, animated: true)
     }
     

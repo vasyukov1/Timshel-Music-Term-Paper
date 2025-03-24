@@ -6,7 +6,11 @@ class MyMusicViewModel {
     @Published var tracks: [Track] = []
     
     func loadMyTracks() async -> [Track] {
-        return await Track.loadTracks()
+        guard let login = UserDefaults.standard.string(forKey: "savedLogin") else {
+            print("Error: User is not logged in")
+            return []
+        }
+        return await MusicLoader.loadTracks(for: login)
     }
     
     func selectTrack(at index: Int) {
@@ -16,26 +20,40 @@ class MyMusicViewModel {
     // Добавление треков
     // FIXME: Надо будет переделать с папки на базу данных
     func addTrack(from url: URL) async {
-        let fileManager = FileManager.default
-        
-        // Получение пути к папке с музыкой
-        guard let songsDir = fileManager.urls(for: .libraryDirectory, in: .userDomainMask).first?.appendingPathComponent("songs") else {
-            print("Error: Could not access songs directory")
+        guard let login = UserDefaults.standard.string(forKey: "savedLogin") else {
+            print("Error: User is not logged in")
             return
         }
         
+        let fileManager = FileManager.default
+        
+        // Путь к Application Support
+        guard let appSupportDir = fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask).first else {
+            print("Error: Application Support directory not found")
+            return
+        }
+
+        let musicDBPath = appSupportDir.appendingPathComponent("musidb_music")
+        
+        
+        // Путь к папке пользователя
+        let userDir = musicDBPath.appendingPathComponent(login)
+        
         // Проверка, что папка существует
-        if !fileManager.fileExists(atPath: songsDir.path) {
+        if !fileManager.fileExists(atPath: userDir.path) {
             do {
-                try fileManager.createDirectory(at: songsDir, withIntermediateDirectories: true)
+                try fileManager.createDirectory(at: userDir, withIntermediateDirectories: true)
+                print("Directory is created: \(userDir.path)")
             } catch {
                 print("Failed to create songs directory: \(error)")
                 return
             }
+        } else {
+            print("Directory already exsits: \(userDir.path)")
         }
         
         // Путь, по которому будем добавлять трек
-        let destinationURL = songsDir.appendingPathComponent(url.lastPathComponent)
+        let destinationURL = userDir.appendingPathComponent(url.lastPathComponent)
         
         // Проверка, что такой трек не существует
         if !fileManager.fileExists(atPath: destinationURL.path) {

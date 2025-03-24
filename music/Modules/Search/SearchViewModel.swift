@@ -7,11 +7,7 @@ class SearchViewModel {
     @Published var popularTracks: [Track] = []
     @Published var filteredTracks: [Track] = []
     
-    func loadData() {
-        Task {
-            userTracks = await Track.loadTracks()
-        }
-        
+    func loadData() {        
         popularTracks = getTopTracks()
         recentSearchTracks = []
     }

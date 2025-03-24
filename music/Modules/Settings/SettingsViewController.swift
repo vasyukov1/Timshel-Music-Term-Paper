@@ -217,11 +217,18 @@ class SettingsViewController: BaseViewController {
             var dbLines = dbContent.components(separatedBy: .newlines)
 
             for (index, line) in dbLines.enumerated() {
-                if line.contains("login=\(oldLogin)") {
-                    dbLines[index] = "login=\(newLogin)"
+                let trimmedLine = line.trimmingCharacters(in: .whitespacesAndNewlines)
+                if trimmedLine.isEmpty {
+                    continue
                 }
-                if line.contains("password=") && index > 0 && dbLines[index - 1].contains("login=\(oldLogin)") {
-                    dbLines[index] = "password=\(newPassword)"
+                
+                let components = trimmedLine.components(separatedBy: ":")
+                if components.count == 2 {
+                    let storedLogin = components[0]
+                    if storedLogin == oldLogin {
+                        dbLines[index] = "\(newLogin):\(newPassword)"
+                        break
+                    }
                 }
             }
 
