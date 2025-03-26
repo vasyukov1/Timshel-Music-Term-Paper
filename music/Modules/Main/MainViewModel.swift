@@ -19,7 +19,7 @@ class MainViewModel {
         }
         
         Task {
-            tracks = await MusicLoader.loadTracks(for: login)
+            tracks = await MusicManager.shared.getTracksByLogin(login)
             self.myTracks = Array(tracks.prefix(9))
         }
         myPlaylists = PlaylistManager.shared.getPlaylists()
@@ -31,5 +31,5 @@ class MainViewModel {
     
     func getMyPlaylists() -> [Playlist] {
         return myPlaylists
-    }
+    }    
 }

@@ -33,7 +33,6 @@ class PlayerViewModel {
     
     func updateTrack() {
         track = MusicPlayerManager.shared.getCurrentTrack()
-        MiniPlayerView.shared.hide()
     }
     
     private func updateIsPlaying() {

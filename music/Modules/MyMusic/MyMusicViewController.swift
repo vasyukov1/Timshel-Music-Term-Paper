@@ -2,13 +2,12 @@ import UIKit
 import AVFoundation
 import Combine
 
-class MyMusicViewController: BaseViewController, UITableViewDelegate, UITableViewDataSource, UIDocumentPickerDelegate {
+class MyMusicViewController: BaseViewController, UITableViewDelegate, UITableViewDataSource {
     
     private let viewModel = MyMusicViewModel()
     private var cancellables = Set<AnyCancellable>()
 
     private let tableView = UITableView()
-    private let addTrackButton = UIButton()
     
     override func viewDidLoad() {
         setupUI()
@@ -36,7 +35,7 @@ class MyMusicViewController: BaseViewController, UITableViewDelegate, UITableVie
             .store(in: &cancellables)
         
         Task {
-            viewModel.tracks = await viewModel.loadMyTracks()
+            await viewModel.loadMyTracks()
         }
     }
     
@@ -48,12 +47,7 @@ class MyMusicViewController: BaseViewController, UITableViewDelegate, UITableVie
         tableView.dataSource = self
         tableView.register(TrackCell.self, forCellReuseIdentifier: "TrackCell")
         
-        addTrackButton.setTitle("Add Tracks", for: .normal)
-        addTrackButton.backgroundColor = .systemBlue
-        addTrackButton.layer.cornerRadius = 8
-        addTrackButton.addTarget(self, action: #selector(addTrack), for: .touchUpInside)
-        
-        for subview in [tableView, addTrackButton] {
+        for subview in [tableView] {
             view.addSubview(subview)
         }
         
@@ -66,12 +60,7 @@ class MyMusicViewController: BaseViewController, UITableViewDelegate, UITableVie
         }
         
         NSLayoutConstraint.activate([
-            addTrackButton.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 15),
-            addTrackButton.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -15),
-            addTrackButton.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 10),
-            addTrackButton.heightAnchor.constraint(equalToConstant: 40),
-            
-            tableView.topAnchor.constraint(equalTo: addTrackButton.bottomAnchor),
+            tableView.topAnchor.constraint(equalTo: view.topAnchor),
             tableView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             tableView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             tableView.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -50)
@@ -104,17 +93,4 @@ class MyMusicViewController: BaseViewController, UITableViewDelegate, UITableVie
         tableView.reloadData()
     }
     
-    @objc private func addTrack() {
-        let documentPicker = UIDocumentPickerViewController(forOpeningContentTypes: [.audio], asCopy: true)
-        documentPicker.delegate = self
-        documentPicker.allowsMultipleSelection = false
-        present(documentPicker, animated: true)
-    }
-    
-    func documentPicker(_ controller: UIDocumentPickerViewController, didPickDocumentsAt urls: [URL]) {
-        guard let url = urls.first else { return }
-        Task {
-            await viewModel.addTrack(from: url)
-        }
-    }
 }

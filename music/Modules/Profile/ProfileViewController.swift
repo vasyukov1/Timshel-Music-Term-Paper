@@ -5,7 +5,6 @@ class ProfileViewController: BaseViewController {
     let nameLabel = UILabel()
     let imageView = UIImageView()
     let settingsButton = UIButton()
-    let TESTartistButton = UIButton()
     
     // MARK: Lifecycle
     override func viewDidLoad() {
@@ -31,18 +30,12 @@ class ProfileViewController: BaseViewController {
         settingsButton.setTitleColor(.systemBlue, for: .normal)
         settingsButton.addTarget(self, action: #selector(settingsTapped), for: .touchUpInside)
         
-        TESTartistButton.setTitle("Oxxxymiron", for: .normal)
-        TESTartistButton.backgroundColor = .systemBlue
-        TESTartistButton.layer.cornerRadius = 15
-        TESTartistButton.addTarget(self, action: #selector(TESTartistButtonTapped), for: .touchUpInside)
-        
         let logoutButton = UIBarButtonItem(title: "Выйти", style: .plain, target: self, action: #selector(logoutTapped))
         navigationItem.rightBarButtonItem = logoutButton
         
         let UIElements = [
             imageView,
             nameLabel,
-            TESTartistButton,
             settingsButton
         ]
         
@@ -70,11 +63,6 @@ class ProfileViewController: BaseViewController {
             
             settingsButton.centerXAnchor.constraint(equalTo: view.centerXAnchor),
             settingsButton.topAnchor.constraint(equalTo: nameLabel.bottomAnchor, constant: 20),
-            
-            TESTartistButton.topAnchor.constraint(equalTo: settingsButton.bottomAnchor, constant: 10),
-            TESTartistButton.centerXAnchor.constraint(equalTo: view.centerXAnchor),
-            TESTartistButton.widthAnchor.constraint(equalToConstant: 120),
-            TESTartistButton.heightAnchor.constraint(equalToConstant: 40),
         ])
     }
     
@@ -111,8 +99,7 @@ class ProfileViewController: BaseViewController {
     }
     
     @objc private func TESTartistButtonTapped() {
-        let artist = Artist(name: "Oxxxymiron", image: UIImage(systemName: "shareplay")!, info: "Признан иностранным агентом в РФ")
-        let artistVC = ArtistViewController(viewModel: ArtistViewModel(artist: artist))
+        let artistVC = ArtistViewController(viewModel: ArtistViewModel(artistName: "Eleni Foureira"))
         navigationItem.hidesBackButton = true
         navigationController?.pushViewController(artistVC, animated: false)
     }
