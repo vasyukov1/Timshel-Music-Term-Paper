@@ -14,7 +14,6 @@ class MiniPlayerViewModel {
         NotificationCenter.default.publisher(for: .trackDidChange)
             .sink { [weak self] _ in
                 self?.updateTrack()
-                MiniPlayerView.shared.show()
             }
             .store(in: &cancellables)
         
@@ -35,6 +34,7 @@ class MiniPlayerViewModel {
     private func updateTrack() {
         track = MusicPlayerManager.shared.getCurrentTrack() ?? mockTrack
         updateIsPlaying()
+        
         MiniPlayerView.shared.show()
     }
     

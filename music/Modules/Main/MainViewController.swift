@@ -8,6 +8,7 @@ class MainViewController: BaseViewController, UIDocumentPickerDelegate {
     
     private let myMusicButton = UIButton()
     private let addTrackButton = UIButton()
+    private let historyButton = UIButton()
     private let myTracksLabel = UILabel()
     
     private let playlistsLabel = UILabel()
@@ -45,9 +46,14 @@ class MainViewController: BaseViewController, UIDocumentPickerDelegate {
         myMusicButton.layer.cornerRadius = 15
         myMusicButton.addTarget(self, action: #selector(myMusicButtonTapped), for: .touchUpInside)
         
+        historyButton.setTitle("History", for: .normal)
+        historyButton.backgroundColor = .systemBlue
+        historyButton.layer.cornerRadius = 15
+        historyButton.addTarget(self, action: #selector(historyButtonTapped), for: .touchUpInside)
+        
         addTrackButton.setTitle("Add Tracks", for: .normal)
         addTrackButton.backgroundColor = .systemBlue
-        addTrackButton.layer.cornerRadius = 8
+        addTrackButton.layer.cornerRadius = 15
         addTrackButton.addTarget(self, action: #selector(addTrack), for: .touchUpInside)
         
         myTracksLabel.text = "My Tracks"
@@ -63,10 +69,10 @@ class MainViewController: BaseViewController, UIDocumentPickerDelegate {
         
         for subview in [
             myMusicButton,
+            historyButton,
             addTrackButton,
             myTracksLabel,
             playlistsLabel,
-//            myTracksCollectionView,
             playlistsCollectionView
         ] {
             view.addSubview(subview)
@@ -86,12 +92,17 @@ class MainViewController: BaseViewController, UIDocumentPickerDelegate {
             myMusicButton.widthAnchor.constraint(equalToConstant: 150),
             myMusicButton.heightAnchor.constraint(equalToConstant: 50),
             
+            historyButton.topAnchor.constraint(equalTo: myMusicButton.bottomAnchor, constant: 10),
+            historyButton.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 10),
+            historyButton.widthAnchor.constraint(equalToConstant: 150),
+            historyButton.heightAnchor.constraint(equalToConstant: 50),
+            
             addTrackButton.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 10),
             addTrackButton.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -10),
             addTrackButton.widthAnchor.constraint(equalToConstant: 150),
             addTrackButton.heightAnchor.constraint(equalToConstant: 50),
             
-            myTracksLabel.topAnchor.constraint(equalTo: myMusicButton.bottomAnchor, constant: 20),
+            myTracksLabel.topAnchor.constraint(equalTo: historyButton.bottomAnchor, constant: 20),
             myTracksLabel.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 15),
                         
             playlistsLabel.topAnchor.constraint(equalTo: myTracksLabel.bottomAnchor, constant: 20),
@@ -110,17 +121,25 @@ class MainViewController: BaseViewController, UIDocumentPickerDelegate {
         navigationController?.pushViewController(myMusicVC, animated: false)
     }
     
+    @objc private func historyButtonTapped() {
+        let historyVC = HistoryViewController()
+        historyVC.navigationItem.hidesBackButton = true
+        navigationController?.pushViewController(historyVC, animated: false)
+    }
+    
     @objc private func addTrack() {
         let documentPicker = UIDocumentPickerViewController(forOpeningContentTypes: [.audio], asCopy: true)
         documentPicker.delegate = self
-        documentPicker.allowsMultipleSelection = false
+        documentPicker.allowsMultipleSelection = true
         present(documentPicker, animated: true)
     }
     
     func documentPicker(_ controller: UIDocumentPickerViewController, didPickDocumentsAt urls: [URL]) {
-        guard let url = urls.first else { return }
+        guard !urls.isEmpty else { return }
         Task {
-            await MusicManager.shared.addTrack(from: url)
+            for url in urls {
+                await MusicManager.shared.addTrack(from: url)
+            }
         }
     }
     

@@ -35,7 +35,6 @@ class Toolbar: UIToolbar {
         viewModel.profileTapped()
     }
     
-    
     private func setupToolbar() {
         homeButton = createButton(title: "Home", systemImageName: "house.fill", action: #selector(homeTapped))
         searchButton = createButton(title: "Search", systemImageName: "magnifyingglass", action: #selector(searchTapped))

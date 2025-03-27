@@ -8,7 +8,6 @@ class QueueViewController: UIViewController, UITableViewDataSource, UITableViewD
     
     private var tableView = UITableView()
     private let returnButton = UIButton()
-    private let historyButton = UIButton()
        
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -37,13 +36,9 @@ class QueueViewController: UIViewController, UITableViewDataSource, UITableViewD
         returnButton.setImage(UIImage(systemName: "arrow.left"), for: .normal)
         returnButton.addTarget(self, action: #selector(returnButtonTapped), for: .touchUpInside)
         
-        historyButton.setImage(UIImage(systemName: "arrow.right"), for: .normal)
-        historyButton.addTarget(self, action: #selector(historyButtonTapped), for: .touchUpInside)
-        
         for subview in [
             tableView,
             returnButton,
-            historyButton
         ] {
             view.addSubview(subview)
             subview.translatesAutoresizingMaskIntoConstraints = false
@@ -61,9 +56,6 @@ class QueueViewController: UIViewController, UITableViewDataSource, UITableViewD
             tableView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             tableView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             tableView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
-            
-            historyButton.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 20),
-            historyButton.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -20)
         ])
     }
     
@@ -91,11 +83,5 @@ class QueueViewController: UIViewController, UITableViewDataSource, UITableViewD
     @objc private func returnButtonTapped() {
         navigationItem.hidesBackButton = true
         navigationController?.popViewController(animated: false)
-    }
-    
-    @objc private func historyButtonTapped() {
-        let historyVC = HistoryViewController()
-        historyVC.navigationItem.hidesBackButton = true
-        navigationController?.pushViewController(historyVC, animated: false)
     }
 }

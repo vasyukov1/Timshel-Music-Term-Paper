@@ -156,8 +156,7 @@ class PlayerViewController: UIViewController {
             trackImageView.heightAnchor.constraint(equalToConstant: 300),
             trackImageView.widthAnchor.constraint(equalToConstant: 300),
             
-            titleLabel.leadingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.leadingAnchor, constant: 20),
-            titleLabel.trailingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.trailingAnchor, constant: -20),
+            titleLabel.centerXAnchor.constraint(equalTo: view.centerXAnchor),
             titleLabel.topAnchor.constraint(equalTo: trackImageView.bottomAnchor, constant: 20),
             
             artistButton.leadingAnchor.constraint(equalTo: titleLabel.leadingAnchor),

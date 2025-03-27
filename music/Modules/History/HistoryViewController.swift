@@ -12,7 +12,6 @@ class HistoryViewController: UIViewController, UITableViewDelegate, UITableViewD
     override func viewDidLoad() {
         super.viewDidLoad()
         setupUI()
-        MiniPlayerView.shared.hide()
         bindViewModel()
     }
     
