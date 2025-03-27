@@ -1,6 +1,6 @@
 import UIKit
 
-class TrackCell: UITableViewCell {
+class SelectTrackCell: UITableViewCell {
     private let titleLabel = UILabel()
     private let artistLabel = UILabel()
     private let trackImageView = UIImageView()
@@ -20,7 +20,14 @@ class TrackCell: UITableViewCell {
         titleLabel.text = track.title
         artistLabel.text = track.artist
         trackImageView.image = track.image
+        backgroundColor = track.isSelected ? .systemGray2 : .clear
     }
+    
+    @objc private func selectTrack() {
+        selectTrackAction?()
+    }
+    
+    var selectTrackAction: (() -> Void)?
     
     private func setupUI() {
         trackImageView.contentMode = .scaleAspectFill
@@ -32,7 +39,13 @@ class TrackCell: UITableViewCell {
         artistLabel.font = UIFont.systemFont(ofSize: 14)
         artistLabel.textColor = .gray
         
-        for subview in [trackImageView, titleLabel, artistLabel] {
+        selectButton.setTitle("Select", for: .normal)
+        selectButton.layer.borderColor = UIColor.systemBlue.cgColor
+        selectButton.layer.borderWidth = 1
+        selectButton.layer.cornerRadius = 5
+        selectButton.addTarget(self, action: #selector(selectTrack), for: .touchUpInside)
+        
+        for subview in [trackImageView, titleLabel, artistLabel, selectButton] {
             contentView.addSubview(subview)
             subview.translatesAutoresizingMaskIntoConstraints = false
         }
@@ -42,7 +55,12 @@ class TrackCell: UITableViewCell {
     
     private func setupConstraints() {
         NSLayoutConstraint.activate([
-            trackImageView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 10),
+            selectButton.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 10),
+            selectButton.centerYAnchor.constraint(equalTo: contentView.centerYAnchor),
+            selectButton.widthAnchor.constraint(equalToConstant: 20),
+            selectButton.heightAnchor.constraint(equalToConstant: 20),
+            
+            trackImageView.leadingAnchor.constraint(equalTo: selectButton.trailingAnchor, constant: 10),
             trackImageView.centerYAnchor.constraint(equalTo: contentView.centerYAnchor),
             trackImageView.widthAnchor.constraint(equalToConstant: 50),
             trackImageView.heightAnchor.constraint(equalToConstant: 50),
@@ -54,7 +72,7 @@ class TrackCell: UITableViewCell {
             artistLabel.leadingAnchor.constraint(equalTo: trackImageView.trailingAnchor, constant: 10),
             artistLabel.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -10),
             artistLabel.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: 5),
-            artistLabel.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -10)
+            artistLabel.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -10),
         ])
     }
 }

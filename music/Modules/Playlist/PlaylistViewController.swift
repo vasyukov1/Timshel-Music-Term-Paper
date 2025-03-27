@@ -7,7 +7,6 @@ class PlaylistViewController: BaseViewController {
     private var cancellable = Set<AnyCancellable>()
     
     private let titleLabel = UILabel()
-    private let authorLabel = UILabel()
     private var imageView = UIImageView()
     private let tableView = UITableView()
     private let returnButton = UIButton()
@@ -50,12 +49,6 @@ class PlaylistViewController: BaseViewController {
         titleLabel.textAlignment = .center
         titleLabel.numberOfLines = 2
         
-        authorLabel.text = viewModel.playlist.author
-        authorLabel.font = .systemFont(ofSize: 14, weight: .medium)
-        authorLabel.textAlignment = .center
-        authorLabel.textColor = .secondaryLabel
-        authorLabel.numberOfLines = 1
-        
         tableView.dataSource = self
         tableView.delegate = self
         tableView.register(TrackCell.self, forCellReuseIdentifier: "TrackCell")
@@ -66,7 +59,7 @@ class PlaylistViewController: BaseViewController {
         returnButton.tintColor = .label
         returnButton.addTarget(self, action: #selector(returnButtonTapped), for: .touchUpInside)
         
-        for subview in [imageView, titleLabel, authorLabel, tableView, returnButton] {
+        for subview in [imageView, titleLabel, tableView, returnButton] {
             view.addSubview(subview)
             subview.translatesAutoresizingMaskIntoConstraints = false
         }
@@ -90,12 +83,8 @@ class PlaylistViewController: BaseViewController {
             titleLabel.topAnchor.constraint(equalTo: imageView.bottomAnchor, constant: 16),
             titleLabel.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 20),
             titleLabel.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -20),
-            
-            authorLabel.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: 8),
-            authorLabel.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 20),
-            authorLabel.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -20),
-            
-            tableView.topAnchor.constraint(equalTo: authorLabel.bottomAnchor, constant: 24),
+
+            tableView.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: 24),
             tableView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             tableView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             tableView.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor)

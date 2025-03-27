@@ -3,7 +3,7 @@ import UIKit
 class PlaylistManager {
     static let shared = PlaylistManager()
     
-    private var playlists: [Playlist] = []
+    private var playlists: [(String, Playlist)] = []
     private var recentTracks: [Track] = []
     
     private init() {
@@ -13,17 +13,24 @@ class PlaylistManager {
             Track(title: "Track 3", artist: "Artist 3", image: UIImage(systemName: "music.note")!, url: URL(filePath: "")!)
         ]
         
-        playlists = [
-            Playlist(title: "Chill Vibes", author: "Alex", image: UIImage(systemName: "music.note.list")!, tracks: sampleTracks),
-            Playlist(title: "Workout Mix", author: "Timshel", image: UIImage(systemName: "music.note.list")!, tracks: sampleTracks),
-            Playlist(title: "Party Hits", author: "Gregor", image: UIImage(systemName: "music.note.list")!, tracks: sampleTracks)
-        ]
+//        playlists = [
+//            Playlist(title: "Chill Vibes", author: "Alex", image: UIImage(systemName: "music.note.list")!, tracks: sampleTracks),
+//            Playlist(title: "Workout Mix", author: "Timshel", image: UIImage(systemName: "music.note.list")!, tracks: sampleTracks),
+//            Playlist(title: "Party Hits", author: "Gregor", image: UIImage(systemName: "music.note.list")!, tracks: sampleTracks)
+//        ]
         
         recentTracks = Array(sampleTracks.prefix(6))
     }
     
     func getPlaylists() -> [Playlist] {
+        guard let login = UserDefaults.standard.string(forKey: "savedLogin") else {
+            print("Error: User is not logged in")
+            return []
+        }
+        
         return playlists
+            .filter { $0.0 == login}
+            .map { $0.1 }
     }
     
     func getRecentTracks() -> [Track] {
@@ -31,7 +38,13 @@ class PlaylistManager {
     }
     
     func addPlaylist(_ playlist: Playlist) {
-        playlists.append(playlist)
+        guard let login = UserDefaults.standard.string(forKey: "savedLogin") else {
+            print("Error: User is not logged in")
+            return
+        }
+        
+        playlists.append((login, playlist))
+        print("Playlist [\(playlist.title)] created with [\(playlist.tracks.count)] tracks")
     }
     
     func addRecentTrack(_ track: Track) {

@@ -29,7 +29,7 @@ class MyMusicViewController: BaseViewController, UITableViewDelegate, UITableVie
     private func bindViewModel() {
         viewModel.$tracks
             .receive(on: RunLoop.main)
-            .sink { [weak self] tracks in
+            .sink { [weak self] _ in
                 self?.tableView.reloadData()
             }
             .store(in: &cancellables)

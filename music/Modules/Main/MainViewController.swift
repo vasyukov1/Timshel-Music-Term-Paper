@@ -8,17 +8,18 @@ class MainViewController: BaseViewController, UIDocumentPickerDelegate {
     
     private let myMusicButton = UIButton()
     private let addTrackButton = UIButton()
+    private let addPlaylitsButton = UIButton()
     private let historyButton = UIButton()
     private let myTracksLabel = UILabel()
     
-    private let playlistsLabel = UILabel()
-    private var playlistsCollectionView: UICollectionView = {
-        let playlistLayout = UICollectionViewFlowLayout()
-        playlistLayout.scrollDirection = .horizontal
-        playlistLayout.itemSize = CGSize(width: 200, height: 200)
-        playlistLayout.minimumLineSpacing = 10
-        return UICollectionView(frame: .zero, collectionViewLayout: playlistLayout)
-    }()
+//    private let playlistsLabel = UILabel()
+//    private var playlistsCollectionView: UICollectionView = {
+//        let playlistLayout = UICollectionViewFlowLayout()
+//        playlistLayout.scrollDirection = .horizontal
+//        playlistLayout.itemSize = CGSize(width: 200, height: 200)
+//        playlistLayout.minimumLineSpacing = 10
+//        return UICollectionView(frame: .zero, collectionViewLayout: playlistLayout)
+//    }()
 
     override func viewDidLoad() {
         setupUI()
@@ -28,12 +29,12 @@ class MainViewController: BaseViewController, UIDocumentPickerDelegate {
     }
     
     private func bindViewModel() {
-        viewModel.$myPlaylists
-            .receive(on: RunLoop.main)
-            .sink { [weak self] playlists in
-                self?.playlistsCollectionView.reloadData()
-            }
-            .store(in: &cancellables)
+//        viewModel.$myPlaylists
+//            .receive(on: RunLoop.main)
+//            .sink { [weak self] playlists in
+//                self?.playlistsCollectionView.reloadData()
+//            }
+//            .store(in: &cancellables)
         
     }
     
@@ -54,26 +55,32 @@ class MainViewController: BaseViewController, UIDocumentPickerDelegate {
         addTrackButton.setTitle("Add Tracks", for: .normal)
         addTrackButton.backgroundColor = .systemBlue
         addTrackButton.layer.cornerRadius = 15
-        addTrackButton.addTarget(self, action: #selector(addTrack), for: .touchUpInside)
+        addTrackButton.addTarget(self, action: #selector(addTrackButtonTapped), for: .touchUpInside)
+        
+        addPlaylitsButton.setTitle("Add Playlist", for: .normal)
+        addPlaylitsButton.backgroundColor = .systemBlue
+        addPlaylitsButton.layer.cornerRadius = 15
+        addPlaylitsButton.addTarget(self, action: #selector(addPlaylistButtonTapped), for: .touchUpInside)
         
         myTracksLabel.text = "My Tracks"
         myTracksLabel.font = .boldSystemFont(ofSize: 20)
         
-        playlistsLabel.text = "Recent Playlists"
-        playlistsLabel.font = .boldSystemFont(ofSize: 20)
-        
-        playlistsCollectionView.delegate = self
-        playlistsCollectionView.dataSource = self
-        playlistsCollectionView.register(PlaylistCell.self, forCellWithReuseIdentifier: "PlaylistCell")
-        playlistsCollectionView.backgroundColor = .clear
+//        playlistsLabel.text = "Recent Playlists"
+//        playlistsLabel.font = .boldSystemFont(ofSize: 20)
+//        
+//        playlistsCollectionView.delegate = self
+//        playlistsCollectionView.dataSource = self
+//        playlistsCollectionView.register(PlaylistCell.self, forCellWithReuseIdentifier: "PlaylistCell")
+//        playlistsCollectionView.backgroundColor = .clear
         
         for subview in [
             myMusicButton,
             historyButton,
             addTrackButton,
+            addPlaylitsButton,
             myTracksLabel,
-            playlistsLabel,
-            playlistsCollectionView
+//            playlistsLabel,
+//            playlistsCollectionView
         ] {
             view.addSubview(subview)
         }
@@ -102,16 +109,21 @@ class MainViewController: BaseViewController, UIDocumentPickerDelegate {
             addTrackButton.widthAnchor.constraint(equalToConstant: 150),
             addTrackButton.heightAnchor.constraint(equalToConstant: 50),
             
+            addPlaylitsButton.topAnchor.constraint(equalTo: addTrackButton.bottomAnchor, constant: 10),
+            addPlaylitsButton.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -10),
+            addPlaylitsButton.widthAnchor.constraint(equalToConstant: 150),
+            addPlaylitsButton.heightAnchor.constraint(equalToConstant: 50),
+            
             myTracksLabel.topAnchor.constraint(equalTo: historyButton.bottomAnchor, constant: 20),
             myTracksLabel.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 15),
                         
-            playlistsLabel.topAnchor.constraint(equalTo: myTracksLabel.bottomAnchor, constant: 20),
-            playlistsLabel.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 15),
-                        
-            playlistsCollectionView.topAnchor.constraint(equalTo: playlistsLabel.bottomAnchor, constant: 10),
-            playlistsCollectionView.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 10),
-            playlistsCollectionView.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -10),
-            playlistsCollectionView.heightAnchor.constraint(equalToConstant: 200),
+//            playlistsLabel.topAnchor.constraint(equalTo: myTracksLabel.bottomAnchor, constant: 20),
+//            playlistsLabel.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 15),
+//                        
+//            playlistsCollectionView.topAnchor.constraint(equalTo: playlistsLabel.bottomAnchor, constant: 10),
+//            playlistsCollectionView.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 10),
+//            playlistsCollectionView.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -10),
+//            playlistsCollectionView.heightAnchor.constraint(equalToConstant: 200),
         ])
     }
     
@@ -127,11 +139,17 @@ class MainViewController: BaseViewController, UIDocumentPickerDelegate {
         navigationController?.pushViewController(historyVC, animated: false)
     }
     
-    @objc private func addTrack() {
+    @objc private func addTrackButtonTapped() {
         let documentPicker = UIDocumentPickerViewController(forOpeningContentTypes: [.audio], asCopy: true)
         documentPicker.delegate = self
         documentPicker.allowsMultipleSelection = true
         present(documentPicker, animated: true)
+    }
+    
+    @objc private func addPlaylistButtonTapped() {
+        let addPlaylistVC = AddPlaylistViewController()
+        addPlaylistVC.navigationItem.hidesBackButton = true
+        navigationController?.pushViewController(addPlaylistVC, animated: false)
     }
     
     func documentPicker(_ controller: UIDocumentPickerViewController, didPickDocumentsAt urls: [URL]) {
@@ -145,23 +163,23 @@ class MainViewController: BaseViewController, UIDocumentPickerDelegate {
     
 }
 
-extension MainViewController: UICollectionViewDelegate, UICollectionViewDataSource {
-    func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
-        return viewModel.getMyPlaylists().count
-    }
-    
-    func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
-        let cell = collectionView.dequeueReusableCell(withReuseIdentifier: "PlaylistCell", for: indexPath) as! PlaylistCell
-        let playlist = viewModel.myPlaylists[indexPath.row]
-        cell.configure(with: playlist)
-        return cell
-    }
-    
-    func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
-        let playlist = viewModel.myPlaylists[indexPath.row]
-        let playlistVC = PlaylistViewController(viewModel: PlaylistViewModel(playlist: playlist))
-        playlistVC.navigationItem.hidesBackButton = true
-        navigationController?.pushViewController(playlistVC, animated: false)
-        collectionView.deselectItem(at: indexPath, animated: true)
-    }
-}
+//extension MainViewController: UICollectionViewDelegate, UICollectionViewDataSource {
+//    func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
+//        return viewModel.getMyPlaylists().count
+//    }
+//    
+//    func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
+//        let cell = collectionView.dequeueReusableCell(withReuseIdentifier: "PlaylistCell", for: indexPath) as! PlaylistCell
+//        let playlist = viewModel.myPlaylists[indexPath.row]
+//        cell.configure(with: playlist)
+//        return cell
+//    }
+//    
+//    func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
+//        let playlist = viewModel.myPlaylists[indexPath.row]
+//        let playlistVC = PlaylistViewController(viewModel: PlaylistViewModel(playlist: playlist))
+//        playlistVC.navigationItem.hidesBackButton = true
+//        navigationController?.pushViewController(playlistVC, animated: false)
+//        collectionView.deselectItem(at: indexPath, animated: true)
+//    }
+//}

@@ -7,6 +7,7 @@ class Track: Equatable {
     var id = ""
     private(set) var image: UIImage
     private(set) var url: URL
+    var isSelected: Bool
     
     static func == (lhs: Track, rhs: Track) -> Bool {
         return lhs.url == rhs.url
@@ -18,6 +19,7 @@ class Track: Equatable {
         self.id = title + "_" + artist
         self.image = image
         self.url = url
+        self.isSelected = false
     }
 }
 
