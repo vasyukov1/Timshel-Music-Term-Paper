@@ -3,7 +3,7 @@ import UIKit
 class PlaylistManager {
     static let shared = PlaylistManager()
     
-    private var playlists: [(String, Playlist)] = []
+    var playlists: [(String, Playlist)] = []
     private var recentTracks: [Track] = []
     
     private init() {
@@ -12,12 +12,6 @@ class PlaylistManager {
             Track(title: "Track 2", artist: "Artist 2", image: UIImage(systemName: "music.note")!, url: URL(filePath: "")!),
             Track(title: "Track 3", artist: "Artist 3", image: UIImage(systemName: "music.note")!, url: URL(filePath: "")!)
         ]
-        
-//        playlists = [
-//            Playlist(title: "Chill Vibes", author: "Alex", image: UIImage(systemName: "music.note.list")!, tracks: sampleTracks),
-//            Playlist(title: "Workout Mix", author: "Timshel", image: UIImage(systemName: "music.note.list")!, tracks: sampleTracks),
-//            Playlist(title: "Party Hits", author: "Gregor", image: UIImage(systemName: "music.note.list")!, tracks: sampleTracks)
-//        ]
         
         recentTracks = Array(sampleTracks.prefix(6))
     }
@@ -51,6 +45,20 @@ class PlaylistManager {
         recentTracks.insert(track, at: 0)
         if recentTracks.count > 6 {
             recentTracks.removeLast()
+        }
+    }
+    
+    func addTrackToPlaylist(_ track: Track, _ playlist: Playlist) {
+        guard let login = UserDefaults.standard.string(forKey: "savedLogin") else {
+            print("Error: User is not logged in")
+            return
+        }
+        
+        if let index = playlists.firstIndex(where: { $0.0 == login && $0.1.title == playlist.title }) {
+            playlists[index].1.tracks.append(track)
+            print("Track [\(track.title)] added to [\(playlist.title)]")
+        } else {
+            print("Playlist [\(playlist.title)] didn't find")
         }
     }
 }

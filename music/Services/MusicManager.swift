@@ -101,4 +101,18 @@ class MusicManager {
         print("Track [\(track.title)] for [\(login)] does not exist.")
         return false
     }
+    
+    func deleteTrack(_ track: Track) {
+        guard let login = UserDefaults.standard.string(forKey: "savedLogin") else {
+            print("Error: User is not logged in")
+            return
+        }
+        
+        if !trackExistsByUser(login, track) {
+            return
+        }
+        
+        tracksByUser.removeAll { $0.0 == login && $0.1 == track }
+        print("Track [\(track.title)] deleted from music")
+    }
 }

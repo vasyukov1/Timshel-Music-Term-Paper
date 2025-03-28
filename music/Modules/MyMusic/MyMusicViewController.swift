@@ -3,7 +3,6 @@ import AVFoundation
 import Combine
 
 class MyMusicViewController: BaseViewController, UITableViewDelegate, UITableViewDataSource {
-    
     private let viewModel = MyMusicViewModel()
     private var cancellables = Set<AnyCancellable>()
 
@@ -18,6 +17,13 @@ class MyMusicViewController: BaseViewController, UITableViewDelegate, UITableVie
             self,
             selector: #selector(trackDidChange),
             name: .trackDidChange,
+            object: nil
+        )
+        
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(trackDidDelete),
+            name: .trackDidDelete,
             object: nil
         )
     }
@@ -46,6 +52,7 @@ class MyMusicViewController: BaseViewController, UITableViewDelegate, UITableVie
         tableView.delegate = self
         tableView.dataSource = self
         tableView.register(TrackCell.self, forCellReuseIdentifier: "TrackCell")
+        tableView.frame = view.bounds
         
         for subview in [tableView] {
             view.addSubview(subview)
@@ -74,7 +81,8 @@ class MyMusicViewController: BaseViewController, UITableViewDelegate, UITableVie
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         let cell = tableView.dequeueReusableCell(withIdentifier: "TrackCell", for: indexPath) as! TrackCell
         let track = viewModel.tracks[indexPath.row]
-        cell.configure(with: track)
+        cell.configure(with: track, isMyMusic: true)
+        cell.delegate = self
         if track == MusicPlayerManager.shared.getCurrentTrack() {
             cell.backgroundColor = .systemGray2
         } else {
@@ -93,4 +101,47 @@ class MyMusicViewController: BaseViewController, UITableViewDelegate, UITableVie
         tableView.reloadData()
     }
     
+    @objc private func trackDidDelete() {
+        tableView.reloadData()
+    }
+}
+
+extension MyMusicViewController: TrackContextMenuDelegate {
+    func didSelectAddToQueue(track: Track) {
+        MusicPlayerManager.shared.addTrackToQueue(track: track)
+    }
+    
+    func didSelectGoToArtist(track: Track) {
+        let artistVC = ArtistViewController(viewModel: ArtistViewModel(artistName: track.artist))
+        artistVC.navigationItem.hidesBackButton = true
+        navigationController?.pushViewController(artistVC, animated: true)
+    }
+    
+    func didSelectAddToPlaylist(track: Track) {
+        let playlistMenu = UIAlertController(title: "Добавить в плейлист", message: nil, preferredStyle: .actionSheet)
+        
+        playlistMenu.addAction(UIAlertAction(title: "Создать плейлист", style: .default, handler: { _ in
+            let addPlaylistVC = AddPlaylistViewController()
+            self.navigationController?.pushViewController(addPlaylistVC, animated: true)
+        }))
+        
+        for playlist in PlaylistManager.shared.getPlaylists() {
+           playlistMenu.addAction(UIAlertAction(title: playlist.title, style: .default, handler: { _ in
+               PlaylistManager.shared.addTrackToPlaylist(track, playlist)
+           }))
+        }
+        
+        playlistMenu.addAction(UIAlertAction(title: "Отмена", style: .cancel, handler: nil))
+        
+        self.present(playlistMenu, animated: true)
+    }
+    
+    func didSelectDeleteTrack(track: Track) {
+        MusicPlayerManager.shared.deleteTrack(track)
+        MusicManager.shared.deleteTrack(track)
+        
+        Task {
+            await viewModel.deleteTrack(track)
+        }
+    }
 }

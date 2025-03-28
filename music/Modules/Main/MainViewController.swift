@@ -11,15 +11,6 @@ class MainViewController: BaseViewController, UIDocumentPickerDelegate {
     private let addPlaylitsButton = UIButton()
     private let historyButton = UIButton()
     private let myTracksLabel = UILabel()
-    
-//    private let playlistsLabel = UILabel()
-//    private var playlistsCollectionView: UICollectionView = {
-//        let playlistLayout = UICollectionViewFlowLayout()
-//        playlistLayout.scrollDirection = .horizontal
-//        playlistLayout.itemSize = CGSize(width: 200, height: 200)
-//        playlistLayout.minimumLineSpacing = 10
-//        return UICollectionView(frame: .zero, collectionViewLayout: playlistLayout)
-//    }()
 
     override func viewDidLoad() {
         setupUI()
@@ -29,12 +20,6 @@ class MainViewController: BaseViewController, UIDocumentPickerDelegate {
     }
     
     private func bindViewModel() {
-//        viewModel.$myPlaylists
-//            .receive(on: RunLoop.main)
-//            .sink { [weak self] playlists in
-//                self?.playlistsCollectionView.reloadData()
-//            }
-//            .store(in: &cancellables)
         
     }
     
@@ -65,22 +50,12 @@ class MainViewController: BaseViewController, UIDocumentPickerDelegate {
         myTracksLabel.text = "My Tracks"
         myTracksLabel.font = .boldSystemFont(ofSize: 20)
         
-//        playlistsLabel.text = "Recent Playlists"
-//        playlistsLabel.font = .boldSystemFont(ofSize: 20)
-//        
-//        playlistsCollectionView.delegate = self
-//        playlistsCollectionView.dataSource = self
-//        playlistsCollectionView.register(PlaylistCell.self, forCellWithReuseIdentifier: "PlaylistCell")
-//        playlistsCollectionView.backgroundColor = .clear
-        
         for subview in [
             myMusicButton,
             historyButton,
             addTrackButton,
             addPlaylitsButton,
             myTracksLabel,
-//            playlistsLabel,
-//            playlistsCollectionView
         ] {
             view.addSubview(subview)
         }
@@ -116,14 +91,7 @@ class MainViewController: BaseViewController, UIDocumentPickerDelegate {
             
             myTracksLabel.topAnchor.constraint(equalTo: historyButton.bottomAnchor, constant: 20),
             myTracksLabel.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 15),
-                        
-//            playlistsLabel.topAnchor.constraint(equalTo: myTracksLabel.bottomAnchor, constant: 20),
-//            playlistsLabel.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 15),
-//                        
-//            playlistsCollectionView.topAnchor.constraint(equalTo: playlistsLabel.bottomAnchor, constant: 10),
-//            playlistsCollectionView.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 10),
-//            playlistsCollectionView.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -10),
-//            playlistsCollectionView.heightAnchor.constraint(equalToConstant: 200),
+
         ])
     }
     
@@ -162,24 +130,3 @@ class MainViewController: BaseViewController, UIDocumentPickerDelegate {
     }
     
 }
-
-//extension MainViewController: UICollectionViewDelegate, UICollectionViewDataSource {
-//    func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
-//        return viewModel.getMyPlaylists().count
-//    }
-//    
-//    func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
-//        let cell = collectionView.dequeueReusableCell(withReuseIdentifier: "PlaylistCell", for: indexPath) as! PlaylistCell
-//        let playlist = viewModel.myPlaylists[indexPath.row]
-//        cell.configure(with: playlist)
-//        return cell
-//    }
-//    
-//    func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
-//        let playlist = viewModel.myPlaylists[indexPath.row]
-//        let playlistVC = PlaylistViewController(viewModel: PlaylistViewModel(playlist: playlist))
-//        playlistVC.navigationItem.hidesBackButton = true
-//        navigationController?.pushViewController(playlistVC, animated: false)
-//        collectionView.deselectItem(at: indexPath, animated: true)
-//    }
-//}

@@ -140,7 +140,7 @@ class ArtistViewController: BaseViewController, UITableViewDelegate, UITableView
         if tableView == tracksTableView {
             let cell = tableView.dequeueReusableCell(withIdentifier: "TrackCell", for: indexPath) as! TrackCell
             let track = viewModel.tracks[indexPath.row]
-            cell.configure(with: track)
+            cell.configure(with: track, isMyMusic: true)
             return cell
         } else {
             let cell = tableView.dequeueReusableCell(withIdentifier: "AlbumCell", for: indexPath) as! AlbumCell
@@ -163,5 +163,45 @@ class ArtistViewController: BaseViewController, UITableViewDelegate, UITableView
     @objc
     private func allTracksButtonTapped() {
         
+    }
+}
+
+extension ArtistViewController: TrackContextMenuDelegate {
+    func didSelectAddToQueue(track: Track) {
+        MusicPlayerManager.shared.addTrackToQueue(track: track)
+    }
+    
+    func didSelectGoToArtist(track: Track) {
+        let artistVC = ArtistViewController(viewModel: ArtistViewModel(artistName: track.artist))
+        artistVC.navigationItem.hidesBackButton = true
+        navigationController?.pushViewController(artistVC, animated: true)
+    }
+    
+    func didSelectAddToPlaylist(track: Track) {
+        let playlistMenu = UIAlertController(title: "Добавить в плейлист", message: nil, preferredStyle: .actionSheet)
+        
+        playlistMenu.addAction(UIAlertAction(title: "Создать плейлист", style: .default, handler: { _ in
+            let addPlaylistVC = AddPlaylistViewController()
+            self.navigationController?.pushViewController(addPlaylistVC, animated: true)
+        }))
+        
+        for playlist in PlaylistManager.shared.getPlaylists() {
+           playlistMenu.addAction(UIAlertAction(title: playlist.title, style: .default, handler: { _ in
+               PlaylistManager.shared.addTrackToPlaylist(track, playlist)
+           }))
+        }
+        
+        playlistMenu.addAction(UIAlertAction(title: "Отмена", style: .cancel, handler: nil))
+        
+        self.present(playlistMenu, animated: true)
+    }
+    
+    func didSelectDeleteTrack(track: Track) {
+        MusicPlayerManager.shared.deleteTrack(track)
+        MusicManager.shared.deleteTrack(track)
+        
+        Task {
+            await viewModel.deleteTrack(track)
+        }
     }
 }

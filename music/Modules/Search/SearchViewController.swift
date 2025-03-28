@@ -9,7 +9,6 @@ class SearchViewController: BaseViewController {
     
     private let searchBar = UISearchBar()
     private let tableView = UITableView()
-//    private let tablePlaylistsView = UITableView()
     private var stackView = UIStackView()
     private let collectionView: UICollectionView
     
@@ -60,11 +59,6 @@ class SearchViewController: BaseViewController {
         searchBar.delegate = self
         searchBar.searchBarStyle = .minimal
         
-//        tablePlaylistsView.register(PlaylistCell.self, forCellReuseIdentifier: "PlaylistCell")
-//        tablePlaylistsView.delegate = self
-//        tablePlaylistsView.dataSource = self
-//        tablePlaylistsView.separatorStyle = .none
-//        tablePlaylistsView.showsHorizontalScrollIndicator = false
         collectionView.register(PlaylistCell.self, forCellWithReuseIdentifier: "PlaylistCell")
         collectionView.delegate = self
         collectionView.dataSource = self
@@ -98,7 +92,6 @@ class SearchViewController: BaseViewController {
             stackView.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
             stackView.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -16),
             
-//            tablePlaylistsView.heightAnchor.constraint(equalToConstant: 180)
             collectionView.heightAnchor.constraint(equalToConstant: 200)
         ])
     }
@@ -122,18 +115,10 @@ extension SearchViewController: UISearchBarDelegate {
 
 extension SearchViewController: UITableViewDataSource, UITableViewDelegate {
     func numberOfSections(in tableView: UITableView) -> Int {
-//        if tableView == tablePlaylistsView {
-//            return 1
-//        }
-        
         return 3
     }
     
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-//        if tableView == tablePlaylistsView {
-//            return viewModel.playlists.count
-//        }
-        
         switch section {
             case 0: return viewModel.recentSearchTracks.isEmpty ? 0 : viewModel.recentSearchTracks.count
             case 1: return viewModel.filteredTracks.count
@@ -143,13 +128,6 @@ extension SearchViewController: UITableViewDataSource, UITableViewDelegate {
     }
     
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
-//        if tableView == tablePlaylistsView {
-//            let cell = tableView.dequeueReusableCell(withIdentifier: "PlaylistCell", for: indexPath) as! PlaylistCell
-//            let playlist = viewModel.playlists[indexPath.row]
-//            cell.configure(with: playlist)
-//            return cell
-//        }
-        
         let cell = tableView.dequeueReusableCell(withIdentifier: "TrackCell", for: indexPath) as! TrackCell
         
         var track: Track?
@@ -161,16 +139,12 @@ extension SearchViewController: UITableViewDataSource, UITableViewDelegate {
         }
         
         if let track = track {
-            cell.configure(with: track)
+            cell.configure(with: track, isMyMusic: false)
         }
         return cell
     }
     
     func tableView(_ tableView: UITableView, titleForHeaderInSection section: Int) -> String? {
-//        if tableView == tablePlaylistsView {
-//            return nil
-//        }
-            
         switch section {
             case 0: return viewModel.recentSearchTracks.isEmpty ? nil : "Recent Searches"
             case 1: return viewModel.filteredTracks.isEmpty ? nil : "Search Results"
@@ -181,14 +155,6 @@ extension SearchViewController: UITableViewDataSource, UITableViewDelegate {
     
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         tableView.deselectRow(at: indexPath, animated: true)
-        
-//        if tableView == tablePlaylistsView {
-//            let playlist = viewModel.playlists[indexPath.row]
-//            let playlistVC = PlaylistViewController(viewModel: PlaylistViewModel(playlist: playlist))
-//            playlistVC.navigationItem.hidesBackButton = true
-//            navigationController?.pushViewController(playlistVC, animated: false)
-//            print("Selected playlist: \(playlist.title)")
-//        }
     }
 }
 
