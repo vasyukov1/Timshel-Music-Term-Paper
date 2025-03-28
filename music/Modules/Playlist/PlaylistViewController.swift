@@ -7,10 +7,9 @@ class PlaylistViewController: BaseViewController {
     private var cancellable = Set<AnyCancellable>()
     
     private let titleLabel = UILabel()
-    private let authorLabel = UILabel()
-    private var imageView = UIImageView()
+    private let imageView = UIImageView()
     private let tableView = UITableView()
-    private let returnButton = UIButton()
+    private let editPlaylistButton = UIButton()
     
     init(viewModel: PlaylistViewModel) {
         self.viewModel = viewModel
@@ -50,23 +49,22 @@ class PlaylistViewController: BaseViewController {
         titleLabel.textAlignment = .center
         titleLabel.numberOfLines = 2
         
-        authorLabel.text = viewModel.playlist.author
-        authorLabel.font = .systemFont(ofSize: 14, weight: .medium)
-        authorLabel.textAlignment = .center
-        authorLabel.textColor = .secondaryLabel
-        authorLabel.numberOfLines = 1
-        
         tableView.dataSource = self
         tableView.delegate = self
         tableView.register(TrackCell.self, forCellReuseIdentifier: "TrackCell")
         tableView.separatorStyle = .none
         tableView.backgroundColor = .clear
         
-        returnButton.setImage(UIImage(systemName: "chevron.left"), for: .normal)
-        returnButton.tintColor = .label
-        returnButton.addTarget(self, action: #selector(returnButtonTapped), for: .touchUpInside)
+        editPlaylistButton.setImage(UIImage(systemName: "pencil"), for: .normal)
+        editPlaylistButton.tintColor = .label
+        editPlaylistButton.addTarget(self, action: #selector(editPlaylistButtonTapped), for: .touchUpInside)
         
-        for subview in [imageView, titleLabel, authorLabel, tableView, returnButton] {
+        for subview in [
+            imageView,
+            titleLabel,
+            tableView,
+            editPlaylistButton
+        ] {
             view.addSubview(subview)
             subview.translatesAutoresizingMaskIntoConstraints = false
         }
@@ -75,14 +73,8 @@ class PlaylistViewController: BaseViewController {
     }
     
     private func setupConstraints() {
-        
         NSLayoutConstraint.activate([
-            returnButton.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 16),
-            returnButton.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
-            returnButton.widthAnchor.constraint(equalToConstant: 40),
-            returnButton.heightAnchor.constraint(equalToConstant: 40),
-            
-            imageView.topAnchor.constraint(equalTo: returnButton.bottomAnchor, constant: 16),
+            imageView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 10),
             imageView.centerXAnchor.constraint(equalTo: view.centerXAnchor),
             imageView.widthAnchor.constraint(equalToConstant: 150),
             imageView.heightAnchor.constraint(equalToConstant: 150),
@@ -91,19 +83,22 @@ class PlaylistViewController: BaseViewController {
             titleLabel.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 20),
             titleLabel.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -20),
             
-            authorLabel.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: 8),
-            authorLabel.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 20),
-            authorLabel.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -20),
-            
-            tableView.topAnchor.constraint(equalTo: authorLabel.bottomAnchor, constant: 24),
+            editPlaylistButton.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 10),
+            editPlaylistButton.trailingAnchor.constraint(equalToSystemSpacingAfter: view.safeAreaLayoutGuide.trailingAnchor, multiplier: -10),
+            editPlaylistButton.widthAnchor.constraint(equalToConstant: 40),
+            editPlaylistButton.heightAnchor.constraint(equalToConstant: 40),
+
+            tableView.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: 24),
             tableView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             tableView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             tableView.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor)
         ])
     }
     
-    @objc private func returnButtonTapped() {
-        navigationController?.popViewController(animated: false)
+    @objc private func editPlaylistButtonTapped() {
+        let editPlaylistVC = EditPlaylistViewController(viewModel: EditPlaylistViewModel(playlist: viewModel.playlist))
+        editPlaylistVC.navigationItem.hidesBackButton = true
+        navigationController?.pushViewController(editPlaylistVC, animated: false)
     }
 }
 
@@ -115,7 +110,7 @@ extension PlaylistViewController: UITableViewDataSource, UITableViewDelegate {
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         let cell = tableView.dequeueReusableCell(withIdentifier: "TrackCell", for: indexPath) as! TrackCell
         let track = viewModel.playlist.tracks[indexPath.row]
-        cell.configure(with: track)
+        cell.configure(with: track, isMyMusic: false)
         return cell
     }
     
@@ -123,5 +118,41 @@ extension PlaylistViewController: UITableViewDataSource, UITableViewDelegate {
         viewModel.playTrack(at: indexPath.row)
         tableView.deselectRow(at: indexPath, animated: true)
     }
+}
+
+extension PlaylistViewController: TrackContextMenuDelegate {
+    func didSelectAddToQueue(track: Track) {
+        MusicPlayerManager.shared.addTrackToQueue(track: track)
+    }
     
+    func didSelectGoToArtist(track: Track) {
+        let artistVC = ArtistViewController(viewModel: ArtistViewModel(artistName: track.artist))
+        artistVC.navigationItem.hidesBackButton = true
+        navigationController?.pushViewController(artistVC, animated: true)
+    }
+    
+    func didSelectAddToPlaylist(track: Track) {
+        let playlistMenu = UIAlertController(title: "Добавить в плейлист", message: nil, preferredStyle: .actionSheet)
+        
+        playlistMenu.addAction(UIAlertAction(title: "Создать плейлист", style: .default, handler: { _ in
+            let addPlaylistVC = AddPlaylistViewController()
+            self.navigationController?.pushViewController(addPlaylistVC, animated: true)
+        }))
+        
+        for playlist in PlaylistManager.shared.getPlaylists() {
+           playlistMenu.addAction(UIAlertAction(title: playlist.title, style: .default, handler: { _ in
+               PlaylistManager.shared.addTrackToPlaylist(track, playlist)
+           }))
+        }
+        
+        playlistMenu.addAction(UIAlertAction(title: "Отмена", style: .cancel, handler: nil))
+        
+        self.present(playlistMenu, animated: true)
+    }
+    
+    func didSelectDeleteTrack(track: Track) {
+        Task {
+            await viewModel.deleteTrack(track)
+        }
+    }
 }

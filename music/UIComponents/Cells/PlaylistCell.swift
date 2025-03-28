@@ -2,8 +2,7 @@ import UIKit
 
 class PlaylistCell: UICollectionViewCell {
     private let titleLabel = UILabel()
-    private let authorLabel = UILabel()
-    private let imageView = UIImageView()
+    private let playlistImage = UIImageView()
     
     override init(frame: CGRect) {
         super.init(frame: frame)
@@ -16,49 +15,35 @@ class PlaylistCell: UICollectionViewCell {
     
     func configure(with playlist: Playlist) {
         titleLabel.text = playlist.title
-        authorLabel.text = playlist.author
-        imageView.image = playlist.image
+        playlistImage.image = playlist.image
     }
     
     private func setupUI() {
-        imageView.contentMode = .scaleAspectFill
-        imageView.clipsToBounds = true
-        imageView.layer.cornerRadius = 8
-        
-        titleLabel.font = .systemFont(ofSize: 14, weight: .medium)
+        playlistImage.contentMode = .scaleAspectFill
+        playlistImage.clipsToBounds = true
+        playlistImage.layer.cornerRadius = 12
+        playlistImage.layer.masksToBounds = true
+
+        titleLabel.font = .systemFont(ofSize: 14, weight: .semibold)
         titleLabel.textAlignment = .center
         titleLabel.numberOfLines = 2
         
-        authorLabel.font = .systemFont(ofSize: 12, weight: .medium)
-        authorLabel.textAlignment = .center
-        authorLabel.numberOfLines = 1
+        let stackView = UIStackView(arrangedSubviews: [playlistImage, titleLabel])
+        stackView.axis = .vertical
+        stackView.alignment = .center
+        stackView.spacing = 8
         
-        for subview in [imageView, titleLabel, authorLabel] {
-            contentView.addSubview(subview)
-            subview.translatesAutoresizingMaskIntoConstraints = false
-        }
+        contentView.addSubview(stackView)
+        stackView.translatesAutoresizingMaskIntoConstraints = false
         
-        setupConstraints()
-    }
-    
-    private func setupConstraints() {
         NSLayoutConstraint.activate([
-            authorLabel.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -8),
-            authorLabel.heightAnchor.constraint(equalTo: authorLabel.heightAnchor),
-            authorLabel.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 8),
-            authorLabel.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -8),
+            stackView.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 8),
+            stackView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 8),
+            stackView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -8),
+            stackView.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -8),
             
-            titleLabel.bottomAnchor.constraint(equalTo: authorLabel.topAnchor, constant: -8),
-            titleLabel.heightAnchor.constraint(equalTo: titleLabel.heightAnchor),
-            titleLabel.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 8),
-            titleLabel.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -8),
-            
-            imageView.bottomAnchor.constraint(equalTo: titleLabel.topAnchor, constant: -8),
-            imageView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor),
-            imageView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor),
-            imageView.heightAnchor.constraint(equalTo: contentView.widthAnchor, constant: -32),
+            playlistImage.widthAnchor.constraint(equalTo: contentView.widthAnchor, multiplier: 0.9),
+            playlistImage.heightAnchor.constraint(equalTo: playlistImage.widthAnchor)
         ])
     }
 }
-
-

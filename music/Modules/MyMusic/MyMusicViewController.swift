@@ -2,13 +2,11 @@ import UIKit
 import AVFoundation
 import Combine
 
-class MyMusicViewController: BaseViewController, UITableViewDelegate, UITableViewDataSource, UIDocumentPickerDelegate {
-    
+class MyMusicViewController: BaseViewController, UITableViewDelegate, UITableViewDataSource {
     private let viewModel = MyMusicViewModel()
     private var cancellables = Set<AnyCancellable>()
 
     private let tableView = UITableView()
-    private let addTrackButton = UIButton()
     
     override func viewDidLoad() {
         setupUI()
@@ -21,6 +19,13 @@ class MyMusicViewController: BaseViewController, UITableViewDelegate, UITableVie
             name: .trackDidChange,
             object: nil
         )
+        
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(trackDidDelete),
+            name: .trackDidDelete,
+            object: nil
+        )
     }
     
     deinit {
@@ -30,13 +35,13 @@ class MyMusicViewController: BaseViewController, UITableViewDelegate, UITableVie
     private func bindViewModel() {
         viewModel.$tracks
             .receive(on: RunLoop.main)
-            .sink { [weak self] tracks in
+            .sink { [weak self] _ in
                 self?.tableView.reloadData()
             }
             .store(in: &cancellables)
         
         Task {
-            viewModel.tracks = await viewModel.loadMyTracks()
+            await viewModel.loadMyTracks()
         }
     }
     
@@ -47,13 +52,9 @@ class MyMusicViewController: BaseViewController, UITableViewDelegate, UITableVie
         tableView.delegate = self
         tableView.dataSource = self
         tableView.register(TrackCell.self, forCellReuseIdentifier: "TrackCell")
+        tableView.frame = view.bounds
         
-        addTrackButton.setTitle("Add Tracks", for: .normal)
-        addTrackButton.backgroundColor = .systemBlue
-        addTrackButton.layer.cornerRadius = 8
-        addTrackButton.addTarget(self, action: #selector(addTrack), for: .touchUpInside)
-        
-        for subview in [tableView, addTrackButton] {
+        for subview in [tableView] {
             view.addSubview(subview)
         }
         
@@ -66,12 +67,7 @@ class MyMusicViewController: BaseViewController, UITableViewDelegate, UITableVie
         }
         
         NSLayoutConstraint.activate([
-            addTrackButton.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 15),
-            addTrackButton.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -15),
-            addTrackButton.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 10),
-            addTrackButton.heightAnchor.constraint(equalToConstant: 40),
-            
-            tableView.topAnchor.constraint(equalTo: addTrackButton.bottomAnchor),
+            tableView.topAnchor.constraint(equalTo: view.topAnchor),
             tableView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             tableView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             tableView.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -50)
@@ -85,7 +81,8 @@ class MyMusicViewController: BaseViewController, UITableViewDelegate, UITableVie
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         let cell = tableView.dequeueReusableCell(withIdentifier: "TrackCell", for: indexPath) as! TrackCell
         let track = viewModel.tracks[indexPath.row]
-        cell.configure(with: track)
+        cell.configure(with: track, isMyMusic: true)
+        cell.delegate = self
         if track == MusicPlayerManager.shared.getCurrentTrack() {
             cell.backgroundColor = .systemGray2
         } else {
@@ -104,17 +101,47 @@ class MyMusicViewController: BaseViewController, UITableViewDelegate, UITableVie
         tableView.reloadData()
     }
     
-    @objc private func addTrack() {
-        let documentPicker = UIDocumentPickerViewController(forOpeningContentTypes: [.audio], asCopy: true)
-        documentPicker.delegate = self
-        documentPicker.allowsMultipleSelection = false
-        present(documentPicker, animated: true)
+    @objc private func trackDidDelete() {
+        tableView.reloadData()
+    }
+}
+
+extension MyMusicViewController: TrackContextMenuDelegate {
+    func didSelectAddToQueue(track: Track) {
+        MusicPlayerManager.shared.addTrackToQueue(track: track)
     }
     
-    func documentPicker(_ controller: UIDocumentPickerViewController, didPickDocumentsAt urls: [URL]) {
-        guard let url = urls.first else { return }
+    func didSelectGoToArtist(track: Track) {
+        let artistVC = ArtistViewController(viewModel: ArtistViewModel(artistName: track.artist))
+        artistVC.navigationItem.hidesBackButton = true
+        navigationController?.pushViewController(artistVC, animated: true)
+    }
+    
+    func didSelectAddToPlaylist(track: Track) {
+        let playlistMenu = UIAlertController(title: "Добавить в плейлист", message: nil, preferredStyle: .actionSheet)
+        
+        playlistMenu.addAction(UIAlertAction(title: "Создать плейлист", style: .default, handler: { _ in
+            let addPlaylistVC = AddPlaylistViewController()
+            self.navigationController?.pushViewController(addPlaylistVC, animated: true)
+        }))
+        
+        for playlist in PlaylistManager.shared.getPlaylists() {
+           playlistMenu.addAction(UIAlertAction(title: playlist.title, style: .default, handler: { _ in
+               PlaylistManager.shared.addTrackToPlaylist(track, playlist)
+           }))
+        }
+        
+        playlistMenu.addAction(UIAlertAction(title: "Отмена", style: .cancel, handler: nil))
+        
+        self.present(playlistMenu, animated: true)
+    }
+    
+    func didSelectDeleteTrack(track: Track) {
+        MusicPlayerManager.shared.deleteTrack(track)
+        MusicManager.shared.deleteTrack(track)
+        
         Task {
-            await viewModel.addTrack(from: url)
+            await viewModel.deleteTrack(track)
         }
     }
 }

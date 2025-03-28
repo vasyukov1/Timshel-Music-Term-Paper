@@ -1,8 +1,7 @@
 import UIKit
 
 struct Playlist: Equatable {
-    let title: String
-    let author: String
-    let image: UIImage
-    let tracks: [Track]
+    var title: String
+    var image: UIImage
+    var tracks: [Track]
 }

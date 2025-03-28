@@ -41,6 +41,10 @@ class RegistrationViewController: UIViewController {
 
         if addUserToDatabase(firstName: firstName, lastName: lastName, login: login, password: password) {
             errorLabel.isHidden = true
+            
+            UserDefaults.standard.set(login, forKey: "savedLogin")
+            UserDefaults.standard.set(password, forKey: "savedPassword")
+            
             let mainVC = MainViewController()
             navigationItem.hidesBackButton = true
             navigationController?.pushViewController(mainVC, animated: true)
@@ -67,13 +71,24 @@ class RegistrationViewController: UIViewController {
     
     // MARK: Helper Methods
     private func isLoginUnique(_ login: String) -> Bool {
-        guard let dbPath = Bundle.main.path(forResource: "testdb", ofType: "txt") else { return false }
+        let documentsDirectory = NSSearchPathForDirectoriesInDomains(.documentDirectory, .userDomainMask, true)[0]
+        let dbPath = (documentsDirectory as NSString).appendingPathComponent("testdb.txt")
         do {
             let dbContent = try String(contentsOfFile: dbPath, encoding: .utf8)
             let dbLines = dbContent.components(separatedBy: .newlines)
+            
             for line in dbLines {
-                if line.contains("login=\(login)") {
-                    return false
+                let trimmedLine = line.trimmingCharacters(in: .whitespacesAndNewlines)
+                if trimmedLine.isEmpty {
+                    continue
+                }
+                
+                let components = trimmedLine.components(separatedBy: ":")
+                if components.count == 2 {
+                    let storedLogin = components[0]
+                    if storedLogin == login {
+                        return false
+                    }
                 }
             }
             return true
@@ -84,20 +99,22 @@ class RegistrationViewController: UIViewController {
     }
     
     private func addUserToDatabase(firstName: String, lastName: String, login: String, password: String) -> Bool {
-        guard let dbPath = Bundle.main.path(forResource: "testdb", ofType: "txt") else { return false }
+        let documentsDirectory = NSSearchPathForDirectoriesInDomains(.documentDirectory, .userDomainMask, true)[0]
+        
+        let dbPath = (documentsDirectory as NSString).appendingPathComponent("testdb.txt")
+        let newUser = "\(login):\(password)\n"
+        
         do {
-            print("In file")
-            let newUser = "\nlogin=\(login)\npassword=\(password)"
             try newUser.appendLine(to: dbPath)
-            return true
         } catch {
-            print("Error file reading: \(error)")
+            print("Error writing to testdb.txt: \(error)")
             return false
         }
         
-        guard let infoPath = Bundle.main.path(forResource: "testdb_info", ofType: "txt") else { return false }
+        
+        let infoPath = (documentsDirectory as NSString).appendingPathComponent("testdb_info.txt")
+        let newInfo = "\(login),\(firstName),\(lastName)\n"
         do {
-            let newInfo = "\(login),\(firstName),\(lastName)\n"
             try newInfo.appendLine(to: infoPath)
             return true
         } catch {
@@ -232,7 +249,7 @@ class RegistrationViewController: UIViewController {
 
     private let registerButton: UIButton = {
         let button = UIButton(type: .system)
-        button.setTitle("Sugn Up", for: .normal)
+        button.setTitle("Sign Up", for: .normal)
         button.backgroundColor = .systemBlue
         button.setTitleColor(.white, for: .normal)
         button.layer.cornerRadius = 8
@@ -261,9 +278,18 @@ class RegistrationViewController: UIViewController {
 extension String {
     func appendLine(to filePath: String) throws {
         let fileURL = URL(fileURLWithPath: filePath)
+        
+        if !FileManager.default.fileExists(atPath: filePath) {
+            FileManager.default.createFile(atPath: filePath, contents: nil, attributes: nil)
+        }
+        
         let fileHandle = try FileHandle(forWritingTo: fileURL)
         fileHandle.seekToEndOfFile()
-        fileHandle.write(self.data(using: .utf8)!)
+        
+        if let data = (self + "\n").data(using: .utf8) {
+            fileHandle.write(data)
+        }
+        
         fileHandle.closeFile()
     }
 }

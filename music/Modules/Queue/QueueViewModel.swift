@@ -26,4 +26,7 @@ class QueueViewModel {
         MiniPlayerView.shared.hide()
     }
     
+    func deleteTrack(_ track: Track) async {
+        queue.removeAll { $0 == track }
+    }    
 }

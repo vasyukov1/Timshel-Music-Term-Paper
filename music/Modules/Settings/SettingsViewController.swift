@@ -10,12 +10,14 @@ class SettingsViewController: BaseViewController {
     let newPasswordTextField = UITextField()
     let confirmPasswordTextField = UITextField()
 
+    // MARK: Lifecycle
     override func viewDidLoad() {
         super.viewDidLoad()
         setupUI()
         loadCurrentUserData()
     }
 
+    // MARK: Setup UI
     private func setupUI() {
         title = "Settings"
         view.backgroundColor = .systemBackground
@@ -56,6 +58,7 @@ class SettingsViewController: BaseViewController {
         setupConstraints()
     }
 
+    // MARK: Setup Constraints
     private func setupConstraints() {
         firstNameTextField.translatesAutoresizingMaskIntoConstraints = false
         lastNameTextField.translatesAutoresizingMaskIntoConstraints = false
@@ -108,7 +111,8 @@ class SettingsViewController: BaseViewController {
     }
 
     private func readUserInfo(login: String) -> (firstName: String, lastName: String)? {
-        guard let infoPath = Bundle.main.path(forResource: "testdb_info", ofType: "txt") else { return nil }
+        let infoPath = getDocumentsFilePath(filename: "testdb_info")
+        
         do {
             let infoContent = try String(contentsOfFile: infoPath, encoding: .utf8)
             let infoLines = infoContent.components(separatedBy: .newlines)
@@ -128,22 +132,23 @@ class SettingsViewController: BaseViewController {
     @objc private func saveTapped() {
         guard let savedLogin = UserDefaults.standard.string(forKey: "savedLogin"),
               let savedPassword = UserDefaults.standard.string(forKey: "savedPassword") else {
-            showError(message: "Ошибка: данные пользователя не найдены")
+            showError(message: "Error: User data is not found")
             return
         }
-
-        guard let currentPassword = currentPasswordTextField.text, currentPassword == savedPassword else {
-            showError(message: "Неверный текущий пароль")
-            return
-        }
-
+        
         if let newPassword = newPasswordTextField.text, !newPassword.isEmpty {
-            guard newPassword == confirmPasswordTextField.text else {
-                showError(message: "Новый пароль и подтверждение не совпадают")
+            guard let currentPassword = currentPasswordTextField.text, currentPassword == savedPassword else {
+                showError(message: "Wrong current password")
                 return
             }
+
+            guard newPassword == confirmPasswordTextField.text else {
+                showError(message: "Passwords don't match")
+                return
+            }
+            
             guard newPassword.count >= 6 else {
-                showError(message: "Пароль должен содержать минимум 6 символов")
+                showError(message: "Password must have al least 6 symbols")
                 return
             }
         }
@@ -151,13 +156,15 @@ class SettingsViewController: BaseViewController {
         guard let newFirstName = firstNameTextField.text, !newFirstName.isEmpty,
               let newLastName = lastNameTextField.text, !newLastName.isEmpty,
               let newLogin = loginTextField.text, !newLogin.isEmpty else {
-            showError(message: "Заполните все поля")
+            showError(message: "Fill all fields")
             return
         }
 
         if updateUserInfo(oldLogin: savedLogin, newFirstName: newFirstName, newLastName: newLastName, newLogin: newLogin) {
             if let newPassword = newPasswordTextField.text, !newPassword.isEmpty {
-                updatePassword(oldLogin: savedLogin, newLogin: newLogin, newPassword: newPassword)
+                if !updatePassword(oldLogin: savedLogin, newLogin: newLogin, newPassword: newPassword) {
+                    showError(message: "Some error: Password wasn't updated")
+                }
             }
 
             UserDefaults.standard.set(newLogin, forKey: "savedLogin")
@@ -165,7 +172,9 @@ class SettingsViewController: BaseViewController {
                 UserDefaults.standard.set(newPasswordTextField.text, forKey: "savedPassword")
             }
 
-            navigationController?.popViewController(animated: true)
+            let profileVC = ProfileViewController()
+            navigationItem.hidesBackButton = true
+            navigationController?.pushViewController(profileVC, animated: false)
         } else {
             showError(message: "Ошибка при обновлении данных")
         }
@@ -178,7 +187,7 @@ class SettingsViewController: BaseViewController {
     }
     
     private func updateUserInfo(oldLogin: String, newFirstName: String, newLastName: String, newLogin: String) -> Bool {
-        guard let infoPath = Bundle.main.path(forResource: "testdb_info", ofType: "txt") else { return false }
+        let infoPath = getDocumentsFilePath(filename: "testdb_info")
         do {
             var infoContent = try String(contentsOfFile: infoPath, encoding: .utf8)
             var infoLines = infoContent.components(separatedBy: .newlines)
@@ -201,17 +210,25 @@ class SettingsViewController: BaseViewController {
     }
     
     private func updatePassword(oldLogin: String, newLogin: String, newPassword: String) -> Bool {
-        guard let dbPath = Bundle.main.path(forResource: "testdb", ofType: "txt") else { return false }
+        let dbPath = getDocumentsFilePath(filename: "testdb")
+         
         do {
             var dbContent = try String(contentsOfFile: dbPath, encoding: .utf8)
             var dbLines = dbContent.components(separatedBy: .newlines)
 
             for (index, line) in dbLines.enumerated() {
-                if line.contains("login=\(oldLogin)") {
-                    dbLines[index] = "login=\(newLogin)"
+                let trimmedLine = line.trimmingCharacters(in: .whitespacesAndNewlines)
+                if trimmedLine.isEmpty {
+                    continue
                 }
-                if line.contains("password=") && index > 0 && dbLines[index - 1].contains("login=\(oldLogin)") {
-                    dbLines[index] = "password=\(newPassword)"
+                
+                let components = trimmedLine.components(separatedBy: ":")
+                if components.count == 2 {
+                    let storedLogin = components[0]
+                    if storedLogin == oldLogin {
+                        dbLines[index] = "\(newLogin):\(newPassword)"
+                        break
+                    }
                 }
             }
 

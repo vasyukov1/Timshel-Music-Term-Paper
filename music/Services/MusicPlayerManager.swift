@@ -67,6 +67,11 @@ class MusicPlayerManager: NSObject {
         playTrack(at: currentTrackIndex!)
     }
     
+    func addTrackToQueue(track: Track) {
+        trackQueue.append(track)
+        print("Track [\(track.title)] added to queue")
+    }
+    
     // Получение очереди треков
     func getQueue() -> [Track] {
         return trackQueue
@@ -165,6 +170,15 @@ class MusicPlayerManager: NSObject {
         }
     }
     
+    func stopPlayer() {
+        stopPlayback()
+        trackQueue = []
+        history = []
+        currentTrack = nil
+        currentTrackIndex = nil
+        lastTrack = nil
+    }
+    
     // Получение текущего положения прослушивания трека
     func getPlaybackProgress() -> (currentTime: TimeInterval, duration: TimeInterval) {
         return (currentTime, duration)
@@ -179,6 +193,13 @@ class MusicPlayerManager: NSObject {
     func loadPlaylist(name: String) async {
        
     }
+    
+    func deleteTrack(_ track: Track) {
+        trackQueue.removeAll { $0 == track }
+        history.removeAll { $0 == track }
+        NotificationCenter.default.post(name: .trackDidDelete, object: nil)
+        print("Track [\(track.title)] deleted from queue and history")
+    }
 }
 
 extension MusicPlayerManager: AVAudioPlayerDelegate {
@@ -189,5 +210,6 @@ extension MusicPlayerManager: AVAudioPlayerDelegate {
 
 extension Notification.Name {
     static let trackDidChange = Notification.Name("trackDidChange")
+    static let trackDidDelete = Notification.Name("trackDidDelete")
     static let playbackStateDidChange = Notification.Name("playbackStateDidChange")
 }

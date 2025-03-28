@@ -34,6 +34,8 @@ class MiniPlayerViewModel {
     private func updateTrack() {
         track = MusicPlayerManager.shared.getCurrentTrack() ?? mockTrack
         updateIsPlaying()
+        
+        MiniPlayerView.shared.show()
     }
     
     private func updateIsPlaying() {

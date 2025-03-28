@@ -8,7 +8,7 @@ class PlayerViewController: UIViewController {
     private var cancellables = Set<AnyCancellable>()
     
     private var titleLabel = UILabel()
-    private var artistLabel = UILabel()
+    private var artistButton = UIButton()
     private var trackImageView = UIImageView()
     private let playPauseButton = UIButton()
     private let previousTrackButton = UIButton()
@@ -49,7 +49,7 @@ class PlayerViewController: UIViewController {
     
     func configure(with track: Track) {
         titleLabel.text = track.title
-        artistLabel.text = track.artist
+        artistButton.setTitle(track.artist, for: .normal)
         viewModel.updateButtons(previousTrackButton, nextTrackButton)
         trackImageView.image = track.image
         if let dominantColor = track.image.dominnatColor() {
@@ -89,12 +89,20 @@ class PlayerViewController: UIViewController {
         navigationController?.pushViewController(trackQueueVC, animated: false)
     }
     
+    @objc private func openArtist() {
+        let artistName = artistButton.titleLabel!.text ?? "artist"
+        let artistVC = ArtistViewController(viewModel: ArtistViewModel(artistName: artistName))
+        artistVC.navigationItem.hidesBackButton = true
+        navigationController?.pushViewController(artistVC, animated: false)
+    }
+    
     private func setupUI() {
         title = "Player"
         
         titleLabel.font = UIFont.systemFont(ofSize: 24)
-        artistLabel.font = UIFont.systemFont(ofSize: 18)
-        artistLabel.textColor = .gray
+        artistButton.titleLabel?.font = UIFont.systemFont(ofSize: 18)
+        artistButton.titleLabel?.textColor = .gray
+        artistButton.addTarget(self, action: #selector(openArtist), for: .touchUpInside)
         
         trackImageView.contentMode = .scaleAspectFill
         trackImageView.layer.cornerRadius = 20
@@ -120,7 +128,7 @@ class PlayerViewController: UIViewController {
         
         for subview in [
             titleLabel,
-            artistLabel,
+            artistButton,
             trackImageView,
             playPauseButton,
             previousTrackButton,
@@ -148,17 +156,16 @@ class PlayerViewController: UIViewController {
             trackImageView.heightAnchor.constraint(equalToConstant: 300),
             trackImageView.widthAnchor.constraint(equalToConstant: 300),
             
-            titleLabel.leadingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.leadingAnchor, constant: 20),
-            titleLabel.trailingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.trailingAnchor, constant: -20),
+            titleLabel.centerXAnchor.constraint(equalTo: view.centerXAnchor),
             titleLabel.topAnchor.constraint(equalTo: trackImageView.bottomAnchor, constant: 20),
             
-            artistLabel.leadingAnchor.constraint(equalTo: titleLabel.leadingAnchor),
-            artistLabel.trailingAnchor.constraint(equalTo: titleLabel.trailingAnchor),
-            artistLabel.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: 10),
+            artistButton.leadingAnchor.constraint(equalTo: titleLabel.leadingAnchor),
+            artistButton.trailingAnchor.constraint(equalTo: titleLabel.trailingAnchor),
+            artistButton.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: 10),
             
             progressSlider.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 20),
             progressSlider.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -20),
-            progressSlider.topAnchor.constraint(equalTo: artistLabel.bottomAnchor, constant: 20),
+            progressSlider.topAnchor.constraint(equalTo: artistButton.bottomAnchor, constant: 20),
             
             playPauseButton.centerXAnchor.constraint(equalTo: view.centerXAnchor),
             playPauseButton.topAnchor.constraint(equalTo: progressSlider.bottomAnchor, constant: 20),
