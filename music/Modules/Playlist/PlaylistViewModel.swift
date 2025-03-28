@@ -6,6 +6,7 @@ class PlaylistViewModel {
     
     init(playlist: Playlist) {
         self.playlist = playlist
+        print("Get [\(playlist.tracks.count)] tracks in playlist")
     }
     
     func playTrack(at index: Int) {

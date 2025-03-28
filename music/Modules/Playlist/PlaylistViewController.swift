@@ -7,9 +7,9 @@ class PlaylistViewController: BaseViewController {
     private var cancellable = Set<AnyCancellable>()
     
     private let titleLabel = UILabel()
-    private var imageView = UIImageView()
+    private let imageView = UIImageView()
     private let tableView = UITableView()
-    private let returnButton = UIButton()
+    private let editPlaylistButton = UIButton()
     
     init(viewModel: PlaylistViewModel) {
         self.viewModel = viewModel
@@ -55,11 +55,16 @@ class PlaylistViewController: BaseViewController {
         tableView.separatorStyle = .none
         tableView.backgroundColor = .clear
         
-        returnButton.setImage(UIImage(systemName: "chevron.left"), for: .normal)
-        returnButton.tintColor = .label
-        returnButton.addTarget(self, action: #selector(returnButtonTapped), for: .touchUpInside)
+        editPlaylistButton.setImage(UIImage(systemName: "pencil"), for: .normal)
+        editPlaylistButton.tintColor = .label
+        editPlaylistButton.addTarget(self, action: #selector(editPlaylistButtonTapped), for: .touchUpInside)
         
-        for subview in [imageView, titleLabel, tableView, returnButton] {
+        for subview in [
+            imageView,
+            titleLabel,
+            tableView,
+            editPlaylistButton
+        ] {
             view.addSubview(subview)
             subview.translatesAutoresizingMaskIntoConstraints = false
         }
@@ -68,14 +73,8 @@ class PlaylistViewController: BaseViewController {
     }
     
     private func setupConstraints() {
-        
         NSLayoutConstraint.activate([
-            returnButton.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 16),
-            returnButton.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
-            returnButton.widthAnchor.constraint(equalToConstant: 40),
-            returnButton.heightAnchor.constraint(equalToConstant: 40),
-            
-            imageView.topAnchor.constraint(equalTo: returnButton.bottomAnchor, constant: 16),
+            imageView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 10),
             imageView.centerXAnchor.constraint(equalTo: view.centerXAnchor),
             imageView.widthAnchor.constraint(equalToConstant: 150),
             imageView.heightAnchor.constraint(equalToConstant: 150),
@@ -83,6 +82,11 @@ class PlaylistViewController: BaseViewController {
             titleLabel.topAnchor.constraint(equalTo: imageView.bottomAnchor, constant: 16),
             titleLabel.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 20),
             titleLabel.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -20),
+            
+            editPlaylistButton.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 10),
+            editPlaylistButton.trailingAnchor.constraint(equalToSystemSpacingAfter: view.safeAreaLayoutGuide.trailingAnchor, multiplier: -10),
+            editPlaylistButton.widthAnchor.constraint(equalToConstant: 40),
+            editPlaylistButton.heightAnchor.constraint(equalToConstant: 40),
 
             tableView.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: 24),
             tableView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
@@ -91,8 +95,10 @@ class PlaylistViewController: BaseViewController {
         ])
     }
     
-    @objc private func returnButtonTapped() {
-        navigationController?.popViewController(animated: false)
+    @objc private func editPlaylistButtonTapped() {
+        let editPlaylistVC = EditPlaylistViewController(viewModel: EditPlaylistViewModel(playlist: viewModel.playlist))
+        editPlaylistVC.navigationItem.hidesBackButton = true
+        navigationController?.pushViewController(editPlaylistVC, animated: false)
     }
 }
 

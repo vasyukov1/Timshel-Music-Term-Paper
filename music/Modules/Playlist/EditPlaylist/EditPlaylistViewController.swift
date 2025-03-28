@@ -1,14 +1,24 @@
 import UIKit
-import Combine
 import PhotosUI
+import Combine
 
-class AddPlaylistViewController: BaseViewController, UITableViewDelegate, UITableViewDataSource {
+class EditPlaylistViewController: BaseViewController {
     
-    private let viewModel = AddPlaylistViewModel()
+    private let viewModel: EditPlaylistViewModel
     private var cancellables = Set<AnyCancellable>()
+    
+    init(viewModel: EditPlaylistViewModel) {
+        self.viewModel = viewModel
+        super.init(nibName: nil, bundle: nil)
+    }
+    
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
     
     private let saveButton = UIButton()
     private let tableView = UITableView()
+    private let deleteImageButton = UIButton()
     
     private let playlistImageView: UIImageView = {
         let imageView = UIImageView()
@@ -51,6 +61,9 @@ class AddPlaylistViewController: BaseViewController, UITableViewDelegate, UITabl
         setupUI()
         super.viewDidLoad()
         bindViewModel()
+        
+        playlistImageView.image = viewModel.playlist.image
+        titleTextField.text = viewModel.playlist.title
     }
     
     private func bindViewModel() {
@@ -62,12 +75,12 @@ class AddPlaylistViewController: BaseViewController, UITableViewDelegate, UITabl
             .store(in: &cancellables)
         
         Task {
-            await viewModel.loadMyTracks()
+            await viewModel.loadMyTracksForAddition()
         }
     }
     
     private func setupUI() {
-        title = "New Playlist"
+        title = "Edit Playlist"
         view.backgroundColor = .systemBackground
         
         playlistImageView.addSubview(plusIcon)
@@ -80,12 +93,18 @@ class AddPlaylistViewController: BaseViewController, UITableViewDelegate, UITabl
         saveButton.layer.cornerRadius = 15
         saveButton.addTarget(self, action: #selector(saveButtonTapped), for: .touchUpInside)
         
+        deleteImageButton.setTitle("Delete Image", for: .normal)
+        deleteImageButton.backgroundColor = .systemBlue
+        deleteImageButton.layer.cornerRadius = 15
+        deleteImageButton.addTarget(self, action: #selector(deleteImageButtonTapped), for: .touchUpInside)
+        
         tableView.delegate = self
         tableView.dataSource = self
         tableView.register(SelectTrackCell.self, forCellReuseIdentifier: "SelectTrackCell")
         
         for subview in [
             saveButton,
+            deleteImageButton,
             playlistImageView,
             titleTextField,
             tableView,
@@ -116,12 +135,17 @@ class AddPlaylistViewController: BaseViewController, UITableViewDelegate, UITabl
             
             titleTextField.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 10),
             titleTextField.leadingAnchor.constraint(equalTo: playlistImageView.trailingAnchor, constant: 10),
-            titleTextField.widthAnchor.constraint(equalToConstant: 200),
+            titleTextField.trailingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.trailingAnchor, constant: -10),
             titleTextField.heightAnchor.constraint(equalToConstant: 50),
             
-            saveButton.topAnchor.constraint(equalTo: titleTextField.bottomAnchor, constant: 10),
+            deleteImageButton.topAnchor.constraint(equalTo: titleTextField.bottomAnchor, constant: 10),
+            deleteImageButton.leadingAnchor.constraint(equalTo: playlistImageView.trailingAnchor, constant: 10),
+            deleteImageButton.trailingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.trailingAnchor, constant: -10),
+            deleteImageButton.heightAnchor.constraint(equalToConstant: 50),
+            
+            saveButton.topAnchor.constraint(equalTo: deleteImageButton.bottomAnchor, constant: 10),
             saveButton.leadingAnchor.constraint(equalTo: playlistImageView.trailingAnchor, constant: 10),
-            saveButton.widthAnchor.constraint(equalToConstant: 100),
+            saveButton.trailingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.trailingAnchor, constant: -10),
             saveButton.heightAnchor.constraint(equalToConstant: 50),
             
             errorLabel.topAnchor.constraint(equalTo: saveButton.bottomAnchor, constant: 10),
@@ -147,15 +171,41 @@ class AddPlaylistViewController: BaseViewController, UITableViewDelegate, UITabl
     
     @objc private func saveButtonTapped() {
         let selectedTracks = viewModel.tracks.filter { $0.isSelected }
-        guard !selectedTracks.isEmpty, let title = titleTextField.text, !title.isEmpty else {
-            errorLabel.text = "Input the title and choose tracks"
+        guard let title = titleTextField.text, !title.isEmpty else {
+            errorLabel.text = "Input the title"
             errorLabel.isHidden = false
             return
         }
         
-        viewModel.createPlaylist(title: titleTextField.text!, tracks: selectedTracks, image: playlistImageView.image, navigationController: self.navigationController!)
+        viewModel.editPlaylist(title: titleTextField.text!, tracks: selectedTracks, image: playlistImageView.image, navigationController: self.navigationController!)
     }
     
+    @objc private func deleteImageButtonTapped() {
+        if playlistImageView.image != nil {
+            playlistImageView.image = nil
+            plusIcon.isHidden = false
+        }
+    }
+}
+
+extension EditPlaylistViewController: PHPickerViewControllerDelegate {
+    func picker(_ picker: PHPickerViewController, didFinishPicking results: [PHPickerResult]) {
+        picker.dismiss(animated: true, completion: nil)
+        
+        guard let selectedItem = results.first else { return }
+        
+        selectedItem.itemProvider.loadObject(ofClass: UIImage.self) { [weak self] (object, error) in
+            if let image = object as? UIImage {
+                DispatchQueue.main.async {
+                    self?.playlistImageView.image = image
+                    self?.plusIcon.isHidden = true
+                }
+            }
+        }
+    }
+}
+
+extension EditPlaylistViewController: UITableViewDataSource, UITableViewDelegate {
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
         return viewModel.tracks.count
     }
@@ -171,22 +221,5 @@ class AddPlaylistViewController: BaseViewController, UITableViewDelegate, UITabl
         }
         
         return cell
-    }
-}
-
-extension AddPlaylistViewController: PHPickerViewControllerDelegate {
-    func picker(_ picker: PHPickerViewController, didFinishPicking results: [PHPickerResult]) {
-        picker.dismiss(animated: true, completion: nil)
-        
-        guard let selectedItem = results.first else { return }
-        
-        selectedItem.itemProvider.loadObject(ofClass: UIImage.self) { [weak self] (object, error) in
-            if let image = object as? UIImage {
-                DispatchQueue.main.async {
-                    self?.playlistImageView.image = image
-                    self?.plusIcon.isHidden = true
-                }
-            }
-        }
     }
 }
