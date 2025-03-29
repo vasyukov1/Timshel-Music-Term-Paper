@@ -6,9 +6,22 @@ class QueueViewModel {
     @Published var queue: [Track] = []
     private var cancellable = Set<AnyCancellable>()
     
+    private var currentTrackIndex: Int?
+    
     init() {
         loadQueue()
+        setupObservers()
+    }
+    
+    private func setupObservers() {
         NotificationCenter.default.publisher(for: .trackDidChange)
+            .receive(on: RunLoop.main)
+            .sink { [weak self] _ in
+                self?.loadQueue()
+            }
+            .store(in: &cancellable)
+        
+        NotificationCenter.default.publisher(for: .queueDidChange)
             .receive(on: RunLoop.main)
             .sink { [weak self] _ in
                 self?.loadQueue()
@@ -17,16 +30,26 @@ class QueueViewModel {
     }
     
     private func loadQueue() {
-        guard let currentTrackIndex = MusicPlayerManager.shared.currentTrackIndex else { return }
-        queue = Array(MusicPlayerManager.shared.getQueue()[currentTrackIndex...])
+        guard let currentIndex = MusicPlayerManager.shared.currentTrackIndex else {
+            queue = MusicPlayerManager.shared.getQueue()
+            return
+        }
+        
+        let allTracks = MusicPlayerManager.shared.getQueue()
+        queue = allTracks
+        
+        currentTrackIndex = currentIndex
     }
     
     func playTrack(at index: Int) {
-        MusicPlayerManager.shared.playTrack(at: MusicPlayerManager.shared.currentTrackIndex! + index)
-        MiniPlayerView.shared.hide()
+        MusicPlayerManager.shared.playTrack(at: index)
     }
     
     func deleteTrack(_ track: Track) async {
-        queue.removeAll { $0 == track }
-    }    
+        MusicPlayerManager.shared.deleteTrack(track)
+    }
+    
+    func updateQueue() {
+        loadQueue()
+    }
 }

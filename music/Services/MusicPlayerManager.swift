@@ -65,10 +65,12 @@ class MusicPlayerManager: NSObject {
         trackQueue = tracks
         currentTrackIndex = startIndex
         playTrack(at: currentTrackIndex!)
+        NotificationCenter.default.post(name: .queueDidChange, object: nil)
     }
     
     func addTrackToQueue(track: Track) {
         trackQueue.append(track)
+        NotificationCenter.default.post(name: .queueDidChange, object: nil)
         print("Track [\(track.title)] added to queue")
     }
     
@@ -212,4 +214,5 @@ extension Notification.Name {
     static let trackDidChange = Notification.Name("trackDidChange")
     static let trackDidDelete = Notification.Name("trackDidDelete")
     static let playbackStateDidChange = Notification.Name("playbackStateDidChange")
+    static let queueDidChange = Notification.Name("queueDidChange")
 }

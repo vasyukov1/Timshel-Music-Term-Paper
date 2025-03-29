@@ -14,6 +14,23 @@ class QueueViewController: UIViewController, UITableViewDataSource, UITableViewD
         setupUI()
         MiniPlayerView.shared.hide()
         bindViewModel()
+        viewModel.updateQueue()
+        
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(queueDidChange),
+            name: .queueDidChange,
+            object: nil
+        )
+    }
+    
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+        scrollToCurrentTrack()
+    }
+    
+    deinit {
+        NotificationCenter.default.removeObserver(self)
     }
     
     private func bindViewModel() {
@@ -21,6 +38,7 @@ class QueueViewController: UIViewController, UITableViewDataSource, UITableViewD
             .receive(on: RunLoop.main)
             .sink { [weak self] _ in
                 self?.tableView.reloadData()
+                self?.scrollToCurrentTrack()
             }
             .store(in: &cancellables)
     }
@@ -29,9 +47,13 @@ class QueueViewController: UIViewController, UITableViewDataSource, UITableViewD
         title = "Queue"
         view.backgroundColor = .systemBackground
         
+        tableView = UITableView(frame: .zero, style: .plain)
         tableView.delegate = self
         tableView.dataSource = self
         tableView.register(TrackCell.self, forCellReuseIdentifier: "TrackCell")
+        tableView.rowHeight = 60
+        tableView.alwaysBounceVertical = true
+        tableView.contentInset = UIEdgeInsets(top: 0, left: 0, bottom: 50, right: 0)
         
         returnButton.setImage(UIImage(systemName: "arrow.left"), for: .normal)
         returnButton.addTarget(self, action: #selector(returnButtonTapped), for: .touchUpInside)
@@ -51,11 +73,13 @@ class QueueViewController: UIViewController, UITableViewDataSource, UITableViewD
         NSLayoutConstraint.activate([
             returnButton.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 20),
             returnButton.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 20),
+            returnButton.widthAnchor.constraint(equalToConstant: 30),
+            returnButton.heightAnchor.constraint(equalToConstant: 30),
             
-            tableView.topAnchor.constraint(equalTo: returnButton.bottomAnchor, constant: 20),
+            tableView.topAnchor.constraint(equalTo: view.topAnchor),
             tableView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             tableView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            tableView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
+            tableView.bottomAnchor.constraint(equalTo: view.bottomAnchor)
         ])
     }
     
@@ -67,11 +91,14 @@ class QueueViewController: UIViewController, UITableViewDataSource, UITableViewD
         let cell = tableView.dequeueReusableCell(withIdentifier: "TrackCell", for: indexPath) as! TrackCell
         let track = viewModel.queue[indexPath.row]
         cell.configure(with: track, isMyMusic: true)
+        cell.delegate = self
+        
         if track == MusicPlayerManager.shared.getCurrentTrack() {
             cell.backgroundColor = .lightGray
         } else {
             cell.backgroundColor = .clear
         }
+        
         return cell
     }
     
@@ -80,15 +107,30 @@ class QueueViewController: UIViewController, UITableViewDataSource, UITableViewD
         tableView.deselectRow(at: indexPath, animated: true)
     }
     
+    @objc private func queueDidChange() {
+        viewModel.updateQueue()
+    }
+    
     @objc private func returnButtonTapped() {
         navigationItem.hidesBackButton = true
         navigationController?.popViewController(animated: false)
+    }
+    
+    private func scrollToCurrentTrack() {
+        guard let currentTrack = MusicPlayerManager.shared.getCurrentTrack(),
+              let index = viewModel.queue.firstIndex(where: { $0 == currentTrack }) else {
+            return
+        }
+        
+        let indexPath = IndexPath(row: index, section: 0)
+        tableView.scrollToRow(at: indexPath, at: .top, animated: false)
     }
 }
 
 extension QueueViewController: TrackContextMenuDelegate {
     func didSelectAddToQueue(track: Track) {
         MusicPlayerManager.shared.addTrackToQueue(track: track)
+        viewModel.updateQueue()
     }
     
     func didSelectGoToArtist(track: Track) {
@@ -118,6 +160,12 @@ extension QueueViewController: TrackContextMenuDelegate {
     
     func didSelectDeleteTrack(track: Track) {
         MusicPlayerManager.shared.deleteTrack(track)
+        
+        if let index = viewModel.queue.firstIndex(where: { $0 == track }) {
+            viewModel.queue.remove(at: index)
+            tableView.deleteRows(at: [IndexPath(row: index, section: 0)], with: .automatic)
+        }
+        
         Task {
             await viewModel.deleteTrack(track)
         }

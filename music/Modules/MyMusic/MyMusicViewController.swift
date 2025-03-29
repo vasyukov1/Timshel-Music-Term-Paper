@@ -79,6 +79,10 @@ class MyMusicViewController: BaseViewController, UITableViewDelegate, UITableVie
     }
     
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
+        guard indexPath.row < viewModel.tracks.count else {
+            return UITableViewCell()
+        }
+        
         let cell = tableView.dequeueReusableCell(withIdentifier: "TrackCell", for: indexPath) as! TrackCell
         let track = viewModel.tracks[indexPath.row]
         cell.configure(with: track, isMyMusic: true)
@@ -139,6 +143,11 @@ extension MyMusicViewController: TrackContextMenuDelegate {
     func didSelectDeleteTrack(track: Track) {
         MusicPlayerManager.shared.deleteTrack(track)
         MusicManager.shared.deleteTrack(track)
+        
+        if let index = viewModel.tracks.firstIndex(where: { $0 == track }) {
+            viewModel.tracks.remove(at: index)
+            tableView.deleteRows(at: [IndexPath(row: index, section: 0)], with: .automatic)
+        }
         
         Task {
             await viewModel.deleteTrack(track)

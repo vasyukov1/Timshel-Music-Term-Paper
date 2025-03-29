@@ -26,6 +26,7 @@ class ArtistViewController: BaseViewController, UITableViewDelegate, UITableView
         setupUI()
         super.viewDidLoad()
         bindViewModel()
+        updateTableViewHeight()
         
         NotificationCenter.default.addObserver(
             self,
@@ -45,6 +46,7 @@ class ArtistViewController: BaseViewController, UITableViewDelegate, UITableView
             .sink { [weak self] tracks in
                 print("Tracks updated: \(tracks.count)")
                 self?.tracksTableView.reloadData()
+                self?.updateTableViewHeight()
             }
             .store(in: &cancellable)
     }
@@ -141,6 +143,14 @@ class ArtistViewController: BaseViewController, UITableViewDelegate, UITableView
             let cell = tableView.dequeueReusableCell(withIdentifier: "TrackCell", for: indexPath) as! TrackCell
             let track = viewModel.tracks[indexPath.row]
             cell.configure(with: track, isMyMusic: true)
+            cell.delegate = self
+            
+            if track == MusicPlayerManager.shared.getCurrentTrack() {
+                cell.backgroundColor = .systemGray2
+            } else {
+                cell.backgroundColor = .clear
+            }
+            
             return cell
         } else {
             let cell = tableView.dequeueReusableCell(withIdentifier: "AlbumCell", for: indexPath) as! AlbumCell
@@ -163,6 +173,11 @@ class ArtistViewController: BaseViewController, UITableViewDelegate, UITableView
     @objc
     private func allTracksButtonTapped() {
         
+    }
+    
+    private func updateTableViewHeight() {
+        let height = CGFloat(viewModel.tracks.count * 60)
+        tracksTableView.heightAnchor.constraint(equalToConstant: height).isActive = true
     }
 }
 
@@ -199,6 +214,11 @@ extension ArtistViewController: TrackContextMenuDelegate {
     func didSelectDeleteTrack(track: Track) {
         MusicPlayerManager.shared.deleteTrack(track)
         MusicManager.shared.deleteTrack(track)
+        
+        if let index = viewModel.tracks.firstIndex(where: { $0 == track }) {
+            viewModel.tracks.remove(at: index)
+            tracksTableView.deleteRows(at: [IndexPath(row: index, section: 0)], with: .automatic)
+        }
         
         Task {
             await viewModel.deleteTrack(track)
