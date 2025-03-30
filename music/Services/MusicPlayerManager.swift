@@ -5,7 +5,9 @@ class MusicPlayerManager: NSObject {
     static let shared = MusicPlayerManager()
     var audioPlayer: AVAudioPlayer?
     
+    private var originalQueue: [Track] = []
     private var trackQueue: [Track] = []
+    private var isShuffled = false
     private var history: [Track] = []
     private var currentTrack: Track? {
         didSet {
@@ -70,6 +72,7 @@ class MusicPlayerManager: NSObject {
     
     func addTrackToQueue(track: Track) {
         trackQueue.append(track)
+        originalQueue.append(track)
         NotificationCenter.default.post(name: .queueDidChange, object: nil)
         print("Track [\(track.title)] added to queue")
     }
@@ -191,16 +194,48 @@ class MusicPlayerManager: NSObject {
         playNextTrack()
     }
     
-    // Загрузка плейлиста в очередь
-    func loadPlaylist(name: String) async {
-       
-    }
-    
     func deleteTrack(_ track: Track) {
         trackQueue.removeAll { $0 == track }
         history.removeAll { $0 == track }
         NotificationCenter.default.post(name: .trackDidDelete, object: nil)
         print("Track [\(track.title)] deleted from queue and history")
+    }
+    
+    func shuffleQueue() {
+        guard !trackQueue.isEmpty else { return }
+        
+        if !isShuffled {
+            originalQueue = trackQueue
+        }
+        
+        if let currentIndex = currentTrackIndex {
+            let currentTrack = trackQueue.remove(at: currentIndex)
+            trackQueue.shuffle()
+            trackQueue.insert(currentTrack, at: 0)
+            currentTrackIndex = 0
+        } else {
+            trackQueue.shuffle()
+        }
+        
+        isShuffled = true
+        NotificationCenter.default.post(name: .queueDidChange, object: nil)
+    }
+    
+    func restoreOriginalQueue() {
+        guard isShuffled && !originalQueue.isEmpty else { return }
+
+        trackQueue = originalQueue
+        
+        if let currentTrack = currentTrack {
+            currentTrackIndex = trackQueue.firstIndex(where: { $0.id == currentTrack.id })
+        }
+        
+        isShuffled = false
+        NotificationCenter.default.post(name: .queueDidChange, object: nil)
+    }
+    
+    func getIsShuffled() -> Bool {
+        return isShuffled
     }
 }
 
