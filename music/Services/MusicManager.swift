@@ -8,6 +8,13 @@ class MusicManager {
     
     private var tracksByUser: [(String,Track)] = []
     
+    private let fileManager = FileManager.default
+    private let userDefaultsKey = "savedTracks"
+    
+    private init() {
+        loadTracks()
+    }
+    
     // Addition of track
     func addTrack(from url: URL) async {
         // Getting user's login
@@ -16,8 +23,10 @@ class MusicManager {
             return
         }
         
-        // Getting track
-        let fileManager = FileManager.default
+        guard fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask).first != nil else {
+            print("Error: Application Support directory not found")
+            return
+        }
         
         // Path to Application Support
         guard let appSupportDir = fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask).first else {
@@ -40,8 +49,6 @@ class MusicManager {
                 print("Failed to create songs directory: \(error)")
                 return
             }
-        } else {
-            print("Directory for [\(login)] already exsits")
         }
         
         // Path for addition of track
@@ -78,6 +85,7 @@ class MusicManager {
             }
             
             tracksByUser.append((login, newTrack))
+            saveTracks()
             print("Track [\(newTrack.title)] added for [\(login)]")
             
         } catch {
@@ -108,11 +116,48 @@ class MusicManager {
             return
         }
         
-        if !trackExistsByUser(login, track) {
+        guard let index = tracksByUser.firstIndex(where: { $0.0 == login && $0.1 == track }) else {
             return
         }
         
-        tracksByUser.removeAll { $0.0 == login && $0.1 == track }
+        let trackPath = track.url.path
+        
+        do {
+            try fileManager.removeItem(atPath: trackPath)
+            print("Track file deleted: \(track.title)")
+        } catch {
+            print("Failed to delete track file: \(error)")
+        }
+        
+        tracksByUser.remove(at: index)
+        saveTracks()
+        
         print("Track [\(track.title)] deleted from music")
+    }
+    
+    private func saveTracks() {
+        let encodableTracks = tracksByUser.map { SavedTrack(login: $0.0, track: $0.1) }
+        
+        do {
+            let data = try JSONEncoder().encode(encodableTracks)
+            UserDefaults.standard.set(data, forKey: userDefaultsKey)
+        } catch {
+            print("Failed to save tracks: \(error)")
+        }
+    }
+    
+    private func loadTracks() {
+        guard let data = UserDefaults.standard.data(forKey: userDefaultsKey) else { return }
+        
+        do {
+            let savedTracks = try JSONDecoder().decode([SavedTrack].self, from: data)
+            tracksByUser = savedTracks.map {
+                let track = $0.track
+                track.restoreURL()
+                return ($0.login, track)
+            }
+        } catch {
+            print("Failed to load tracks: \(error)")
+        }
     }
 }

@@ -148,6 +148,7 @@ class TrackCell: UITableViewCell {
     private func setupPanGesture() {
         panGestureRecognizer.addTarget(self, action: #selector(handlePanGesture(_:)))
         panGestureRecognizer.delegate = self
+        panGestureRecognizer.cancelsTouchesInView = false
         self.addGestureRecognizer(panGestureRecognizer)
     }
     
