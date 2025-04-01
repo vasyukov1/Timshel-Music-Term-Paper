@@ -14,6 +14,6 @@ class PlaylistViewModel {
     }
     
     func deleteTrack(_ track: Track) async {
-        playlist.tracks.removeAll { $0 == track }
+//        playlist.tracks.removeAll { $0 == track }
     }
 }

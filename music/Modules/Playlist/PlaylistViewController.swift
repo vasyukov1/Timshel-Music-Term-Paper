@@ -111,6 +111,7 @@ extension PlaylistViewController: UITableViewDataSource, UITableViewDelegate {
         let cell = tableView.dequeueReusableCell(withIdentifier: "TrackCell", for: indexPath) as! TrackCell
         let track = viewModel.playlist.tracks[indexPath.row]
         cell.configure(with: track, isMyMusic: false)
+        cell.delegate = self
         return cell
     }
     
@@ -151,6 +152,11 @@ extension PlaylistViewController: TrackContextMenuDelegate {
     }
     
     func didSelectDeleteTrack(track: Track) {
+        if let index = viewModel.playlist.tracks.firstIndex(where: { $0 == track }) {
+            viewModel.playlist.tracks.remove(at: index)
+            tableView.deleteRows(at: [IndexPath(row: index, section: 0)], with: .automatic)
+        }
+        
         Task {
             await viewModel.deleteTrack(track)
         }

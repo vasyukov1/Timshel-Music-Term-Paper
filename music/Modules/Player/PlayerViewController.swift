@@ -16,6 +16,8 @@ class PlayerViewController: UIViewController {
     private let minimizeScreenButton = UIButton()
     private let progressSlider = UISlider()
     private let queueButton = UIButton()
+    private let shuffleButton = UIButton()
+    private let restoreButton = UIButton()
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -96,6 +98,24 @@ class PlayerViewController: UIViewController {
         navigationController?.pushViewController(artistVC, animated: false)
     }
     
+    @objc private func shuffleTapped() {
+        MusicPlayerManager.shared.shuffleQueue()
+        shuffleButton.isHidden = true
+        restoreButton.isHidden = false
+    }
+    
+    @objc private func restoreTapped() {
+        MusicPlayerManager.shared.restoreOriginalQueue()
+        shuffleButton.isHidden = false
+        restoreButton.isHidden = true
+    }
+    
+    private func updateShuffleState() {
+        let isShuffled = MusicPlayerManager.shared.getIsShuffled()
+        shuffleButton.isHidden = isShuffled
+        restoreButton.isHidden = !isShuffled
+    }
+    
     private func setupUI() {
         title = "Player"
         
@@ -126,6 +146,13 @@ class PlayerViewController: UIViewController {
         queueButton.setImage(UIImage(systemName: "line.3.horizontal"), for: .normal)
         queueButton.addTarget(self, action: #selector(queueButtonTapped), for: .touchUpInside)
         
+        shuffleButton.setImage(UIImage(systemName: "shuffle"), for: .normal)
+        shuffleButton.addTarget(self, action: #selector(shuffleTapped), for: .touchUpInside)
+        
+        restoreButton.setImage(UIImage(systemName: "arrow.uturn.backward"), for: .normal)
+        restoreButton.addTarget(self, action: #selector(restoreTapped), for: .touchUpInside)
+        restoreButton.isHidden = true
+        
         for subview in [
             titleLabel,
             artistButton,
@@ -135,7 +162,9 @@ class PlayerViewController: UIViewController {
             nextTrackButton,
             minimizeScreenButton,
             progressSlider,
-            queueButton
+            queueButton,
+            shuffleButton,
+            restoreButton
         ] {
             view.addSubview(subview)
             subview.translatesAutoresizingMaskIntoConstraints = false
@@ -186,6 +215,16 @@ class PlayerViewController: UIViewController {
             queueButton.topAnchor.constraint(equalTo: playPauseButton.topAnchor),
             queueButton.heightAnchor.constraint(equalToConstant: 50),
             queueButton.widthAnchor.constraint(equalToConstant: 50),
+            
+            shuffleButton.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 20),
+            shuffleButton.topAnchor.constraint(equalTo: playPauseButton.topAnchor),
+            shuffleButton.heightAnchor.constraint(equalToConstant: 50),
+            shuffleButton.widthAnchor.constraint(equalToConstant: 50),
+            
+            restoreButton.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 20),
+            restoreButton.topAnchor.constraint(equalTo: playPauseButton.topAnchor),
+            restoreButton.heightAnchor.constraint(equalToConstant: 50),
+            restoreButton.widthAnchor.constraint(equalToConstant: 50)
         ])
     }
 }

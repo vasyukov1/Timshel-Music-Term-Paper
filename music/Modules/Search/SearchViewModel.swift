@@ -9,7 +9,6 @@ class SearchViewModel {
     @Published var playlists: [Playlist] = []
     
     func loadData() {        
-        popularTracks = getTopTracks()
         recentSearchTracks = []
         playlists = PlaylistManager.shared.getPlaylists()
     }

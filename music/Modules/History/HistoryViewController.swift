@@ -63,11 +63,14 @@ class HistoryViewController: UIViewController, UITableViewDelegate, UITableViewD
         let cell = tableView.dequeueReusableCell(withIdentifier: "TrackCell", for: indexPath) as! TrackCell
         let track = viewModel.historyQueue[indexPath.row]
         cell.configure(with: track, isMyMusic: true)
+        cell.delegate = self
+        
         if track == MusicPlayerManager.shared.getCurrentTrack() {
-            cell.backgroundColor = .lightGray
+            cell.backgroundColor = .systemGray2
         } else {
             cell.backgroundColor = .clear
         }
+        
         return cell
     }
     
@@ -113,7 +116,12 @@ extension HistoryViewController: TrackContextMenuDelegate {
         self.present(playlistMenu, animated: true)
     }
     
-    func didSelectDeleteTrack(track: Track) {
+    func didSelectDeleteTrack(track: Track) {        
+        if let index = viewModel.historyQueue.firstIndex(where: { $0 == track }) {
+            viewModel.historyQueue.remove(at: index)
+            tableView.deleteRows(at: [IndexPath(row: index, section: 0)], with: .automatic)
+        }
+        
         Task {
             await viewModel.deleteTrack(track)
         }

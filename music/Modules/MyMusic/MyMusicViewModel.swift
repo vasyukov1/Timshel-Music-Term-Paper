@@ -21,7 +21,7 @@ class MyMusicViewModel {
     }
     
     func deleteTrack(_ track: Track) async {
-        tracks.removeAll { $0 == track }
+//        tracks.removeAll { $0 == track }
     }
     
     func documentPickerWasCancelled(_ controller: UIDocumentPickerViewController) {

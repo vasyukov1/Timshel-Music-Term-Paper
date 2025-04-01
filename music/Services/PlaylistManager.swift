@@ -6,14 +6,11 @@ class PlaylistManager {
     var playlists: [(String, Playlist)] = []
     private var recentTracks: [Track] = []
     
+    private let userDefaultsKey = "savedPlaylists"
+    
     private init() {
-        let sampleTracks = [
-            Track(title: "Track 1", artist: "Artist 1", image: UIImage(systemName: "music.note")!, url: URL(filePath: "")!),
-            Track(title: "Track 2", artist: "Artist 2", image: UIImage(systemName: "music.note")!, url: URL(filePath: "")!),
-            Track(title: "Track 3", artist: "Artist 3", image: UIImage(systemName: "music.note")!, url: URL(filePath: "")!)
-        ]
-        
-        recentTracks = Array(sampleTracks.prefix(6))
+        loadPlaylists()
+        loadRecentTracks()
     }
     
     func getPlaylists() -> [Playlist] {
@@ -38,6 +35,7 @@ class PlaylistManager {
         }
         
         playlists.append((login, playlist))
+        savePlaylists()
         print("Playlist [\(playlist.title)] created with [\(playlist.tracks.count)] tracks")
     }
     
@@ -46,6 +44,7 @@ class PlaylistManager {
         if recentTracks.count > 6 {
             recentTracks.removeLast()
         }
+        saveRecentTracks()
     }
     
     func addTrackToPlaylist(_ track: Track, _ playlist: Playlist) {
@@ -57,6 +56,7 @@ class PlaylistManager {
         if let index = playlists.firstIndex(where: { $0.0 == login && $0.1.title == playlist.title }) {
             if !playlist.tracks.contains(track) {
                 playlists[index].1.tracks.append(track)
+                savePlaylists()
                 print("Track [\(track.title)] added to [\(playlist.title)]")
             } else {
                 print("Track [\(track.title)] already exists in [\(playlist.title)]")
@@ -74,9 +74,51 @@ class PlaylistManager {
 
         if let index = playlists.firstIndex(where: { $0.0 == login && $0.1.title == oldTitle }) {
             playlists[index].1 = updatedPlaylist
+            savePlaylists()
             print("Playlist [\(updatedPlaylist.title)] updated successfully")
         } else {
             print("Playlist [\(updatedPlaylist.title)] not found")
+        }
+    }
+    
+    private func savePlaylists() {
+        let encodablePlaylists = playlists.map { SavedPlaylist(login: $0.0, playlist: $0.1) }
+        
+        do {
+            let data = try JSONEncoder().encode(encodablePlaylists)
+            UserDefaults.standard.set(data, forKey: userDefaultsKey)
+        } catch {
+            print("Failed to save playlists: \(error)")
+        }
+    }
+    
+    private func loadPlaylists() {
+        guard let data = UserDefaults.standard.data(forKey: userDefaultsKey) else { return }
+        
+        do {
+            let savedPlaylists = try JSONDecoder().decode([SavedPlaylist].self, from: data)
+            playlists = savedPlaylists.map { ($0.login, $0.playlist) }
+        } catch {
+            print("Failed to load playlists: \(error)")
+        }
+    }
+    
+    private func saveRecentTracks() {
+        do {
+            let data = try JSONEncoder().encode(recentTracks)
+            UserDefaults.standard.set(data, forKey: "savedRecentTracks")
+        } catch {
+            print("Failed to save recent tracks: \(error)")
+        }
+    }
+    
+    private func loadRecentTracks() {
+        guard let data = UserDefaults.standard.data(forKey: "savedRecentTracks") else { return }
+        
+        do {
+            recentTracks = try JSONDecoder().decode([Track].self, from: data)
+        } catch {
+            print("Failed to load recent tracks: \(error)")
         }
     }
 }

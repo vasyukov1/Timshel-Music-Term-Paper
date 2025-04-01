@@ -1,16 +1,20 @@
 import UIKit
 import AVFoundation
 
-class Track: Equatable {
+class Track: Codable, Equatable {
     let title: String
     let artist: String
     var id = ""
     private(set) var image: UIImage
-    private(set) var url: URL
+    private(set) var urlString: String
     var isSelected: Bool
     
+    var url: URL {
+        return URL(string: urlString) ?? URL(fileURLWithPath: "")
+    }
+    
     static func == (lhs: Track, rhs: Track) -> Bool {
-        return lhs.url == rhs.url
+        return lhs.title == rhs.title && lhs.artist == rhs.artist
     }
     
     init(title: String, artist: String, image: UIImage, url: URL) {
@@ -18,14 +22,48 @@ class Track: Equatable {
         self.artist = artist
         self.id = title + "_" + artist
         self.image = image
-        self.url = url
+        self.urlString = url.absoluteString
         self.isSelected = false
+    }
+    
+    enum CodingKeys: String, CodingKey {
+        case title, artist, id, imageData, urlString, isSelected
+    }
+    
+    required init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        title = try container.decode(String.self, forKey: .title)
+        artist = try container.decode(String.self, forKey: .artist)
+        id = try container.decode(String.self, forKey: .id)
+        isSelected = try container.decode(Bool.self, forKey: .isSelected)
+        
+        let imageData = try container.decode(Data.self, forKey: .imageData)
+        image = UIImage(data: imageData) ?? UIImage(systemName: "music.note")!
+
+        urlString = try container.decode(String.self, forKey: .urlString)
+    }
+    
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(title, forKey: .title)
+        try container.encode(artist, forKey: .artist)
+        try container.encode(id, forKey: .id)
+        try container.encode(isSelected, forKey: .isSelected)
+        
+        let imageData = image.pngData() ?? Data()
+        try container.encode(imageData, forKey: .imageData)
+        
+        try container.encode(urlString, forKey: .urlString)
+    }
+    
+    func restoreURL() {
+        if let restoredURL = URL(string: urlString) {
+            self.urlString = restoredURL.absoluteString
+        }
     }
 }
 
-func getTopTracks() -> [Track] {
-    return [
-        // FIXME: it's a function, which returns top track around all users.
-        Track(title: "Popular Song 1", artist: "Artist 1", image: UIImage(systemName: "music.note")!, url: URL(filePath: ""))
-    ]
+struct SavedTrack: Codable {
+    let login: String
+    let track: Track
 }
