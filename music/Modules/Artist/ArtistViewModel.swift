@@ -19,7 +19,8 @@ class ArtistViewModel {
             return
         }
         Task {
-            tracks = await MusicManager.shared.getTracksByLogin(login).filter { $0.artist == artistName }
+//            tracks = await MusicManager.shared.getTracksByLogin(login).filter { $0.artist == artistName }
+            tracks = await MusicManager.shared.getTracksByLogin(login).filter { $0.artists.contains(artistName)}
             print("Tracks loaded: \(tracks.count)")
         }
     }

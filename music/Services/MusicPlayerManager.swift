@@ -136,7 +136,7 @@ class MusicPlayerManager: NSObject {
             
             track.incrementPlayCount()
             MusicManager.shared.updateTrackStats(track: track)
-            MusicManager.shared.updateArtistStats(for: track.artist)
+            MusicManager.shared.updateArtistStats(for: track)
             
             if history.first != track {
                 history.insert(track, at: 0)

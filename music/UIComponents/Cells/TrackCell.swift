@@ -269,6 +269,20 @@ extension UIViewController {
         
         self.present(menu, animated: true)
     }
+        
+    func presentArtistSelection(for track: Track, completion: @escaping (String) -> Void) {
+        let alert = UIAlertController(title: "Select Artist", message: nil, preferredStyle: .actionSheet)
+        
+        for artist in track.artists {
+            alert.addAction(UIAlertAction(title: artist, style: .default) { _ in
+                completion(artist)
+            })
+        }
+        
+        alert.addAction(UIAlertAction(title: "Cancel", style: .cancel))
+        
+        self.present(alert, animated: true)
+    }
 }
 
 extension UIView {

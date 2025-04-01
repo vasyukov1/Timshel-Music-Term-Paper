@@ -214,19 +214,21 @@ class MusicManager {
         }
     }
     
-    func updateArtistStats(for artistName: String) {
+    func updateArtistStats(for track: Track) {
         guard let login = UserDefaults.standard.string(forKey: "savedLogin") else { return }
         
-        if let userIndex = artistsStatsByUser.firstIndex(where: { $0.login == login }) {
-            if let artistIndex = artistsStatsByUser[userIndex].stats.firstIndex(where: { $0.name == artistName }) {
-                artistsStatsByUser[userIndex].stats[artistIndex].incrementPlayCount()
+        for artistName in track.artists {
+            if let userIndex = artistsStatsByUser.firstIndex(where: { $0.login == login }) {
+                if let artistIndex = artistsStatsByUser[userIndex].stats.firstIndex(where: { $0.name == artistName }) {
+                    artistsStatsByUser[userIndex].stats[artistIndex].incrementPlayCount()
+                } else {
+                    let newStats = ArtistStats(name: artistName, playCount: 1, lastPlayedDate: Date())
+                    artistsStatsByUser[userIndex].stats.append(newStats)
+                }
             } else {
                 let newStats = ArtistStats(name: artistName, playCount: 1, lastPlayedDate: Date())
-                artistsStatsByUser[userIndex].stats.append(newStats)
+                artistsStatsByUser.append(UserArtistStats(login: login, stats: [newStats]))
             }
-        } else {
-            let newStats = ArtistStats(name: artistName, playCount: 1, lastPlayedDate: Date())
-            artistsStatsByUser.append(UserArtistStats(login: login, stats: [newStats]))
         }
         
         saveArtistsStats()

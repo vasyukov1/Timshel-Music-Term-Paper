@@ -224,13 +224,13 @@ extension ProfileViewController: UITableViewDataSource, UITableViewDelegate {
     }
     
     private func showArtistTracks(artistName: String) {
-        guard let login = UserDefaults.standard.string(forKey: "savedLogin") else { return }
+//        guard let login = UserDefaults.standard.string(forKey: "savedLogin") else { return }
         
         Task {
-            let allTracks = await MusicManager.shared.getTracksByLogin(login)
-            let artistTracks = allTracks.filter { $0.artist == artistName }
+//            let allTracks = await MusicManager.shared.getTracksByLogin(login)
+//            let artistTracks = allTracks.filter { $0.artist == artistName }
             
-            let artistVC = ArtistViewController(viewModel: ArtistViewModel(artistName: artistTracks[0].artist))
+            let artistVC = ArtistViewController(viewModel: ArtistViewModel(artistName: artistName))
             artistVC.navigationItem.hidesBackButton = true
             navigationController?.pushViewController(artistVC, animated: false)
         }

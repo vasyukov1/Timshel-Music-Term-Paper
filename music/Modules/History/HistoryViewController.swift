@@ -92,9 +92,31 @@ extension HistoryViewController: TrackContextMenuDelegate {
     }
     
     func didSelectGoToArtist(track: Track) {
-        let artistVC = ArtistViewController(viewModel: ArtistViewModel(artistName: track.artist))
+        if track.artists.count > 1 {
+            showArtistSelectionAlert(for: track)
+        } else {
+            navigateToArtist(track.artist)
+        }
+    }
+    
+    private func showArtistSelectionAlert(for track: Track) {
+        let alert = UIAlertController(title: "Выберите артиста", message: nil, preferredStyle: .actionSheet)
+        
+        for artist in track.artists {
+            alert.addAction(UIAlertAction(title: artist, style: .default) { _ in
+                self.navigateToArtist(artist)
+            })
+        }
+        
+        alert.addAction(UIAlertAction(title: "Отмена", style: .cancel))
+        
+        present(alert, animated: true)
+    }
+    
+    private func navigateToArtist(_ artistName: String) {
+        let artistVC = ArtistViewController(viewModel: ArtistViewModel(artistName: artistName))
         artistVC.navigationItem.hidesBackButton = true
-        navigationController?.pushViewController(artistVC, animated: true)
+        navigationController?.pushViewController(artistVC, animated: false)
     }
     
     func didSelectAddToPlaylist(track: Track) {

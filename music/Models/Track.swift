@@ -4,6 +4,9 @@ import AVFoundation
 class Track: Codable, Equatable {
     let title: String
     let artist: String
+    var artists: [String] {
+        return artist.components(separatedBy: ",").map { $0.trimmingCharacters(in: .whitespaces) }
+    }
     var id = ""
     private(set) var image: UIImage
     private(set) var urlString: String
