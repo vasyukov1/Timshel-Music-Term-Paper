@@ -18,6 +18,7 @@ class PlayerViewController: UIViewController {
     private let queueButton = UIButton()
     private let shuffleButton = UIButton()
     private let restoreButton = UIButton()
+    private let repeatButton = UIButton()
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -45,6 +46,13 @@ class PlayerViewController: UIViewController {
             .sink { [weak self] progress in
                 let progressValue = Float(progress.currentTime / progress.duration)
                 self?.progressSlider.value = progressValue
+            }
+            .store(in: &cancellables)
+        
+        NotificationCenter.default.publisher(for: .repeatModeDidChange)
+            .receive(on: RunLoop.main)
+            .sink { [weak self] _ in
+                self?.updateRepeatButton()
             }
             .store(in: &cancellables)
     }
@@ -110,6 +118,32 @@ class PlayerViewController: UIViewController {
         restoreButton.isHidden = true
     }
     
+    @objc private func repeatButtonTapped() {
+        MusicPlayerManager.shared.toggleRepeatMode()
+        updateRepeatButton()
+    }
+    
+    private func updateRepeatButton() {
+        let mode = MusicPlayerManager.shared.getRepeatMode()
+        var imageName: String
+        var tintColor: UIColor
+        
+        switch mode {
+        case .off:
+            imageName = "repeat"
+            tintColor = .systemGray
+        case .one:
+            imageName = "repeat.1"
+            tintColor = .systemPurple
+        case .all:
+            imageName = "repeat"
+            tintColor = .systemPurple
+        }
+        
+        repeatButton.setImage(UIImage(systemName: imageName), for: .normal)
+        repeatButton.tintColor = tintColor
+    }
+    
     private func updateShuffleState() {
         let isShuffled = MusicPlayerManager.shared.getIsShuffled()
         shuffleButton.isHidden = isShuffled
@@ -153,6 +187,9 @@ class PlayerViewController: UIViewController {
         restoreButton.addTarget(self, action: #selector(restoreTapped), for: .touchUpInside)
         restoreButton.isHidden = true
         
+        repeatButton.setImage(UIImage(systemName: "repeat"), for: .normal)
+        repeatButton.addTarget(self, action: #selector(repeatButtonTapped), for: .touchUpInside)
+        
         for subview in [
             titleLabel,
             artistButton,
@@ -164,13 +201,15 @@ class PlayerViewController: UIViewController {
             progressSlider,
             queueButton,
             shuffleButton,
-            restoreButton
+            restoreButton,
+            repeatButton
         ] {
             view.addSubview(subview)
             subview.translatesAutoresizingMaskIntoConstraints = false
         }
         
         setupConstraints()
+        updateRepeatButton()
     }
     
     private func setupConstraints() {
@@ -224,7 +263,12 @@ class PlayerViewController: UIViewController {
             restoreButton.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 20),
             restoreButton.topAnchor.constraint(equalTo: playPauseButton.topAnchor),
             restoreButton.heightAnchor.constraint(equalToConstant: 50),
-            restoreButton.widthAnchor.constraint(equalToConstant: 50)
+            restoreButton.widthAnchor.constraint(equalToConstant: 50),
+            
+            repeatButton.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 20),
+            repeatButton.topAnchor.constraint(equalTo: restoreButton.bottomAnchor, constant: 20),
+            repeatButton.widthAnchor.constraint(equalToConstant: 50),
+            repeatButton.heightAnchor.constraint(equalToConstant: 50)
         ])
     }
 }

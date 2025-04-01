@@ -7,6 +7,7 @@ class PlayerViewModel {
     @Published var track = MusicPlayerManager.shared.getCurrentTrack()
     @Published var isPlaying = MusicPlayerManager.shared.audioPlayer!.isPlaying
     @Published var playbackProgress = MusicPlayerManager.shared.getPlaybackProgress()
+    @Published var repeatMode: MusicPlayerManager.RepeatMode = .off
     
     private var cancellables = Set<AnyCancellable>()
     
@@ -27,6 +28,12 @@ class PlayerViewModel {
             .autoconnect()
             .sink { [weak self] _ in
                 self?.updateProgressBar()
+            }
+            .store(in: &cancellables)
+        
+        NotificationCenter.default.publisher(for: .repeatModeDidChange)
+            .sink { [weak self] _ in
+                self?.repeatMode = MusicPlayerManager.shared.getRepeatMode()
             }
             .store(in: &cancellables)
     }

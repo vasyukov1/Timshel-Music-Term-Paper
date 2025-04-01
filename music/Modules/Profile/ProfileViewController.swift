@@ -85,7 +85,7 @@ class ProfileViewController: BaseViewController {
             tableView.topAnchor.constraint(equalTo: settingsButton.bottomAnchor, constant: 10),
             tableView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             tableView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            tableView.bottomAnchor.constraint(equalTo: view.bottomAnchor, constant: -100)
+            tableView.bottomAnchor.constraint(equalTo: view.bottomAnchor, constant: -150)
         ])
     }
     

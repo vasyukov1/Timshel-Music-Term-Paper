@@ -25,6 +25,14 @@ class MusicPlayerManager: NSObject {
         audioPlayer?.duration ?? 0
     }
     
+    enum RepeatMode {
+        case off
+        case one
+        case all
+    }
+    
+    private var repeatMode: RepeatMode = .off
+    
     // Инициализация
     private override init() {
         super.init()
@@ -110,14 +118,19 @@ class MusicPlayerManager: NSObject {
     // Включить трек
     func playTrack(at index: Int) {
         guard 0 <= index && index < trackQueue.count else { return }
+        
+        let track = trackQueue[index]
+        
         do {
-            let track = trackQueue[index]
             audioPlayer = try AVAudioPlayer(contentsOf: track.url)
             audioPlayer?.delegate = self
+            audioPlayer?.prepareToPlay()
             audioPlayer?.play()
+            
             currentTrack = track
             currentTrackIndex = index
             lastTrack = track
+            
             NotificationCenter.default.post(name: .trackDidChange, object: nil)
             NotificationCenter.default.post(name: .playbackStateDidChange, object: nil)
             
@@ -242,11 +255,34 @@ class MusicPlayerManager: NSObject {
     func getIsShuffled() -> Bool {
         return isShuffled
     }
+    
+    func toggleRepeatMode() {
+        switch repeatMode {
+        case .off:
+            repeatMode = .one
+        case .one:
+            repeatMode = .all
+        case .all:
+            repeatMode = .off
+        }
+        NotificationCenter.default.post(name: .repeatModeDidChange, object: nil)
+    }
+    
+    func getRepeatMode() -> RepeatMode {
+        return repeatMode
+    }
 }
 
 extension MusicPlayerManager: AVAudioPlayerDelegate {
     func audioPlayerDidFinishPlaying(_ player: AVAudioPlayer, successfully flag: Bool) {
-        playNextTrack()
+        switch repeatMode {
+        case .one:
+            if let currentIndex = currentTrackIndex {
+                playTrack(at: currentIndex)
+            }
+        case .all, .off:
+            playNextTrack()
+        }
     }
 }
 
@@ -255,4 +291,5 @@ extension Notification.Name {
     static let trackDidDelete = Notification.Name("trackDidDelete")
     static let playbackStateDidChange = Notification.Name("playbackStateDidChange")
     static let queueDidChange = Notification.Name("queueDidChange")
+    static let repeatModeDidChange = Notification.Name("repeatModeDidChange")
 }
