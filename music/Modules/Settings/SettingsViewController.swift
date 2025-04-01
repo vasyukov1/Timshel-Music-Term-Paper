@@ -5,7 +5,6 @@ class SettingsViewController: BaseViewController {
     
     let firstNameTextField = UITextField()
     let lastNameTextField = UITextField()
-    let loginTextField = UITextField()
     let currentPasswordTextField = UITextField()
     let newPasswordTextField = UITextField()
     let confirmPasswordTextField = UITextField()
@@ -30,10 +29,6 @@ class SettingsViewController: BaseViewController {
         lastNameTextField.borderStyle = .roundedRect
         view.addSubview(lastNameTextField)
 
-        loginTextField.placeholder = "Login"
-        loginTextField.borderStyle = .roundedRect
-        view.addSubview(loginTextField)
-
         currentPasswordTextField.placeholder = "Current Password"
         currentPasswordTextField.borderStyle = .roundedRect
         currentPasswordTextField.isSecureTextEntry = true
@@ -54,6 +49,10 @@ class SettingsViewController: BaseViewController {
 
         let backButton = UIBarButtonItem(title: "Back", style: .plain, target: self, action: #selector(backTapped))
         navigationItem.leftBarButtonItem = backButton
+        
+        configurePasswordField(currentPasswordTextField)
+        configurePasswordField(newPasswordTextField)
+        configurePasswordField(confirmPasswordTextField)
 
         setupConstraints()
     }
@@ -62,7 +61,6 @@ class SettingsViewController: BaseViewController {
     private func setupConstraints() {
         firstNameTextField.translatesAutoresizingMaskIntoConstraints = false
         lastNameTextField.translatesAutoresizingMaskIntoConstraints = false
-        loginTextField.translatesAutoresizingMaskIntoConstraints = false
         currentPasswordTextField.translatesAutoresizingMaskIntoConstraints = false
         newPasswordTextField.translatesAutoresizingMaskIntoConstraints = false
         confirmPasswordTextField.translatesAutoresizingMaskIntoConstraints = false
@@ -78,12 +76,7 @@ class SettingsViewController: BaseViewController {
             lastNameTextField.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -20),
             lastNameTextField.heightAnchor.constraint(equalToConstant: 40),
 
-            loginTextField.topAnchor.constraint(equalTo: lastNameTextField.bottomAnchor, constant: 20),
-            loginTextField.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 20),
-            loginTextField.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -20),
-            loginTextField.heightAnchor.constraint(equalToConstant: 40),
-
-            currentPasswordTextField.topAnchor.constraint(equalTo: loginTextField.bottomAnchor, constant: 20),
+            currentPasswordTextField.topAnchor.constraint(equalTo: lastNameTextField.bottomAnchor, constant: 20),
             currentPasswordTextField.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 20),
             currentPasswordTextField.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -20),
             currentPasswordTextField.heightAnchor.constraint(equalToConstant: 40),
@@ -99,6 +92,31 @@ class SettingsViewController: BaseViewController {
             confirmPasswordTextField.heightAnchor.constraint(equalToConstant: 40),
         ])
     }
+    
+    private func configurePasswordField(_ textField: UITextField) {
+        textField.isSecureTextEntry = true
+        
+        let button = UIButton(type: .custom)
+        button.setImage(UIImage(systemName: "eye.slash"), for: .normal)
+        button.setImage(UIImage(systemName: "eye"), for: .selected)
+        button.tintColor = .gray
+        button.frame = CGRect(x: 0, y: 0, width: 30, height: 30)
+        button.addTarget(self, action: #selector(togglePasswordVisibility(_:)), for: .touchUpInside)
+        
+        textField.rightView = button
+        textField.rightViewMode = .always
+    }
+    
+    @objc private func togglePasswordVisibility(_ sender: UIButton) {
+        sender.isSelected.toggle()
+        
+        // Находим соответствующее поле ввода
+        if let textField = sender.superview as? UITextField {
+            textField.isSecureTextEntry = !sender.isSelected
+        } else if let textField = sender.superview?.superview as? UITextField {
+            textField.isSecureTextEntry = !sender.isSelected
+        }
+    }
 
     private func loadCurrentUserData() {
         guard let savedLogin = UserDefaults.standard.string(forKey: "savedLogin") else { return }
@@ -106,7 +124,6 @@ class SettingsViewController: BaseViewController {
         if let userInfo = readUserInfo(login: savedLogin) {
             firstNameTextField.text = userInfo.firstName
             lastNameTextField.text = userInfo.lastName
-            loginTextField.text = savedLogin
         }
     }
 
@@ -154,20 +171,18 @@ class SettingsViewController: BaseViewController {
         }
 
         guard let newFirstName = firstNameTextField.text, !newFirstName.isEmpty,
-              let newLastName = lastNameTextField.text, !newLastName.isEmpty,
-              let newLogin = loginTextField.text, !newLogin.isEmpty else {
+              let newLastName = lastNameTextField.text, !newLastName.isEmpty else {
             showError(message: "Fill all fields")
             return
         }
 
-        if updateUserInfo(oldLogin: savedLogin, newFirstName: newFirstName, newLastName: newLastName, newLogin: newLogin) {
+        if updateUserInfo(login: savedLogin, newFirstName: newFirstName, newLastName: newLastName) {
             if let newPassword = newPasswordTextField.text, !newPassword.isEmpty {
-                if !updatePassword(oldLogin: savedLogin, newLogin: newLogin, newPassword: newPassword) {
+                if !updatePassword(login: savedLogin, newPassword: newPassword) {
                     showError(message: "Some error: Password wasn't updated")
                 }
             }
 
-            UserDefaults.standard.set(newLogin, forKey: "savedLogin")
             if newPasswordTextField.text?.isEmpty == false {
                 UserDefaults.standard.set(newPasswordTextField.text, forKey: "savedPassword")
             }
@@ -186,7 +201,7 @@ class SettingsViewController: BaseViewController {
         present(alert, animated: true)
     }
     
-    private func updateUserInfo(oldLogin: String, newFirstName: String, newLastName: String, newLogin: String) -> Bool {
+    private func updateUserInfo(login: String, newFirstName: String, newLastName: String) -> Bool {
         let infoPath = getDocumentsFilePath(filename: "testdb_info")
         do {
             var infoContent = try String(contentsOfFile: infoPath, encoding: .utf8)
@@ -194,8 +209,8 @@ class SettingsViewController: BaseViewController {
 
             for (index, line) in infoLines.enumerated() {
                 let components = line.components(separatedBy: ",")
-                if components.count == 3, components[0] == oldLogin {
-                    infoLines[index] = "\(newLogin),\(newFirstName),\(newLastName)"
+                if components.count == 3, components[0] == login {
+                    infoLines[index] = "\(login),\(newFirstName),\(newLastName)"
                     break
                 }
             }
@@ -209,7 +224,7 @@ class SettingsViewController: BaseViewController {
         }
     }
     
-    private func updatePassword(oldLogin: String, newLogin: String, newPassword: String) -> Bool {
+    private func updatePassword(login: String, newPassword: String) -> Bool {
         let dbPath = getDocumentsFilePath(filename: "testdb")
          
         do {
@@ -225,10 +240,7 @@ class SettingsViewController: BaseViewController {
                 let components = trimmedLine.components(separatedBy: ":")
                 if components.count == 2 {
                     let storedLogin = components[0]
-                    if storedLogin == oldLogin {
-                        dbLines[index] = "\(newLogin):\(newPassword)"
-                        break
-                    }
+                    dbLines[index] = "\(storedLogin):\(newPassword)"
                 }
             }
 
