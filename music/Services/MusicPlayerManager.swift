@@ -120,6 +120,11 @@ class MusicPlayerManager: NSObject {
             lastTrack = track
             NotificationCenter.default.post(name: .trackDidChange, object: nil)
             NotificationCenter.default.post(name: .playbackStateDidChange, object: nil)
+            
+            track.incrementPlayCount()
+            MusicManager.shared.updateTrackStats(track: track)
+            MusicManager.shared.updateArtistStats(for: track.artist)
+            
             if history.first != track {
                 history.insert(track, at: 0)
             }

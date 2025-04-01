@@ -8,6 +8,8 @@ class Track: Codable, Equatable {
     private(set) var image: UIImage
     private(set) var urlString: String
     var isSelected: Bool
+    var playCount: Int
+    var lastPlayedDate: Date?
     
     var url: URL {
         return URL(string: urlString) ?? URL(fileURLWithPath: "")
@@ -24,10 +26,12 @@ class Track: Codable, Equatable {
         self.image = image
         self.urlString = url.absoluteString
         self.isSelected = false
+        self.playCount = 0
+        self.lastPlayedDate = nil
     }
     
     enum CodingKeys: String, CodingKey {
-        case title, artist, id, imageData, urlString, isSelected
+        case title, artist, id, imageData, urlString, isSelected, playCount, lastPlayedDate
     }
     
     required init(from decoder: Decoder) throws {
@@ -36,6 +40,8 @@ class Track: Codable, Equatable {
         artist = try container.decode(String.self, forKey: .artist)
         id = try container.decode(String.self, forKey: .id)
         isSelected = try container.decode(Bool.self, forKey: .isSelected)
+        playCount = try container.decode(Int.self, forKey: .playCount)
+        lastPlayedDate = try? container.decodeIfPresent(Date.self, forKey: .lastPlayedDate)
         
         let imageData = try container.decode(Data.self, forKey: .imageData)
         image = UIImage(data: imageData) ?? UIImage(systemName: "music.note")!
@@ -49,6 +55,8 @@ class Track: Codable, Equatable {
         try container.encode(artist, forKey: .artist)
         try container.encode(id, forKey: .id)
         try container.encode(isSelected, forKey: .isSelected)
+        try container.encode(playCount, forKey: .playCount)
+        try container.encodeIfPresent(lastPlayedDate, forKey: .lastPlayedDate)
         
         let imageData = image.pngData() ?? Data()
         try container.encode(imageData, forKey: .imageData)
@@ -60,6 +68,11 @@ class Track: Codable, Equatable {
         if let restoredURL = URL(string: urlString) {
             self.urlString = restoredURL.absoluteString
         }
+    }
+    
+    func incrementPlayCount() {
+        playCount += 1
+        lastPlayedDate = Date()
     }
 }
 

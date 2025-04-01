@@ -2,15 +2,23 @@ import UIKit
 
 class ProfileViewController: BaseViewController {
     
-    let nameLabel = UILabel()
-    let imageView = UIImageView()
-    let settingsButton = UIButton()
+    private let nameLabel = UILabel()
+    private let imageView = UIImageView()
+    private let settingsButton = UIButton()
+    
+    private let tableView = UITableView()
+    private var topTracks: [Track] = []
+    private var recentlyPlayed: [Track] = []
+    private var topArtists: [ArtistStats] = []
+    private var recentlyPlayedArtists: [ArtistStats] = []
+    private var currentSegment = 0
     
     // MARK: Lifecycle
     override func viewDidLoad() {
         super.viewDidLoad()
         setupUI()
         loadUserData()
+        loadStatsData()
     }
     
     // MARK: Setup UI
@@ -33,25 +41,35 @@ class ProfileViewController: BaseViewController {
         let logoutButton = UIBarButtonItem(title: "Выйти", style: .plain, target: self, action: #selector(logoutTapped))
         navigationItem.rightBarButtonItem = logoutButton
         
+        let segmentedControl = UISegmentedControl(items: ["Топ треков", "Недавние", "Топ артистов", "Артисты"])
+        segmentedControl.selectedSegmentIndex = 0
+        segmentedControl.addTarget(self, action: #selector(segmentChanged(_:)), for: .valueChanged)
+        navigationItem.titleView = segmentedControl
+        
+        tableView.delegate = self
+        tableView.dataSource = self
+        tableView.separatorStyle = .none
+        tableView.register(TrackStatsCell.self, forCellReuseIdentifier: TrackStatsCell.reuseIdentifier)
+        tableView.register(ArtistCell.self, forCellReuseIdentifier: ArtistCell.reuseIdentifier)
+
+
         let UIElements = [
             imageView,
             nameLabel,
-            settingsButton
+            settingsButton,
+            tableView
         ]
         
-        for element in UIElements {
-            view.addSubview(element)
+        for subview in UIElements {
+            view.addSubview(subview)
+            subview.translatesAutoresizingMaskIntoConstraints = false
         }
         
         setupConstraints()
     }
     
     // MARK: Setup Constraints
-    private func setupConstraints() {
-        for subview in view.subviews {
-            subview.translatesAutoresizingMaskIntoConstraints = false
-        }
-        
+    private func setupConstraints() {        
         NSLayoutConstraint.activate([
             imageView.centerXAnchor.constraint(equalTo: view.centerXAnchor),
             imageView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 20),
@@ -61,8 +79,13 @@ class ProfileViewController: BaseViewController {
             nameLabel.centerXAnchor.constraint(equalTo: view.centerXAnchor),
             nameLabel.topAnchor.constraint(equalTo: imageView.bottomAnchor, constant: 20),
             
-            settingsButton.centerXAnchor.constraint(equalTo: view.centerXAnchor),
             settingsButton.topAnchor.constraint(equalTo: nameLabel.bottomAnchor, constant: 20),
+            settingsButton.trailingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.trailingAnchor, constant: -10),
+            
+            tableView.topAnchor.constraint(equalTo: settingsButton.bottomAnchor, constant: 10),
+            tableView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            tableView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            tableView.bottomAnchor.constraint(equalTo: view.bottomAnchor, constant: -100)
         ])
     }
     
@@ -76,6 +99,23 @@ class ProfileViewController: BaseViewController {
             nameLabel.text = "\(userInfo.firstName) \(userInfo.lastName)"
         } else {
             nameLabel.text = "Data is not found"
+        }
+    }
+    
+    private func loadStatsData() {
+        guard let login = UserDefaults.standard.string(forKey: "savedLogin") else {
+            print("Error: User is not logged in")
+            return
+        }
+        
+        Task {
+            topTracks = await MusicManager.shared.getTopTracks(by: login)
+            recentlyPlayed = await MusicManager.shared.getRecentlyPlayed(by: login)
+            
+            topArtists = MusicManager.shared.getTopArtists(by: login)
+            recentlyPlayedArtists = MusicManager.shared.getRecentlyPlayedArtists(by: login)
+            
+            tableView.reloadData()
         }
     }
     
@@ -98,12 +138,6 @@ class ProfileViewController: BaseViewController {
         return nil
     }
     
-    @objc private func TESTartistButtonTapped() {
-        let artistVC = ArtistViewController(viewModel: ArtistViewModel(artistName: "Eleni Foureira"))
-        navigationItem.hidesBackButton = true
-        navigationController?.pushViewController(artistVC, animated: false)
-    }
-    
     @objc private func settingsTapped() {
         let settingsVC = SettingsViewController()
         navigationItem.hidesBackButton = true
@@ -119,5 +153,86 @@ class ProfileViewController: BaseViewController {
         let loginVC = LoginViewController()
         navigationItem.hidesBackButton = true
         navigationController?.setViewControllers([loginVC], animated: true)
+    }
+    
+    @objc private func segmentChanged(_ sender: UISegmentedControl) {
+        currentSegment = sender.selectedSegmentIndex
+        
+        UIView.transition(with: tableView,
+          duration: 0.3,
+          options: .transitionCrossDissolve,
+          animations: { self.tableView.reloadData() },
+          completion: nil)
+    }
+}
+
+extension ProfileViewController: UITableViewDataSource, UITableViewDelegate {
+    func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
+        switch currentSegment {
+        case 0: return topTracks.count
+        case 1: return recentlyPlayed.count
+        case 2: return topArtists.count
+        case 3: return recentlyPlayedArtists.count
+        default: return 0
+        }
+    }
+    
+    func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
+        switch currentSegment {
+        case 0, 1:
+            let cell = tableView.dequeueReusableCell(withIdentifier: TrackStatsCell.reuseIdentifier, for: indexPath) as! TrackStatsCell
+            let track = currentSegment == 0 ? topTracks[indexPath.row] : recentlyPlayed[indexPath.row]
+            cell.configure(with: track)
+            return cell
+            
+        case 2, 3:
+            let cell = tableView.dequeueReusableCell(withIdentifier: ArtistCell.reuseIdentifier, for: indexPath) as! ArtistCell
+            let artist = currentSegment == 2 ? topArtists[indexPath.row] : recentlyPlayedArtists[indexPath.row]
+            cell.configure(with: artist)
+            return cell
+            
+        default:
+            return UITableViewCell()
+        }
+    }
+    
+    func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
+        tableView.deselectRow(at: indexPath, animated: true)
+        
+        switch currentSegment {
+        case 0, 1:
+            let track = currentSegment == 0 ? topTracks[indexPath.row] : recentlyPlayed[indexPath.row]
+            MusicPlayerManager.shared.startPlaying(track: track)
+            
+        case 2, 3:
+            let artist = currentSegment == 2 ? topArtists[indexPath.row] : recentlyPlayedArtists[indexPath.row]
+            showArtistTracks(artistName: artist.name)
+            
+        default:
+            break
+        }
+    }
+    
+    func tableView(_ tableView: UITableView, titleForHeaderInSection section: Int) -> String? {
+        switch currentSegment {
+        case 0: return "Популярные треки"
+        case 1: return "Недавние треки"
+        case 2: return "Популярные артисты"
+        case 3: return "Недавние артисты"
+        default: return nil
+        }
+    }
+    
+    private func showArtistTracks(artistName: String) {
+        guard let login = UserDefaults.standard.string(forKey: "savedLogin") else { return }
+        
+        Task {
+            let allTracks = await MusicManager.shared.getTracksByLogin(login)
+            let artistTracks = allTracks.filter { $0.artist == artistName }
+            
+            let artistVC = ArtistViewController(viewModel: ArtistViewModel(artistName: artistTracks[0].artist))
+            artistVC.navigationItem.hidesBackButton = true
+            navigationController?.pushViewController(artistVC, animated: false)
+        }
     }
 }

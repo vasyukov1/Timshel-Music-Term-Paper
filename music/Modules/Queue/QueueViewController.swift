@@ -71,7 +71,7 @@ class QueueViewController: UIViewController, UITableViewDataSource, UITableViewD
     
     private func setupConstraints() {
         NSLayoutConstraint.activate([
-            returnButton.topAnchor.constraint(equalTo: view.topAnchor, constant: 20),
+            returnButton.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 20),
             returnButton.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 20),
             returnButton.widthAnchor.constraint(equalToConstant: 30),
             returnButton.heightAnchor.constraint(equalToConstant: 30),
