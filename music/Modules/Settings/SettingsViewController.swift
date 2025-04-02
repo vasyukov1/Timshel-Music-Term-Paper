@@ -180,6 +180,7 @@ class SettingsViewController: BaseViewController {
             if let newPassword = newPasswordTextField.text, !newPassword.isEmpty {
                 if !updatePassword(login: savedLogin, newPassword: newPassword) {
                     showError(message: "Some error: Password wasn't updated")
+                    return
                 }
             }
 
@@ -230,6 +231,7 @@ class SettingsViewController: BaseViewController {
         do {
             var dbContent = try String(contentsOfFile: dbPath, encoding: .utf8)
             var dbLines = dbContent.components(separatedBy: .newlines)
+            var updated = false
 
             for (index, line) in dbLines.enumerated() {
                 let trimmedLine = line.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -240,13 +242,20 @@ class SettingsViewController: BaseViewController {
                 let components = trimmedLine.components(separatedBy: ":")
                 if components.count == 2 {
                     let storedLogin = components[0]
-                    dbLines[index] = "\(storedLogin):\(newPassword)"
+                    if storedLogin == login {
+                        dbLines[index] = "\(storedLogin):\(newPassword)"
+                        updated = true
+                        break
+                    }
                 }
             }
 
-            dbContent = dbLines.joined(separator: "\n")
-            try dbContent.write(toFile: dbPath, atomically: true, encoding: .utf8)
-            return true
+            if updated {
+                dbContent = dbLines.joined(separator: "\n")
+                try dbContent.write(toFile: dbPath, atomically: true, encoding: .utf8)
+                return true
+            }
+            return false
         } catch {
             print("Ошибка обновления testdb.txt: \(error)")
             return false

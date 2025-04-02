@@ -163,16 +163,41 @@ extension MyMusicViewController: TrackContextMenuDelegate {
     }
     
     func didSelectDeleteTrack(track: Track) {
+        let alert = UIAlertController(
+            title: "Удалить трек?",
+            message: "Вы уверены, что хотите удалить \(track.title)?",
+            preferredStyle: .alert
+        )
+        
+        alert.addAction(UIAlertAction(title: "Отмена", style: .cancel))
+        alert.addAction(UIAlertAction(title: "Удалить", style: .destructive) { [weak self] _ in
+            self?.deleteTrack(track)
+        })
+        
+        present(alert, animated: true)
+    }
+    
+    private func deleteTrack(_ track: Track) {
         MusicPlayerManager.shared.deleteTrack(track)
         MusicManager.shared.deleteTrack(track)
         
         if let index = viewModel.tracks.firstIndex(where: { $0 == track }) {
             viewModel.tracks.remove(at: index)
-            tableView.deleteRows(at: [IndexPath(row: index, section: 0)], with: .automatic)
+            tableView.performBatchUpdates({
+                tableView.deleteRows(at: [IndexPath(row: index, section: 0)], with: .automatic)
+            }, completion: nil)
         }
         
         Task {
             await viewModel.deleteTrack(track)
         }
+    }
+    
+    func tableView(_ tableView: UITableView, editingStyleForRowAt indexPath: IndexPath) -> UITableViewCell.EditingStyle {
+        return .none
+    }
+    
+    func tableView(_ tableView: UITableView, shouldIndentWhileEditingRowAt indexPath: IndexPath) -> Bool {
+        return false
     }
 }
