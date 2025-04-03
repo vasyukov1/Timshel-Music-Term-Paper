@@ -275,6 +275,41 @@ class NetworkManager {
         }.resume()
     }
 
+    // MARK: Delete Track
+    
+    func deleteTrack(trackID: String, completion: @escaping (Result<Void, Error>) -> Void) {
+        guard let url = URL(string: "\(baseURL)/api/tracks/\(trackID)") else {
+            completion(.failure(NSError(domain: "Invalid URL", code: 0)))
+            return
+        }
+        
+        var request = URLRequest(url: url)
+        request.httpMethod = "DELETE"
+        request.setValue("application/json", forHTTPHeaderField: "Accept")
+        if let token = UserDefaults.standard.string(forKey: "jwtToken") {
+            request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        }
+        
+        URLSession.shared.dataTask(with: request) { data, response, error in
+            if let error = error {
+                completion(.failure(error))
+                return
+            }
+            
+            guard let httpResponse = response as? HTTPURLResponse else {
+                completion(.failure(NSError(domain: "Invalid response", code: 0)))
+                return
+            }
+            
+            switch httpResponse.statusCode {
+            case 200:
+                completion(.success(()))
+            default:
+                let errorMessage = String(data: data ?? Data(), encoding: .utf8) ?? "Unknown error"
+                completion(.failure(NSError(domain: errorMessage, code: httpResponse.statusCode)))
+            }
+        }.resume()
+    }
 
 }
 
@@ -322,4 +357,26 @@ struct TrackResponse: Codable {
     let genre: String
     let duration: Int
     let createdAt: String
+    
+    func toTrack() -> Track {
+        // Здесь можно использовать placeholder для изображения
+        return Track(title: self.title,
+                     artist: self.artist,
+                     image: UIImage(systemName: "music.note")!,
+                     id: String(self.id))
+    }
+}
+
+extension TrackResponse: TrackRepresentable {
+    var idString: String {
+        return String(id)
+    }
+    
+    var image: UIImage {
+        return UIImage(systemName: "music.note")!
+    }
+    
+    var artists: [String] {
+        return artist.components(separatedBy: ",").map { $0.trimmingCharacters(in: .whitespaces) }
+    }
 }

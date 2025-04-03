@@ -1,6 +1,14 @@
 import UIKit
 import AVFoundation
 
+protocol TrackRepresentable {
+    var idString: String { get }
+    var title: String { get }
+    var artist: String { get }
+    var image: UIImage { get }
+    var artists: [String] { get }
+}
+
 class Track: Codable, Equatable {
     let title: String
     let artist: String
@@ -105,6 +113,12 @@ class Track: Codable, Equatable {
     func incrementPlayCount() {
         playCount += 1
         lastPlayedDate = Date()
+    }
+}
+
+extension Track: TrackRepresentable {
+    var idString: String {
+        return id
     }
 }
 

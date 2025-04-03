@@ -87,11 +87,19 @@ class HistoryViewController: UIViewController, UITableViewDelegate, UITableViewD
 }
 
 extension HistoryViewController: TrackContextMenuDelegate {
-    func didSelectAddToQueue(track: Track) {
-        MusicPlayerManager.shared.addTrackToQueue(track: track)
+    func didSelectAddToQueue(track: TrackRepresentable) {
+        let trackToAdd: Track
+        if let t = track as? Track {
+            trackToAdd = t
+        } else if let tr = track as? TrackResponse {
+            trackToAdd = tr.toTrack()
+        } else {
+            return
+        }
+        MusicPlayerManager.shared.addTrackToQueue(track: trackToAdd)
     }
     
-    func didSelectGoToArtist(track: Track) {
+    func didSelectGoToArtist(track: TrackRepresentable) {
         if track.artists.count > 1 {
             showArtistSelectionAlert(for: track)
         } else {
@@ -99,7 +107,7 @@ extension HistoryViewController: TrackContextMenuDelegate {
         }
     }
     
-    private func showArtistSelectionAlert(for track: Track) {
+    private func showArtistSelectionAlert(for track: TrackRepresentable) {
         let alert = UIAlertController(title: "Выберите артиста", message: nil, preferredStyle: .actionSheet)
         
         for artist in track.artists {
@@ -119,7 +127,7 @@ extension HistoryViewController: TrackContextMenuDelegate {
         navigationController?.pushViewController(artistVC, animated: false)
     }
     
-    func didSelectAddToPlaylist(track: Track) {
+    func didSelectAddToPlaylist(track: TrackRepresentable) {
         let playlistMenu = UIAlertController(title: "Добавить в плейлист", message: nil, preferredStyle: .actionSheet)
         
         playlistMenu.addAction(UIAlertAction(title: "Создать плейлист", style: .default, handler: { _ in
@@ -129,7 +137,7 @@ extension HistoryViewController: TrackContextMenuDelegate {
         
         for playlist in PlaylistManager.shared.getPlaylists() {
            playlistMenu.addAction(UIAlertAction(title: playlist.title, style: .default, handler: { _ in
-               PlaylistManager.shared.addTrackToPlaylist(track, playlist)
+               PlaylistManager.shared.addTrackToPlaylist(track as! Track, playlist)
            }))
         }
         
@@ -138,14 +146,14 @@ extension HistoryViewController: TrackContextMenuDelegate {
         self.present(playlistMenu, animated: true)
     }
     
-    func didSelectDeleteTrack(track: Track) {        
-        if let index = viewModel.historyQueue.firstIndex(where: { $0 == track }) {
+    func didSelectDeleteTrack(track: TrackRepresentable) {
+        if let index = viewModel.historyQueue.firstIndex(where: { $0 == track as! Track }) {
             viewModel.historyQueue.remove(at: index)
             tableView.deleteRows(at: [IndexPath(row: index, section: 0)], with: .automatic)
         }
         
         Task {
-            await viewModel.deleteTrack(track)
+            await viewModel.deleteTrack(track as! Track)
         }
     }
 }

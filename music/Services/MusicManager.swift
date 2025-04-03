@@ -120,6 +120,32 @@ class MusicManager {
             return
         }
         
+        NetworkManager.shared.deleteTrack(trackID: track.id) { result in
+            DispatchQueue.main.async {
+                switch result {
+                case .success:
+                    let trackPath = track.url.path
+                    do {
+                        if self.fileManager.fileExists(atPath: trackPath) {
+                            try self.fileManager.removeItem(atPath: trackPath)
+                            print("Local track file deleted: \(track.title)")
+                        }
+                    } catch {
+                        print("Failed to delete local track file: \(error)")
+                    }
+                    
+                    if let index = self.tracksByUser.firstIndex(where: { $0.0 == login && $0.1 == track }) {
+                        self.tracksByUser.remove(at: index)
+                        self.saveTracks()
+                        print("Track [\(track.title)] deleted from music")
+                    }
+                    
+                case .failure(let error):
+                    print("Failed to delete track from server: \(error.localizedDescription)")
+                }
+            }
+        }
+        
         guard let index = tracksByUser.firstIndex(where: { $0.0 == login && $0.1 == track }) else {
             return
         }

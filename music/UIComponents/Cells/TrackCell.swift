@@ -1,10 +1,10 @@
 import UIKit
 
 protocol TrackContextMenuDelegate: AnyObject {
-    func didSelectAddToQueue(track: Track)
-    func didSelectGoToArtist(track: Track)
-    func didSelectAddToPlaylist(track: Track)
-    func didSelectDeleteTrack(track: Track)
+    func didSelectAddToQueue(track: TrackRepresentable)
+    func didSelectGoToArtist(track: TrackRepresentable)
+    func didSelectAddToPlaylist(track: TrackRepresentable)
+    func didSelectDeleteTrack(track: TrackRepresentable)
 }
 
 private enum SwipeDirection {
@@ -19,7 +19,7 @@ class TrackCell: UITableViewCell {
     private let menuButton = UIButton(type: .system)
     
     weak var delegate: TrackContextMenuDelegate?
-    private var track: TrackResponse?
+    private var track: TrackRepresentable?
     private var isMyMusic = false
     
     override init(style: UITableViewCell.CellStyle, reuseIdentifier: String?) {
@@ -32,13 +32,13 @@ class TrackCell: UITableViewCell {
         setupUI()
     }
     
-    func configure(with track: TrackResponse, isMyMusic: Bool) {
+    func configure(with track: TrackRepresentable, isMyMusic: Bool) {
         self.track = track
         self.isMyMusic = isMyMusic
         
         titleLabel.text = track.title
         artistLabel.text = track.artist
-//        trackImageView.image = track.image
+        trackImageView.image = track.image
     }
     
     private func setupUI() {
@@ -92,16 +92,16 @@ class TrackCell: UITableViewCell {
     }
     
     @objc private func showMenu() {
-//        guard let track = track,
-//              let parentVC = findParentViewController(),
-//              let delegate = parentVC as? TrackContextMenuDelegate else { return }
+        guard let track = track,
+              let parentVC = findParentViewController(),
+              let delegate = parentVC as? TrackContextMenuDelegate else { return }
         
-//        parentVC.presentTrackContextMenu(for: track, delegate: delegate)
+        parentVC.presentTrackContextMenu(for: track, delegate: delegate)
     }
 }
 
 extension UIViewController {
-    func presentTrackContextMenu(for track: Track, delegate: TrackContextMenuDelegate) {
+    func presentTrackContextMenu(for track: TrackRepresentable, delegate: TrackContextMenuDelegate) {
         let menu = UIAlertController(title: nil, message: nil, preferredStyle: .actionSheet)
         
         menu.addAction(UIAlertAction(title: "Add to queue", style: .default) { _ in
@@ -125,7 +125,7 @@ extension UIViewController {
         self.present(menu, animated: true)
     }
         
-    func presentArtistSelection(for track: Track, completion: @escaping (String) -> Void) {
+    func presentArtistSelection(for track: TrackRepresentable, completion: @escaping (String) -> Void) {
         let alert = UIAlertController(title: "Select Artist", message: nil, preferredStyle: .actionSheet)
         
         for artist in track.artists {

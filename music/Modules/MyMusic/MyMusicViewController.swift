@@ -93,7 +93,7 @@ class MyMusicViewController: BaseViewController, UITableViewDelegate, UITableVie
         cell.delegate = self
         
         if let currentTrack = MusicPlayerManager.shared.getCurrentTrack(),
-           currentTrack.id == track.id {
+           currentTrack.idString == String(trackResponse.id) {
             cell.backgroundColor = .systemGray5
         } else {
             cell.backgroundColor = .clear
@@ -109,19 +109,27 @@ class MyMusicViewController: BaseViewController, UITableViewDelegate, UITableVie
                           image: UIImage(systemName: "music.note")!,
                           id: String(trackResponse.id))
         
-
         if let currentTrack = MusicPlayerManager.shared.getCurrentTrack(),
-           currentTrack.id == track.id {
+           currentTrack.idString == String(trackResponse.id) {
             MusicPlayerManager.shared.playOrPauseTrack(currentTrack)
         } else {
-
-            MusicPlayerManager.shared.setQueue(tracks: viewModel.tracks.map {
-                Track(title: $0.title,
-                     artist: $0.artist,
-                     image: UIImage(systemName: "music.note")!,
-                     id: String($0.id))
-            }, startIndex: indexPath.row)
+            let queue = viewModel.tracks.map { $0.toTrack() }
+            MusicPlayerManager.shared.setQueue(tracks: queue, startIndex: indexPath.row)
         }
+        
+
+//        if let currentTrack = MusicPlayerManager.shared.getCurrentTrack(),
+//           currentTrack.id == track.id {
+//            MusicPlayerManager.shared.playOrPauseTrack(currentTrack)
+//        } else {
+//
+//            MusicPlayerManager.shared.setQueue(tracks: viewModel.tracks.map {
+//                Track(title: $0.title,
+//                     artist: $0.artist,
+//                     image: UIImage(systemName: "music.note")!,
+//                     id: String($0.id))
+//            }, startIndex: indexPath.row)
+//        }
         
 //        MusicPlayerManager.shared.startPlaying(track: track)
 //        tableView.reloadData()
@@ -143,11 +151,19 @@ class MyMusicViewController: BaseViewController, UITableViewDelegate, UITableVie
 }
 
 extension MyMusicViewController: TrackContextMenuDelegate {
-    func didSelectAddToQueue(track: Track) {
-        MusicPlayerManager.shared.addTrackToQueue(track: track)
+    func didSelectAddToQueue(track: TrackRepresentable) {
+        let trackToAdd: Track
+        if let t = track as? Track {
+            trackToAdd = t
+        } else if let tr = track as? TrackResponse {
+            trackToAdd = tr.toTrack()
+        } else {
+            return
+        }
+        MusicPlayerManager.shared.addTrackToQueue(track: trackToAdd)
     }
     
-    func didSelectGoToArtist(track: Track) {
+    func didSelectGoToArtist(track: TrackRepresentable) {
         if track.artists.count > 1 {
             showArtistSelectionAlert(for: track)
         } else {
@@ -155,7 +171,7 @@ extension MyMusicViewController: TrackContextMenuDelegate {
         }
     }
     
-    private func showArtistSelectionAlert(for track: Track) {
+    private func showArtistSelectionAlert(for track: TrackRepresentable) {
         let alert = UIAlertController(title: "Выберите артиста", message: nil, preferredStyle: .actionSheet)
         
         for artist in track.artists {
@@ -175,7 +191,7 @@ extension MyMusicViewController: TrackContextMenuDelegate {
         navigationController?.pushViewController(artistVC, animated: false)
     }
     
-    func didSelectAddToPlaylist(track: Track) {
+    func didSelectAddToPlaylist(track: TrackRepresentable) {
         let playlistMenu = UIAlertController(title: "Добавить в плейлист", message: nil, preferredStyle: .actionSheet)
         
         playlistMenu.addAction(UIAlertAction(title: "Создать плейлист", style: .default, handler: { _ in
@@ -185,7 +201,7 @@ extension MyMusicViewController: TrackContextMenuDelegate {
         
         for playlist in PlaylistManager.shared.getPlaylists() {
            playlistMenu.addAction(UIAlertAction(title: playlist.title, style: .default, handler: { _ in
-               PlaylistManager.shared.addTrackToPlaylist(track, playlist)
+               PlaylistManager.shared.addTrackToPlaylist(track as! Track, playlist)
            }))
         }
         
@@ -194,31 +210,40 @@ extension MyMusicViewController: TrackContextMenuDelegate {
         self.present(playlistMenu, animated: true)
     }
     
-    func didSelectDeleteTrack(track: Track) {
+    func didSelectDeleteTrack(track: TrackRepresentable) {
+        let trackForDeletion: Track
+        if let t = track as? Track {
+            trackForDeletion = t
+        } else if let tr = track as? TrackResponse {
+            trackForDeletion = tr.toTrack()
+        } else {
+            return
+        }
+        
         let alert = UIAlertController(
             title: "Удалить трек?",
-            message: "Вы уверены, что хотите удалить \(track.title)?",
+            message: "Вы уверены, что хотите удалить \(trackForDeletion.title)?",
             preferredStyle: .alert
         )
         
         alert.addAction(UIAlertAction(title: "Отмена", style: .cancel))
         alert.addAction(UIAlertAction(title: "Удалить", style: .destructive) { [weak self] _ in
-            self?.deleteTrack(track)
+            self?.deleteTrack(trackForDeletion)
         })
         
-        present(alert, animated: true)
+        self.present(alert, animated: true)
     }
     
     private func deleteTrack(_ track: Track) {
         MusicPlayerManager.shared.deleteTrack(track)
         MusicManager.shared.deleteTrack(track)
         
-//        if let index = viewModel.tracks.firstIndex(where: { $0 == track }) {
-//            viewModel.tracks.remove(at: index)
-//            tableView.performBatchUpdates({
-//                tableView.deleteRows(at: [IndexPath(row: index, section: 0)], with: .automatic)
-//            }, completion: nil)
-//        }
+        if let index = viewModel.tracks.firstIndex(where: { String($0.id) == track.idString }) {
+            viewModel.tracks.remove(at: index)
+            tableView.performBatchUpdates({
+                tableView.deleteRows(at: [IndexPath(row: index, section: 0)], with: .automatic)
+            }, completion: nil)
+        }
         
         Task {
             await viewModel.deleteTrack(track)
