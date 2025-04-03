@@ -83,11 +83,6 @@ class MyMusicViewController: BaseViewController, UITableViewDelegate, UITableVie
         
         let cell = tableView.dequeueReusableCell(withIdentifier: "TrackCell", for: indexPath) as! TrackCell
         let trackResponse = viewModel.tracks[indexPath.row]
-        let track = Track(title: trackResponse.title,
-                         artist: trackResponse.artist,
-                         image: UIImage(systemName: "music.note")!,
-                         id: String(trackResponse.id))
-        
         
         cell.configure(with: trackResponse, isMyMusic: true)
         cell.delegate = self
@@ -104,10 +99,6 @@ class MyMusicViewController: BaseViewController, UITableViewDelegate, UITableVie
     
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         let trackResponse = viewModel.tracks[indexPath.row]
-        let track = Track(title: trackResponse.title,
-                          artist: trackResponse.artist,
-                          image: UIImage(systemName: "music.note")!,
-                          id: String(trackResponse.id))
         
         if let currentTrack = MusicPlayerManager.shared.getCurrentTrack(),
            currentTrack.idString == String(trackResponse.id) {
@@ -116,23 +107,6 @@ class MyMusicViewController: BaseViewController, UITableViewDelegate, UITableVie
             let queue = viewModel.tracks.map { $0.toTrack() }
             MusicPlayerManager.shared.setQueue(tracks: queue, startIndex: indexPath.row)
         }
-        
-
-//        if let currentTrack = MusicPlayerManager.shared.getCurrentTrack(),
-//           currentTrack.id == track.id {
-//            MusicPlayerManager.shared.playOrPauseTrack(currentTrack)
-//        } else {
-//
-//            MusicPlayerManager.shared.setQueue(tracks: viewModel.tracks.map {
-//                Track(title: $0.title,
-//                     artist: $0.artist,
-//                     image: UIImage(systemName: "music.note")!,
-//                     id: String($0.id))
-//            }, startIndex: indexPath.row)
-//        }
-        
-//        MusicPlayerManager.shared.startPlaying(track: track)
-//        tableView.reloadData()
         
         tableView.deselectRow(at: indexPath, animated: true)
     }

@@ -7,6 +7,16 @@ protocol TrackRepresentable {
     var artist: String { get }
     var image: UIImage { get }
     var artists: [String] { get }
+    var serverId: Int? { get }
+}
+
+extension TrackRepresentable {
+    var serverId: Int? {
+        return Int(idString)
+    }
+    var artists: [String] {
+        return artist.components(separatedBy: ",").map { $0.trimmingCharacters(in: .whitespaces) }
+    }
 }
 
 class Track: Codable, Equatable {
@@ -24,6 +34,11 @@ class Track: Codable, Equatable {
     var isSelected: Bool
     var playCount: Int
     var lastPlayedDate: Date?
+    
+    var serverId: Int? { Int(id) }
+    var idString: String {
+        return id
+    }
     
     var url: URL {
         if isLocal! {
@@ -116,13 +131,23 @@ class Track: Codable, Equatable {
     }
 }
 
-extension Track: TrackRepresentable {
-    var idString: String {
-        return id
-    }
-}
-
 struct SavedTrack: Codable {
     let login: String
     let track: Track
+}
+
+class SelectableTrack: TrackRepresentable {
+    let base: TrackRepresentable
+    var isSelected: Bool
+    
+    var idString: String { base.idString }
+    var title: String { base.title }
+    var artist: String { base.artist }
+    var image: UIImage { base.image }
+    var artists: [String] { base.artists }
+    
+    init(base: TrackRepresentable, isSelected: Bool = false) {
+        self.base = base
+        self.isSelected = isSelected
+    }
 }

@@ -310,6 +310,283 @@ class NetworkManager {
             }
         }.resume()
     }
+    
+    // MARK: Playlist Creation
+    func createPlaylist(title: String, description: String? = nil, completion: @escaping (Result<PlaylistResponse, Error>) -> Void) {
+        let url = URL(string: "\(baseURL)/api/playlists")!
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        
+        if let token = UserDefaults.standard.string(forKey: "jwtToken") {
+            request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        }
+        
+        let body = PlaylistRequest(name: title, description: description)
+        
+        do {
+            let jsonData = try JSONEncoder().encode(body)
+            request.httpBody = jsonData
+        } catch {
+            completion(.failure(error))
+            return
+        }
+        
+        URLSession.shared.dataTask(with: request) { data, response, error in
+            if let error = error {
+                completion(.failure(error))
+                return
+            }
+            
+            guard let httpResponse = response as? HTTPURLResponse,
+                  let data = data else {
+                completion(.failure(NSError(domain: "Invalid response", code: 0)))
+                return
+            }
+            
+            switch httpResponse.statusCode {
+            case 201:
+                do {
+                    let wrapper = try JSONDecoder().decode(ResponseWrapper<PlaylistResponse>.self, from: data)
+                    if let playlist = wrapper.data {
+                        completion(.success(playlist))
+                    } else if let errorMessage = wrapper.error {
+                        completion(.failure(NSError(domain: errorMessage, code: httpResponse.statusCode)))
+                    } else {
+                        completion(.failure(NSError(domain: "Unknown error", code: httpResponse.statusCode)))
+                    }
+                } catch {
+                    completion(.failure(error))
+                }
+            default:
+                let errorMessage = String(data: data, encoding: .utf8) ?? "Unknown error"
+                completion(.failure(NSError(domain: errorMessage, code: httpResponse.statusCode)))
+            }
+        }.resume()
+    }
+    
+    // MARK: Add Track to Playlist
+    func addTrackToPlaylist(playlistId: Int, trackId: Int, completion: @escaping (Result<Void, Error>) -> Void) {
+        let url = URL(string: "\(baseURL)/api/playlists/\(playlistId)/tracks")!
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        
+        if let token = UserDefaults.standard.string(forKey: "jwtToken") {
+            request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        }
+        
+        let body = AddTrackToPlaylistRequest(trackId: trackId)
+        
+        do {
+            let jsonData = try JSONEncoder().encode(body)
+            request.httpBody = jsonData
+        } catch {
+            completion(.failure(error))
+            return
+        }
+        
+        URLSession.shared.dataTask(with: request) { data, response, error in
+            if let error = error {
+                completion(.failure(error))
+                return
+            }
+            
+            guard let httpResponse = response as? HTTPURLResponse else {
+                completion(.failure(NSError(domain: "Invalid response", code: 0)))
+                return
+            }
+            
+            switch httpResponse.statusCode {
+            case 200:
+                completion(.success(()))
+            default:
+                let errorMessage = String(data: data ?? Data(), encoding: .utf8) ?? "Unknown error"
+                completion(.failure(NSError(domain: errorMessage, code: httpResponse.statusCode)))
+            }
+        }.resume()
+    }
+    
+    // MARK Fetch Playlists
+    
+    func fetchPlaylists(completion: @escaping (Result<[PlaylistResponse], Error>) -> Void) {
+        let url = URL(string: "\(baseURL)/api/playlists")!
+        var request = URLRequest(url: url)
+        request.httpMethod = "GET"
+        request.setValue("application/json", forHTTPHeaderField: "Accept")
+        
+        if let token = UserDefaults.standard.string(forKey: "jwtToken") {
+            request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        }
+        
+        URLSession.shared.dataTask(with: request) { data, response, error in
+            if let error = error {
+                completion(.failure(error))
+                return
+            }
+            
+            guard let httpResponse = response as? HTTPURLResponse,
+                  let data = data else {
+                completion(.failure(NSError(domain: "Invalid response", code: 0)))
+                return
+            }
+            
+            switch httpResponse.statusCode {
+            case 200:
+                do {
+                    let wrapper = try JSONDecoder().decode(ResponseWrapper<[PlaylistResponse]>.self, from: data)
+                    if let playlists = wrapper.data {
+                        completion(.success(playlists))
+                    } else if let errorMessage = wrapper.error {
+                        completion(.failure(NSError(domain: errorMessage, code: httpResponse.statusCode)))
+                    } else {
+                        completion(.failure(NSError(domain: "Unknown error", code: httpResponse.statusCode)))
+                    }
+                } catch {
+                    completion(.failure(error))
+                }
+            default:
+                let errorMessage = String(data: data, encoding: .utf8) ?? "Unknown error"
+                completion(.failure(NSError(domain: errorMessage, code: httpResponse.statusCode)))
+            }
+        }.resume()
+    }
+    
+    // Получение информации о плейлисте по его id
+    func fetchPlaylistDetails(id: Int, completion: @escaping (Result<PlaylistResponse, Error>) -> Void) {
+        let url = URL(string: "\(baseURL)/api/playlists/\(id)")!
+        var request = URLRequest(url: url)
+        request.httpMethod = "GET"
+        request.setValue("application/json", forHTTPHeaderField: "Accept")
+        
+        if let token = UserDefaults.standard.string(forKey: "jwtToken") {
+            request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        }
+        
+        URLSession.shared.dataTask(with: request) { data, response, error in
+            // Обработка ошибок сети
+            if let error = error {
+                DispatchQueue.main.async { completion(.failure(error)) }
+                return
+            }
+            
+            guard let httpResponse = response as? HTTPURLResponse, let data = data else {
+                DispatchQueue.main.async {
+                    completion(.failure(NSError(domain: "Invalid response", code: 0)))
+                }
+                return
+            }
+            
+            switch httpResponse.statusCode {
+            case 200:
+                do {
+                    let wrapper = try JSONDecoder().decode(ResponseWrapper<PlaylistResponse>.self, from: data)
+                    if let playlist = wrapper.data {
+                        DispatchQueue.main.async { completion(.success(playlist)) }
+                    } else {
+                        let errorMessage = wrapper.error ?? "Unknown error"
+                        DispatchQueue.main.async {
+                            completion(.failure(NSError(domain: errorMessage, code: httpResponse.statusCode)))
+                        }
+                    }
+                } catch {
+                    DispatchQueue.main.async { completion(.failure(error)) }
+                }
+            default:
+                let errorMessage = String(data: data, encoding: .utf8) ?? "Unknown error"
+                DispatchQueue.main.async {
+                    completion(.failure(NSError(domain: errorMessage, code: httpResponse.statusCode)))
+                }
+            }
+        }.resume()
+    }
+
+    // Получение списка треков плейлиста
+    func fetchPlaylistTracks(id: Int, completion: @escaping (Result<[TrackResponse], Error>) -> Void) {
+        let url = URL(string: "\(baseURL)/api/playlists/\(id)/tracks")!
+        var request = URLRequest(url: url)
+        request.httpMethod = "GET"
+        request.setValue("application/json", forHTTPHeaderField: "Accept")
+        
+        if let token = UserDefaults.standard.string(forKey: "jwtToken") {
+            request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        }
+        
+        URLSession.shared.dataTask(with: request) { data, response, error in
+            if let error = error {
+                DispatchQueue.main.async { completion(.failure(error)) }
+                return
+            }
+            
+            guard let httpResponse = response as? HTTPURLResponse, let data = data else {
+                DispatchQueue.main.async {
+                    completion(.failure(NSError(domain: "Invalid response", code: 0)))
+                }
+                return
+            }
+            
+            switch httpResponse.statusCode {
+            case 200:
+                do {
+                    let wrapper = try JSONDecoder().decode(ResponseWrapper<[TrackResponse]>.self, from: data)
+                    if let tracks = wrapper.data {
+                        DispatchQueue.main.async { completion(.success(tracks)) }
+                    } else {
+                        let errorMessage = wrapper.error ?? "Unknown error"
+                        DispatchQueue.main.async {
+                            completion(.failure(NSError(domain: errorMessage, code: httpResponse.statusCode)))
+                        }
+                    }
+                } catch {
+                    DispatchQueue.main.async { completion(.failure(error)) }
+                }
+            default:
+                let errorMessage = String(data: data, encoding: .utf8) ?? "Unknown error"
+                DispatchQueue.main.async {
+                    completion(.failure(NSError(domain: errorMessage, code: httpResponse.statusCode)))
+                }
+            }
+        }.resume()
+    }
+
+    // Удаление трека из плейлиста
+    func deleteTrackFromPlaylist(playlistId: Int, trackId: Int, completion: @escaping (Result<Void, Error>) -> Void) {
+        let url = URL(string: "\(baseURL)/api/playlists/\(playlistId)/tracks/\(trackId)")!
+        var request = URLRequest(url: url)
+        request.httpMethod = "DELETE"
+        
+        if let token = UserDefaults.standard.string(forKey: "jwtToken") {
+            request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        }
+        
+        URLSession.shared.dataTask(with: request) { data, response, error in
+            if let error = error {
+                DispatchQueue.main.async { completion(.failure(error)) }
+                return
+            }
+            
+            guard let httpResponse = response as? HTTPURLResponse else {
+                DispatchQueue.main.async { completion(.failure(NSError(domain: "Invalid response", code: 0))) }
+                return
+            }
+            
+            switch httpResponse.statusCode {
+            case 200, 204:
+                DispatchQueue.main.async { completion(.success(())) }
+            default:
+                let errorMessage: String
+                if let data = data, let wrapper = try? JSONDecoder().decode(ResponseWrapper<String>.self, from: data) {
+                    errorMessage = wrapper.error ?? "Unknown error"
+                } else {
+                    errorMessage = String(data: data ?? Data(), encoding: .utf8) ?? "Unknown error"
+                }
+                DispatchQueue.main.async {
+                    completion(.failure(NSError(domain: errorMessage, code: httpResponse.statusCode, userInfo: [NSLocalizedDescriptionKey: errorMessage])))
+                }
+            }
+        }.resume()
+    }
+
 
 }
 
@@ -349,7 +626,37 @@ struct LoginResponse: Codable {
     let token: String
 }
 
-struct TrackResponse: Codable {
+struct PlaylistRequest: Codable {
+    let name: String
+    let description: String?
+}
+
+struct PlaylistResponse: Codable {
+    let id: Int
+    let name: String
+    let description: String?
+    let tracks: [TrackResponse]
+    let createdAt: String
+    
+    private enum CodingKeys: String, CodingKey {
+        case id, name, description, tracks, createdAt
+    }
+    
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decode(Int.self, forKey: .id)
+        name = try container.decode(String.self, forKey: .name)
+        description = try container.decodeIfPresent(String.self, forKey: .description)
+        tracks = try container.decodeIfPresent([TrackResponse].self, forKey: .tracks) ?? []
+        createdAt = try container.decode(String.self, forKey: .createdAt)
+    }
+}
+
+struct AddTrackToPlaylistRequest: Codable {
+    let trackId: Int
+}
+
+struct TrackResponse: Codable, TrackRepresentable {
     let id: Int
     let title: String
     let artist: String
@@ -358,16 +665,6 @@ struct TrackResponse: Codable {
     let duration: Int
     let createdAt: String
     
-    func toTrack() -> Track {
-        // Здесь можно использовать placeholder для изображения
-        return Track(title: self.title,
-                     artist: self.artist,
-                     image: UIImage(systemName: "music.note")!,
-                     id: String(self.id))
-    }
-}
-
-extension TrackResponse: TrackRepresentable {
     var idString: String {
         return String(id)
     }
@@ -376,7 +673,10 @@ extension TrackResponse: TrackRepresentable {
         return UIImage(systemName: "music.note")!
     }
     
-    var artists: [String] {
-        return artist.components(separatedBy: ",").map { $0.trimmingCharacters(in: .whitespaces) }
+    func toTrack() -> Track {
+        return Track(title: title,
+                     artist: artist,
+                     image: image,
+                     id: String(id))
     }
 }

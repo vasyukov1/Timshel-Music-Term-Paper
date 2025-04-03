@@ -45,8 +45,8 @@ class EditPlaylistViewModel {
         PlaylistManager.shared.updatePlaylist(updatedPlaylist, oldTitle: oldTitle)
         unselectAllTracks()
         
-        let playlistVC = PlaylistViewController(viewModel: PlaylistViewModel(playlist: updatedPlaylist))
-        playlistVC.navigationItem.hidesBackButton = true
-        navigationController.pushViewController(playlistVC, animated: false)
+//        let playlistVC = PlaylistViewController(viewModel: PlaylistViewModel(playlist: updatedPlaylist))
+//        playlistVC.navigationItem.hidesBackButton = true
+//        navigationController.pushViewController(playlistVC, animated: false)
     }
 }

@@ -24,6 +24,7 @@ class PlaylistViewController: BaseViewController {
         setupUI()
         super.viewDidLoad()
         bindViewModel()
+        viewModel.loadPlaylistData()
     }
     
     private func bindViewModel() {
@@ -33,18 +34,30 @@ class PlaylistViewController: BaseViewController {
                 self?.tableView.reloadData()
             }
             .store(in: &cancellable)
+        
+        viewModel.$tracks
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in
+                self?.tableView.reloadData()
+            }
+            .store(in: &cancellable)
+    }
+    
+    private func updateUI(with playlist: PlaylistResponse) {
+        title = playlist.name
+        titleLabel.text = playlist.name
+        imageView.image = UIImage(systemName: "music.note.list")
     }
     
     private func setupUI() {
-        title = viewModel.playlist.title
+        updateUI(with: viewModel.playlist)
         view.backgroundColor = .systemBackground
         
-        imageView.image = viewModel.playlist.image
         imageView.contentMode = .scaleAspectFill
         imageView.clipsToBounds = true
         imageView.layer.cornerRadius = 8
+        imageView.backgroundColor = .systemGray5
         
-        titleLabel.text = viewModel.playlist.title
         titleLabel.font = .systemFont(ofSize: 18, weight: .medium)
         titleLabel.textAlignment = .center
         titleLabel.numberOfLines = 2
@@ -96,21 +109,21 @@ class PlaylistViewController: BaseViewController {
     }
     
     @objc private func editPlaylistButtonTapped() {
-        let editPlaylistVC = EditPlaylistViewController(viewModel: EditPlaylistViewModel(playlist: viewModel.playlist))
-        editPlaylistVC.navigationItem.hidesBackButton = true
-        navigationController?.pushViewController(editPlaylistVC, animated: false)
+//        let editPlaylistVC = EditPlaylistViewController(viewModel: viewModel.createEditViewModel())
+//        editPlaylistVC.navigationItem.hidesBackButton = true
+//        navigationController?.pushViewController(editPlaylistVC, animated: true)
     }
 }
 
 extension PlaylistViewController: UITableViewDataSource, UITableViewDelegate {
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        return viewModel.playlist.tracks.count
+        return viewModel.tracks.count
     }
     
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         let cell = tableView.dequeueReusableCell(withIdentifier: "TrackCell", for: indexPath) as! TrackCell
-//        let track = viewModel.playlist.tracks[indexPath.row]
-//        cell.configure(with: track, isMyMusic: false)
+        let trackResponse = viewModel.tracks[indexPath.row]
+        cell.configure(with: trackResponse, isMyMusic: false)
         cell.delegate = self
         return cell
     }
@@ -152,43 +165,83 @@ extension PlaylistViewController: TrackContextMenuDelegate {
         }
         
         alert.addAction(UIAlertAction(title: "Отмена", style: .cancel))
-        
         present(alert, animated: true)
     }
     
     private func navigateToArtist(_ artistName: String) {
         let artistVC = ArtistViewController(viewModel: ArtistViewModel(artistName: artistName))
         artistVC.navigationItem.hidesBackButton = true
-        navigationController?.pushViewController(artistVC, animated: false)
+        navigationController?.pushViewController(artistVC, animated: true)
     }
     
     func didSelectAddToPlaylist(track: TrackRepresentable) {
-        let playlistMenu = UIAlertController(title: "Добавить в плейлист", message: nil, preferredStyle: .actionSheet)
-        
-        playlistMenu.addAction(UIAlertAction(title: "Создать плейлист", style: .default, handler: { _ in
-            let addPlaylistVC = AddPlaylistViewController()
-            self.navigationController?.pushViewController(addPlaylistVC, animated: true)
-        }))
-        
-        for playlist in PlaylistManager.shared.getPlaylists() {
-           playlistMenu.addAction(UIAlertAction(title: playlist.title, style: .default, handler: { _ in
-               PlaylistManager.shared.addTrackToPlaylist(track as! Track, playlist)
-           }))
+        let trackToAdd: Track
+        if let t = track as? Track {
+            trackToAdd = t
+        } else if let tr = track as? TrackResponse {
+            trackToAdd = tr.toTrack()
+        } else {
+            return
         }
         
-        playlistMenu.addAction(UIAlertAction(title: "Отмена", style: .cancel, handler: nil))
+        let playlistMenu = UIAlertController(title: "Добавить в плейлист", message: nil, preferredStyle: .actionSheet)
         
-        self.present(playlistMenu, animated: true)
+        playlistMenu.addAction(UIAlertAction(title: "Создать плейлист", style: .default) { _ in
+            let addPlaylistVC = AddPlaylistViewController()
+            self.navigationController?.pushViewController(addPlaylistVC, animated: true)
+        })
+        
+        for playlist in PlaylistManager.shared.getPlaylists() {
+            playlistMenu.addAction(UIAlertAction(title: playlist.title, style: .default) { _ in
+                PlaylistManager.shared.addTrackToPlaylist(trackToAdd, playlist)
+                self.showSuccessAlert(message: "Трек добавлен в \(playlist.title)")
+            })
+        }
+        
+        playlistMenu.addAction(UIAlertAction(title: "Отмена", style: .cancel))
+        present(playlistMenu, animated: true)
     }
     
     func didSelectDeleteTrack(track: TrackRepresentable) {
-        if let index = viewModel.playlist.tracks.firstIndex(where: { $0 == track as! Track }) {
-            viewModel.playlist.tracks.remove(at: index)
+        let trackForDeletion: Track
+        if let t = track as? Track {
+            trackForDeletion = t
+        } else if let tr = track as? TrackResponse {
+            trackForDeletion = tr.toTrack()
+        } else {
+            return
+        }
+        
+        let alert = UIAlertController(
+            title: "Удалить трек из плейлиста?",
+            message: "Вы уверены, что хотите удалить \(trackForDeletion.title) из плейлиста?",
+            preferredStyle: .alert
+        )
+        
+        alert.addAction(UIAlertAction(title: "Отмена", style: .cancel))
+        alert.addAction(UIAlertAction(title: "Удалить", style: .destructive) { [weak self] _ in
+            self?.deleteTrack(trackForDeletion)
+        })
+        
+        present(alert, animated: true)
+    }
+    
+    private func deleteTrack(_ track: Track) {
+        guard let index = viewModel.tracks.firstIndex(where: { $0.id == Int(track.id) }) else { return }
+        
+        viewModel.tracks.remove(at: index)
+        tableView.performBatchUpdates {
             tableView.deleteRows(at: [IndexPath(row: index, section: 0)], with: .automatic)
         }
         
         Task {
-            await viewModel.deleteTrack(track as! Track)
+            await viewModel.deleteTrack(trackId: Int(track.id) ?? 0)
         }
+    }
+    
+    private func showSuccessAlert(message: String) {
+        let alert = UIAlertController(title: "Успешно", message: message, preferredStyle: .alert)
+        alert.addAction(UIAlertAction(title: "OK", style: .default))
+        present(alert, animated: true)
     }
 }

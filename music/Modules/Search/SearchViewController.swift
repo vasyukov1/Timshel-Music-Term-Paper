@@ -30,7 +30,11 @@ class SearchViewController: BaseViewController {
         setupUI()
         super.viewDidLoad()
         bindViewModel()
-        viewModel.loadData()
+        loadData()
+    }
+    
+    private func loadData() {
+        viewModel.loadPlaylists()
     }
     
     private func bindViewModel() {
@@ -171,10 +175,9 @@ extension SearchViewController: UICollectionViewDataSource, UICollectionViewDele
     }
     
     func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
-        let playlist = viewModel.playlists[indexPath.item]
-        let playlistVC = PlaylistViewController(viewModel: PlaylistViewModel(playlist: playlist))
-        playlistVC.navigationItem.hidesBackButton = true
-        navigationController?.pushViewController(playlistVC, animated: false)
+        let playlistResponse = viewModel.playlists[indexPath.item]
+        let playlistVC = PlaylistViewController(viewModel: PlaylistViewModel(playlistResponse: playlistResponse))
+        navigationController?.pushViewController(playlistVC, animated: true)
     }
     
     func collectionView(_ collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, sizeForItemAt indexPath: IndexPath) -> CGSize {

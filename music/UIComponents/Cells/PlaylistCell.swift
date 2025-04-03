@@ -13,9 +13,10 @@ class PlaylistCell: UICollectionViewCell {
         fatalError("init(coder:) has not been implemented")
     }
     
-    func configure(with playlist: Playlist) {
-        titleLabel.text = playlist.title
-        playlistImage.image = playlist.image
+    func configure(with playlist: PlaylistResponse) {
+        titleLabel.text = playlist.name
+        playlistImage.image = UIImage(systemName: "music.note.list")?
+            .withTintColor(.systemGray, renderingMode: .alwaysOriginal)
     }
     
     private func setupUI() {

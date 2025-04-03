@@ -196,7 +196,7 @@ extension ArtistViewController: TrackContextMenuDelegate {
     
     func didSelectGoToArtist(track: TrackRepresentable) {
         if track.artists.count > 1 {
-            showArtistSelectionAlert(for: track as! Track)
+            showArtistSelectionAlert(for: track)
         } else {
             navigateToArtist(track.artist)
         }
