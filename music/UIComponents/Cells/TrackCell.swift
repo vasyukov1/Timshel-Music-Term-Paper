@@ -19,7 +19,7 @@ class TrackCell: UITableViewCell {
     private let menuButton = UIButton(type: .system)
     
     weak var delegate: TrackContextMenuDelegate?
-    private var track: Track?
+    private var track: TrackResponse?
     private var isMyMusic = false
     
     override init(style: UITableViewCell.CellStyle, reuseIdentifier: String?) {
@@ -32,13 +32,13 @@ class TrackCell: UITableViewCell {
         setupUI()
     }
     
-    func configure(with track: Track, isMyMusic: Bool) {
+    func configure(with track: TrackResponse, isMyMusic: Bool) {
         self.track = track
         self.isMyMusic = isMyMusic
         
         titleLabel.text = track.title
         artistLabel.text = track.artist
-        trackImageView.image = track.image
+//        trackImageView.image = track.image
     }
     
     private func setupUI() {
@@ -92,11 +92,11 @@ class TrackCell: UITableViewCell {
     }
     
     @objc private func showMenu() {
-        guard let track = track,
-              let parentVC = findParentViewController(),
-              let delegate = parentVC as? TrackContextMenuDelegate else { return }
+//        guard let track = track,
+//              let parentVC = findParentViewController(),
+//              let delegate = parentVC as? TrackContextMenuDelegate else { return }
         
-        parentVC.presentTrackContextMenu(for: track, delegate: delegate)
+//        parentVC.presentTrackContextMenu(for: track, delegate: delegate)
     }
 }
 

@@ -130,17 +130,17 @@ extension SearchViewController: UITableViewDataSource, UITableViewDelegate {
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         let cell = tableView.dequeueReusableCell(withIdentifier: "TrackCell", for: indexPath) as! TrackCell
         
-        var track: Track?
-        switch indexPath.section {
-            case 0: track = viewModel.recentSearchTracks[indexPath.row]
-            case 1: track = viewModel.filteredTracks[indexPath.row]
-            case 2: track = viewModel.popularTracks[indexPath.row]
-            default: break
-        }
+//        var track: Track?
+//        switch indexPath.section {
+//            case 0: track = viewModel.recentSearchTracks[indexPath.row]
+//            case 1: track = viewModel.filteredTracks[indexPath.row]
+//            case 2: track = viewModel.popularTracks[indexPath.row]
+//            default: break
+//        }
         
-        if let track = track {
-            cell.configure(with: track, isMyMusic: false)
-        }
+//        if let track = track {
+//            cell.configure(with: track, isMyMusic: false)
+//        }
         return cell
     }
     

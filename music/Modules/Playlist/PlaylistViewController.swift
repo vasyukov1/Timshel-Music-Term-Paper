@@ -109,8 +109,8 @@ extension PlaylistViewController: UITableViewDataSource, UITableViewDelegate {
     
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         let cell = tableView.dequeueReusableCell(withIdentifier: "TrackCell", for: indexPath) as! TrackCell
-        let track = viewModel.playlist.tracks[indexPath.row]
-        cell.configure(with: track, isMyMusic: false)
+//        let track = viewModel.playlist.tracks[indexPath.row]
+//        cell.configure(with: track, isMyMusic: false)
         cell.delegate = self
         return cell
     }

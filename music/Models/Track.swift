@@ -7,34 +7,62 @@ class Track: Codable, Equatable {
     var artists: [String] {
         return artist.components(separatedBy: ",").map { $0.trimmingCharacters(in: .whitespaces) }
     }
-    var id = ""
+    var id: String
+    var isLocal: Bool?
+    
     private(set) var image: UIImage
     private(set) var urlString: String
+    
     var isSelected: Bool
     var playCount: Int
     var lastPlayedDate: Date?
     
     var url: URL {
-        return URL(string: urlString) ?? URL(fileURLWithPath: "")
+        if isLocal! {
+            let localURL = URL(fileURLWithPath: urlString)
+            if FileManager.default.fileExists(atPath: localURL.path) {
+                return localURL
+            } else {
+                print("Локальный файл не найден: \(localURL)")
+                return URL(string: "about:blank")!
+            }
+        } else {
+            return URL(string: "\(NetworkManager.shared.baseURL)/api/tracks/stream/\(id)")!
+        }
     }
     
     static func == (lhs: Track, rhs: Track) -> Bool {
-        return lhs.title == rhs.title && lhs.artist == rhs.artist
+        return lhs.id == rhs.id
     }
     
-    init(title: String, artist: String, image: UIImage, url: URL) {
+    init(title: String, artist: String, image: UIImage, localURL: URL) {
         self.title = title
         self.artist = artist
         self.id = title + "_" + artist
         self.image = image
-        self.urlString = url.absoluteString
+        self.urlString = localURL.absoluteString
+        self.isLocal = true
         self.isSelected = false
         self.playCount = 0
         self.lastPlayedDate = nil
     }
     
+    init(title: String, artist: String, image: UIImage, id: String) {
+        self.title = title
+        self.artist = artist
+        self.id = id
+        self.urlString = ""
+        self.image = image
+        self.isLocal = false
+        self.isSelected = false
+        self.playCount = 0
+        self.lastPlayedDate = nil
+    }
+    
+    // MARK: Codable
+    
     enum CodingKeys: String, CodingKey {
-        case title, artist, id, imageData, urlString, isSelected, playCount, lastPlayedDate
+        case title, artist, id, imageData, urlString, isSelected, playCount, lastPlayedDate, isLocal
     }
     
     required init(from decoder: Decoder) throws {
@@ -42,6 +70,7 @@ class Track: Codable, Equatable {
         title = try container.decode(String.self, forKey: .title)
         artist = try container.decode(String.self, forKey: .artist)
         id = try container.decode(String.self, forKey: .id)
+        isLocal = try container.decodeIfPresent(Bool.self, forKey: .isLocal) ?? false
         isSelected = try container.decode(Bool.self, forKey: .isSelected)
         playCount = try container.decode(Int.self, forKey: .playCount)
         lastPlayedDate = try? container.decodeIfPresent(Date.self, forKey: .lastPlayedDate)
@@ -57,13 +86,13 @@ class Track: Codable, Equatable {
         try container.encode(title, forKey: .title)
         try container.encode(artist, forKey: .artist)
         try container.encode(id, forKey: .id)
+        try container.encode(isLocal, forKey: .isLocal)
         try container.encode(isSelected, forKey: .isSelected)
         try container.encode(playCount, forKey: .playCount)
         try container.encodeIfPresent(lastPlayedDate, forKey: .lastPlayedDate)
         
         let imageData = image.pngData() ?? Data()
         try container.encode(imageData, forKey: .imageData)
-        
         try container.encode(urlString, forKey: .urlString)
     }
     

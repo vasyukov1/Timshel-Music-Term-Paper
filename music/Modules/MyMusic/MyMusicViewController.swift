@@ -33,16 +33,14 @@ class MyMusicViewController: BaseViewController, UITableViewDelegate, UITableVie
     }
     
     private func bindViewModel() {
+        viewModel.loadMyTracks()
+        
         viewModel.$tracks
-            .receive(on: RunLoop.main)
+            .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in
                 self?.tableView.reloadData()
             }
             .store(in: &cancellables)
-        
-        Task {
-            await viewModel.loadMyTracks()
-        }
     }
     
     private func setupUI() {
@@ -84,25 +82,59 @@ class MyMusicViewController: BaseViewController, UITableViewDelegate, UITableVie
         }
         
         let cell = tableView.dequeueReusableCell(withIdentifier: "TrackCell", for: indexPath) as! TrackCell
-        let track = viewModel.tracks[indexPath.row]
-        cell.configure(with: track, isMyMusic: true)
+        let trackResponse = viewModel.tracks[indexPath.row]
+        let track = Track(title: trackResponse.title,
+                         artist: trackResponse.artist,
+                         image: UIImage(systemName: "music.note")!,
+                         id: String(trackResponse.id))
+        
+        
+        cell.configure(with: trackResponse, isMyMusic: true)
         cell.delegate = self
-        if track == MusicPlayerManager.shared.getCurrentTrack() {
-            cell.backgroundColor = .systemGray2
+        
+        if let currentTrack = MusicPlayerManager.shared.getCurrentTrack(),
+           currentTrack.id == track.id {
+            cell.backgroundColor = .systemGray5
         } else {
             cell.backgroundColor = .clear
         }
+        
         return cell
     }
     
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
-        viewModel.selectTrack(at: indexPath.row)
-        tableView.reloadData()
+        let trackResponse = viewModel.tracks[indexPath.row]
+        let track = Track(title: trackResponse.title,
+                          artist: trackResponse.artist,
+                          image: UIImage(systemName: "music.note")!,
+                          id: String(trackResponse.id))
+        
+
+        if let currentTrack = MusicPlayerManager.shared.getCurrentTrack(),
+           currentTrack.id == track.id {
+            MusicPlayerManager.shared.playOrPauseTrack(currentTrack)
+        } else {
+
+            MusicPlayerManager.shared.setQueue(tracks: viewModel.tracks.map {
+                Track(title: $0.title,
+                     artist: $0.artist,
+                     image: UIImage(systemName: "music.note")!,
+                     id: String($0.id))
+            }, startIndex: indexPath.row)
+        }
+        
+//        MusicPlayerManager.shared.startPlaying(track: track)
+//        tableView.reloadData()
+        
         tableView.deselectRow(at: indexPath, animated: true)
     }
     
-    @objc private func trackDidChange() {
-        tableView.reloadData()
+    @objc private func trackDidChange(_ notification: Notification) {
+        guard let visibleIndexPaths = tableView.indexPathsForVisibleRows else { return }
+        
+        tableView.beginUpdates()
+        tableView.reloadRows(at: visibleIndexPaths, with: .none)
+        tableView.endUpdates()
     }
     
     @objc private func trackDidDelete() {
@@ -181,12 +213,12 @@ extension MyMusicViewController: TrackContextMenuDelegate {
         MusicPlayerManager.shared.deleteTrack(track)
         MusicManager.shared.deleteTrack(track)
         
-        if let index = viewModel.tracks.firstIndex(where: { $0 == track }) {
-            viewModel.tracks.remove(at: index)
-            tableView.performBatchUpdates({
-                tableView.deleteRows(at: [IndexPath(row: index, section: 0)], with: .automatic)
-            }, completion: nil)
-        }
+//        if let index = viewModel.tracks.firstIndex(where: { $0 == track }) {
+//            viewModel.tracks.remove(at: index)
+//            tableView.performBatchUpdates({
+//                tableView.deleteRows(at: [IndexPath(row: index, section: 0)], with: .automatic)
+//            }, completion: nil)
+//        }
         
         Task {
             await viewModel.deleteTrack(track)

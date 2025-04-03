@@ -142,7 +142,7 @@ class ArtistViewController: BaseViewController, UITableViewDelegate, UITableView
         if tableView == tracksTableView {
             let cell = tableView.dequeueReusableCell(withIdentifier: "TrackCell", for: indexPath) as! TrackCell
             let track = viewModel.tracks[indexPath.row]
-            cell.configure(with: track, isMyMusic: true)
+//            cell.configure(with: track, isMyMusic: true)
             cell.delegate = self
             
             if track == MusicPlayerManager.shared.getCurrentTrack() {

@@ -3,12 +3,19 @@ import Combine
 
 class MiniPlayerViewModel {
     
-    @Published var track = MusicPlayerManager.shared.getCurrentTrack() ?? Track(title: "None", artist: "None", image: UIImage(systemName: "questionmark.circle.fill")!, url: URL(filePath: ""))
-    @Published var isPlaying = MusicPlayerManager.shared.audioPlayer?.isPlaying ?? false
+    @Published var track = MusicPlayerManager.shared.getCurrentTrack() ?? Track(title: "None",
+                                                  artist: "None",
+                                                  image: UIImage(systemName: "questionmark.circle.fill")!,
+                                                  localURL: URL(fileURLWithPath: ""))
+    
+    @Published var isPlaying = MusicPlayerManager.shared.isPlaying
     @Published var playbackProgress = MusicPlayerManager.shared.getPlaybackProgress()
     private var cancellables = Set<AnyCancellable>()
     
-    let mockTrack = Track(title: "None", artist: "None", image: UIImage(systemName: "questionmark.circle.fill")!, url: URL(filePath: ""))
+    let mockTrack = Track(title: "None",
+                          artist: "None",
+                          image: UIImage(systemName: "questionmark.circle.fill")!,
+                          localURL: URL(fileURLWithPath: ""))
     
     init() {
         NotificationCenter.default.publisher(for: .trackDidChange)
@@ -34,12 +41,11 @@ class MiniPlayerViewModel {
     private func updateTrack() {
         track = MusicPlayerManager.shared.getCurrentTrack() ?? mockTrack
         updateIsPlaying()
-        
         MiniPlayerView.shared.show()
     }
     
     private func updateIsPlaying() {
-        isPlaying = MusicPlayerManager.shared.audioPlayer?.isPlaying ?? false
+        isPlaying = MusicPlayerManager.shared.isPlaying
     }
     
     private func updateProgressBar() {

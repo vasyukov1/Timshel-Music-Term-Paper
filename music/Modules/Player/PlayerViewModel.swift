@@ -5,7 +5,7 @@ import AVFoundation
 class PlayerViewModel {
     
     @Published var track = MusicPlayerManager.shared.getCurrentTrack()
-    @Published var isPlaying = MusicPlayerManager.shared.audioPlayer!.isPlaying
+    @Published var isPlaying = MusicPlayerManager.shared.isPlaying
     @Published var playbackProgress = MusicPlayerManager.shared.getPlaybackProgress()
     @Published var repeatMode: MusicPlayerManager.RepeatMode = .off
     
@@ -43,7 +43,10 @@ class PlayerViewModel {
     }
     
     private func updateIsPlaying() {
-        isPlaying = MusicPlayerManager.shared.audioPlayer?.isPlaying ?? false
+        let newState = MusicPlayerManager.shared.isPlaying
+        if isPlaying != newState {
+            isPlaying = newState
+        }
     }
     
     func updateProgressBar() {
@@ -51,13 +54,20 @@ class PlayerViewModel {
     }
     
     func playOrPause() {
-        MusicPlayerManager.shared.playOrPauseTrack(track!)
-        isPlaying = MusicPlayerManager.shared.audioPlayer!.isPlaying
+        guard let currentTrack = track else { return }
+        MusicPlayerManager.shared.playOrPauseTrack(currentTrack)
     }
     
     func updateButtons(_ previousButton: UIButton, _ nextButton: UIButton) {
-        previousButton.isHidden = !MusicPlayerManager.shared.hasPreviousTrack()
-        nextButton.isHidden = !MusicPlayerManager.shared.hasNextTrack()
+        DispatchQueue.main.async {
+            previousButton.isEnabled = MusicPlayerManager.shared.hasPreviousTrack()
+            nextButton.isEnabled = MusicPlayerManager.shared.hasNextTrack()
+            
+            UIView.animate(withDuration: 0.2) {
+                previousButton.alpha = previousButton.isEnabled ? 1.0 : 0.5
+                nextButton.alpha = nextButton.isEnabled ? 1.0 : 0.5
+            }
+        }
     }
     
     func playPreviousTrack() {
@@ -71,8 +81,6 @@ class PlayerViewModel {
     }
     
     func seek(to progress: Float) {
-        guard let audioPlayer = MusicPlayerManager.shared.audioPlayer else { return }
-        let newTime = Double(progress) * audioPlayer.duration
-        audioPlayer.currentTime = newTime
+        MusicPlayerManager.shared.seek(to: progress)
     }
 }

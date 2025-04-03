@@ -62,7 +62,7 @@ class HistoryViewController: UIViewController, UITableViewDelegate, UITableViewD
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         let cell = tableView.dequeueReusableCell(withIdentifier: "TrackCell", for: indexPath) as! TrackCell
         let track = viewModel.historyQueue[indexPath.row]
-        cell.configure(with: track, isMyMusic: true)
+//        cell.configure(with: track, isMyMusic: true)
         cell.delegate = self
         
         if track == MusicPlayerManager.shared.getCurrentTrack() {

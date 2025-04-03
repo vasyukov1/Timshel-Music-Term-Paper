@@ -82,7 +82,7 @@ class MusicManager {
             let imageData = try await metadata.first(where: { $0.commonKey?.rawValue == "artwork"})?.load(.dataValue)
             let image = imageData != nil ? UIImage(data: imageData!)! : UIImage(systemName: "music.note")!
             
-            let newTrack = Track(title: title, artist: artistName, image: image, url: trackURL)
+            let newTrack = Track(title: title, artist: artistName, image: image, localURL: trackURL)
             
             if trackExistsByUser(login, newTrack) {
                 return

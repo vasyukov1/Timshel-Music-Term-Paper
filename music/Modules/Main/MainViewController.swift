@@ -1,4 +1,5 @@
 import UIKit
+import AVFoundation
 import Combine
 
 class MainViewController: BaseViewController, UIDocumentPickerDelegate {
@@ -124,9 +125,43 @@ class MainViewController: BaseViewController, UIDocumentPickerDelegate {
         guard !urls.isEmpty else { return }
         Task {
             for url in urls {
-                await MusicManager.shared.addTrack(from: url)
+                let (title, artist) = await loadMetadata(url: url)
+                
+                NetworkManager.shared.uploadTrack(fileURL: url,
+                                                  title: title,
+                                                  artist: artist,
+                                                  album: nil,
+                                                  genre: nil) { result in
+                    DispatchQueue.main.async {
+                        switch result {
+                        case .success(let trackResponse):
+                            print("Track uploaded: \(trackResponse)")
+                            // После успешной загрузки можно обновить UI, добавив трек в список
+                        case .failure(let error):
+                            print("Upload failed: \(error.localizedDescription)")
+                        }
+                    }
+                }
             }
+        }        
+    }
+    
+    private func loadMetadata(url: URL) async -> (String, String) {
+        let asset = AVURLAsset(url: url)
+        do {
+            let metadata = try await asset.load(.commonMetadata)
+            
+            let title = try await metadata.first(where: { $0.commonKey?.rawValue == "title" })?.load(.stringValue) ?? "Unknown Title"
+            let artistName = try await metadata.first(where: { $0.commonKey?.rawValue == "artist"})?.load(.stringValue) ?? "Unknown Artist"
+            
+//            let imageData = try await metadata.first(where: { $0.commonKey?.rawValue == "artwork"})?.load(.dataValue)
+//            let image = imageData != nil ? UIImage(data: imageData!)! : UIImage(systemName: "music.note")!
+            
+            return (title, artistName)
+        } catch {
+            print("Failed to process track: \(error)")
         }
+        return ("Title", "Artist")
     }
     
 }

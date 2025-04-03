@@ -24,13 +24,19 @@ class PlayerViewController: UIViewController {
         super.viewDidLoad()
         setupUI()
         bindViewModel()
+        
+        updatePlayPauseButton()
+        updateRepeatButton()
+        updateShuffleState()
     }
     
     private func bindViewModel() {
         viewModel.$track
             .receive(on: RunLoop.main)
             .sink { [weak self] track in
-                self?.configure(with: track!)
+                guard let track = track else { return }
+                self?.configure(with: track)
+                self?.updatePlayPauseButton()
             }
             .store(in: &cancellables)
         
@@ -55,33 +61,57 @@ class PlayerViewController: UIViewController {
                 self?.updateRepeatButton()
             }
             .store(in: &cancellables)
+        
+        NotificationCenter.default.publisher(for: .queueDidChange)
+            .receive(on: RunLoop.main)
+            .sink { [weak self] _ in
+                self?.viewModel.updateButtons(self?.previousTrackButton ?? UIButton(),
+                                            self?.nextTrackButton ?? UIButton())
+            }
+            .store(in: &cancellables)
     }
     
     func configure(with track: Track) {
         titleLabel.text = track.title
         artistButton.setTitle(track.artist, for: .normal)
-        viewModel.updateButtons(previousTrackButton, nextTrackButton)
         trackImageView.image = track.image
+        
+        viewModel.updateButtons(previousTrackButton, nextTrackButton)
+        updatePlayPauseButton()
+        
         if let dominantColor = track.image.dominnatColor() {
-            self.view.backgroundColor = dominantColor
+            UIView.animate(withDuration: 0.3) {
+                self.view.backgroundColor = dominantColor
+            }
         }
     }
     
-    private func updatePlayPauseButton() {
-        let buttonImage = UIImage(systemName: viewModel.isPlaying ? "pause.fill" : "play.fill")
+    func updatePlayPauseButton() {
+        let buttonImage = UIImage(systemName: MusicPlayerManager.shared.isPlaying ? "pause.fill" : "play.fill")
         playPauseButton.setImage(buttonImage, for: .normal)
     }
     
     @objc private func playOrStopTapped() {
         viewModel.playOrPause()
+        updatePlayPauseButton()
+        
+        UIView.animate(withDuration: 0.2, animations: {
+            self.playPauseButton.transform = CGAffineTransform(scaleX: 0.8, y: 0.8)
+        }) { _ in
+            UIView.animate(withDuration: 0.2) {
+                self.playPauseButton.transform = .identity
+            }
+        }
     }
     
     @objc private func playPreviousTrackTapped() {
         viewModel.playPreviousTrack()
+        updatePlayPauseButton()
     }
     
     @objc private func playNextTrackTapped() {
         viewModel.playNextTrack()
+        updatePlayPauseButton()
     }
     
     @objc private func minimizeScreenTapped() {
@@ -318,5 +348,24 @@ extension UIImage {
         let b = CGFloat(data![2]) / 255.0
         
         return UIColor(red: r, green: g, blue: b, alpha: 1.0)
+    }
+}
+
+extension UIButton {
+    func addTouchAnimation() {
+        addTarget(self, action: #selector(touchDown), for: [.touchDown, .touchDragEnter])
+        addTarget(self, action: #selector(touchUp), for: [.touchUpInside, .touchDragExit, .touchCancel])
+    }
+    
+    @objc private func touchDown() {
+        UIView.animate(withDuration: 0.1) {
+            self.transform = CGAffineTransform(scaleX: 0.9, y: 0.9)
+        }
+    }
+    
+    @objc private func touchUp() {
+        UIView.animate(withDuration: 0.1) {
+            self.transform = .identity
+        }
     }
 }
