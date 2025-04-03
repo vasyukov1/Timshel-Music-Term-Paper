@@ -2,7 +2,6 @@ import UIKit
 import Foundation
 
 class RegistrationViewController: UIViewController {
-    // MARK: Lifecycle
     override func viewDidLoad() {
         super.viewDidLoad()
         setupUI()
@@ -10,47 +9,50 @@ class RegistrationViewController: UIViewController {
     }
     
     // MARK: Actions
+    
     @objc private func registerTapped() {
-    guard let firstName = firstNameTextField.text, !firstName.isEmpty,
-        let lastName = lastNameTextField.text, !lastName.isEmpty,
-        let login = loginTextField.text, !login.isEmpty,
-        let password = passwordTextField.text, !password.isEmpty,
-        let confirmPassword = confirmPasswordTextField.text, !confirmPassword.isEmpty else {
+        activityIndicator.startAnimating()
+        
+        guard let login = loginTextField.text, !login.isEmpty,
+              let password = passwordTextField.text, !password.isEmpty,
+              let confirmPassword = confirmPasswordTextField.text, !confirmPassword.isEmpty else {
             errorLabel.text = "Fill all fields"
             errorLabel.isHidden = false
+            activityIndicator.stopAnimating()
             return
         }
 
-        if password.count < 6 {
-            errorLabel.text = "Password must have at least 6 symbols"
-            errorLabel.isHidden = false
-            return
-        }
-
-        if password != confirmPassword {
+        guard password == confirmPassword else {
             errorLabel.text = "Password is not confirmed"
             errorLabel.isHidden = false
+            activityIndicator.stopAnimating()
             return
         }
 
-        if !isLoginUnique(login) {
-            errorLabel.text = "Login already exists"
-            errorLabel.isHidden = false
-            return
-        }
-
-        if addUserToDatabase(firstName: firstName, lastName: lastName, login: login, password: password) {
-            errorLabel.isHidden = true
-            
-            UserDefaults.standard.set(login, forKey: "savedLogin")
-            UserDefaults.standard.set(password, forKey: "savedPassword")
-            
-            let mainVC = MainViewController()
-            navigationItem.hidesBackButton = true
-            navigationController?.pushViewController(mainVC, animated: true)
-        } else {
-            errorLabel.text = "Registration Error"
-            errorLabel.isHidden = false
+        NetworkManager.shared.registerUser(login: login, password: password) { [weak self] result in
+            DispatchQueue.main.async {
+                self?.activityIndicator.stopAnimating()
+                
+                switch result {
+                case .success(let userResponse):
+                    UserDefaults.standard.set(login, forKey: "savedLogin")
+                    UserDefaults.standard.set(userResponse.id, forKey: "userId")
+                    
+                    let mainVC = MainViewController()
+                    self?.navigationItem.hidesBackButton = true
+                    self?.navigationController?.pushViewController(mainVC, animated: true)
+                    
+                case .failure(let error):
+                    let errorMessage: String
+                    if (error as NSError).code == 409 {
+                        errorMessage = "Username already exists"
+                    } else {
+                        errorMessage = error.localizedDescription
+                    }
+                    self?.errorLabel.text = errorMessage
+                    self?.errorLabel.isHidden = false
+                }
+            }
         }
     }
     
@@ -59,75 +61,28 @@ class RegistrationViewController: UIViewController {
         navigationController?.popViewController(animated: true)
     }
 
-    @objc private func validatePasswordMatch() {
-        if passwordTextField.text != confirmPasswordTextField.text {
-            confirmPasswordTextField.layer.borderColor = UIColor.red.cgColor
-            confirmPasswordTextField.layer.borderWidth = 1
-        } else {
-            confirmPasswordTextField.layer.borderColor = UIColor.lightGray.cgColor
-            confirmPasswordTextField.layer.borderWidth = 0
-        }
-    }
-    
-    // MARK: Helper Methods
-    private func isLoginUnique(_ login: String) -> Bool {
-        let documentsDirectory = NSSearchPathForDirectoriesInDomains(.documentDirectory, .userDomainMask, true)[0]
-        let dbPath = (documentsDirectory as NSString).appendingPathComponent("testdb.txt")
-        do {
-            let dbContent = try String(contentsOfFile: dbPath, encoding: .utf8)
-            let dbLines = dbContent.components(separatedBy: .newlines)
-            
-            for line in dbLines {
-                let trimmedLine = line.trimmingCharacters(in: .whitespacesAndNewlines)
-                if trimmedLine.isEmpty {
-                    continue
-                }
-                
-                let components = trimmedLine.components(separatedBy: ":")
-                if components.count == 2 {
-                    let storedLogin = components[0]
-                    if storedLogin == login {
-                        return false
-                    }
-                }
-            }
-            return true
-        } catch {
-            print("Error file reading: \(error)")
-            return false
-        }
-    }
-    
-    private func addUserToDatabase(firstName: String, lastName: String, login: String, password: String) -> Bool {
-        let documentsDirectory = NSSearchPathForDirectoriesInDomains(.documentDirectory, .userDomainMask, true)[0]
+    @objc private func validatePassword() -> Bool {
+        guard let password = passwordTextField.text else { return false }
         
-        let dbPath = (documentsDirectory as NSString).appendingPathComponent("testdb.txt")
-        let newUser = "\(login):\(password)\n"
-        
-        do {
-            try newUser.appendLine(to: dbPath)
-        } catch {
-            print("Error writing to testdb.txt: \(error)")
+        if password.count < 8 {
+            errorLabel.text = "Password must have at least 8 symbols"
             return false
         }
         
-        
-        let infoPath = (documentsDirectory as NSString).appendingPathComponent("testdb_info.txt")
-        let newInfo = "\(login),\(firstName),\(lastName)\n"
-        do {
-            try newInfo.appendLine(to: infoPath)
-            return true
-        } catch {
-            print("Error file writing: \(error)")
+        let passwordTest = NSPredicate(format: "SELF MATCHES %@", "^(?=.*[A-Za-z])(?=.*\\d).{6,}$")
+        if !passwordTest.evaluate(with: password) {
+            errorLabel.text = "Password must contain letters and numbers"
             return false
         }
+        
+        return true
     }
     
     // MARK: Setup Actions
     private func setupActions() {
         registerButton.addTarget(self, action: #selector(registerTapped), for: .touchUpInside)
         backButton.addTarget(self, action: #selector(backTapped), for: .touchUpInside)
-        confirmPasswordTextField.addTarget(self, action: #selector(validatePasswordMatch), for: .editingChanged)
+        confirmPasswordTextField.addTarget(self, action: #selector(validatePassword), for: .editingChanged)
     }
     
     // MARK: Setup UI
@@ -144,21 +99,20 @@ class RegistrationViewController: UIViewController {
             registerButton,
             backButton,
             errorLabel,
+            activityIndicator
         ]
         
         for subview in UIElements {
             view.addSubview(subview)
+            subview.translatesAutoresizingMaskIntoConstraints = false
         }
         
         setupConstraints()
     }
     
     // MARK: Setup Constraints
+    
     private func setupConstraints() {
-        for subview in view.subviews {
-            subview.translatesAutoresizingMaskIntoConstraints = false
-        }
-        
         NSLayoutConstraint.activate([
              firstNameTextField.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 20),
              firstNameTextField.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 20),
@@ -195,7 +149,10 @@ class RegistrationViewController: UIViewController {
 
              errorLabel.topAnchor.constraint(equalTo: backButton.bottomAnchor, constant: 20),
              errorLabel.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 20),
-             errorLabel.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -20)
+             errorLabel.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -20),
+             
+             activityIndicator.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+             activityIndicator.centerYAnchor.constraint(equalTo: view.centerYAnchor)
          ])
     }
     
@@ -272,6 +229,13 @@ class RegistrationViewController: UIViewController {
         label.isHidden = true
         label.translatesAutoresizingMaskIntoConstraints = false
         return label
+    }()
+    
+    private let activityIndicator: UIActivityIndicatorView = {
+        let indicator = UIActivityIndicatorView(style: .medium)
+        indicator.translatesAutoresizingMaskIntoConstraints = false
+        indicator.hidesWhenStopped = true
+        return indicator
     }()
 }
 

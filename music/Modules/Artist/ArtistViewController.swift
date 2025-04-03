@@ -142,7 +142,7 @@ class ArtistViewController: BaseViewController, UITableViewDelegate, UITableView
         if tableView == tracksTableView {
             let cell = tableView.dequeueReusableCell(withIdentifier: "TrackCell", for: indexPath) as! TrackCell
             let track = viewModel.tracks[indexPath.row]
-            cell.configure(with: track, isMyMusic: true)
+//            cell.configure(with: track, isMyMusic: true)
             cell.delegate = self
             
             if track == MusicPlayerManager.shared.getCurrentTrack() {
@@ -182,17 +182,47 @@ class ArtistViewController: BaseViewController, UITableViewDelegate, UITableView
 }
 
 extension ArtistViewController: TrackContextMenuDelegate {
-    func didSelectAddToQueue(track: Track) {
-        MusicPlayerManager.shared.addTrackToQueue(track: track)
+    func didSelectAddToQueue(track: any TrackRepresentable) {
+        let trackToAdd: Track
+        if let t = track as? Track {
+            trackToAdd = t
+        } else if let tr = track as? TrackResponse {
+            trackToAdd = tr.toTrack()
+        } else {
+            return
+        }
+        MusicPlayerManager.shared.addTrackToQueue(track: trackToAdd)
     }
     
-    func didSelectGoToArtist(track: Track) {
-        let artistVC = ArtistViewController(viewModel: ArtistViewModel(artistName: track.artist))
+    func didSelectGoToArtist(track: TrackRepresentable) {
+        if track.artists.count > 1 {
+            showArtistSelectionAlert(for: track)
+        } else {
+            navigateToArtist(track.artist)
+        }
+    }
+    
+    private func showArtistSelectionAlert(for track: TrackRepresentable) {
+        let alert = UIAlertController(title: "Выберите артиста", message: nil, preferredStyle: .actionSheet)
+        
+        for artist in track.artists {
+            alert.addAction(UIAlertAction(title: artist, style: .default) { _ in
+                self.navigateToArtist(artist)
+            })
+        }
+        
+        alert.addAction(UIAlertAction(title: "Отмена", style: .cancel))
+        
+        present(alert, animated: true)
+    }
+    
+    private func navigateToArtist(_ artistName: String) {
+        let artistVC = ArtistViewController(viewModel: ArtistViewModel(artistName: artistName))
         artistVC.navigationItem.hidesBackButton = true
-        navigationController?.pushViewController(artistVC, animated: true)
+        navigationController?.pushViewController(artistVC, animated: false)
     }
     
-    func didSelectAddToPlaylist(track: Track) {
+    func didSelectAddToPlaylist(track: TrackRepresentable) {
         let playlistMenu = UIAlertController(title: "Добавить в плейлист", message: nil, preferredStyle: .actionSheet)
         
         playlistMenu.addAction(UIAlertAction(title: "Создать плейлист", style: .default, handler: { _ in
@@ -202,7 +232,7 @@ extension ArtistViewController: TrackContextMenuDelegate {
         
         for playlist in PlaylistManager.shared.getPlaylists() {
            playlistMenu.addAction(UIAlertAction(title: playlist.title, style: .default, handler: { _ in
-               PlaylistManager.shared.addTrackToPlaylist(track, playlist)
+               PlaylistManager.shared.addTrackToPlaylist(track as! Track, playlist)
            }))
         }
         
@@ -211,7 +241,8 @@ extension ArtistViewController: TrackContextMenuDelegate {
         self.present(playlistMenu, animated: true)
     }
     
-    func didSelectDeleteTrack(track: Track) {
+    func didSelectDeleteTrack(track: TrackRepresentable) {
+        let track = track as! Track
         MusicPlayerManager.shared.deleteTrack(track)
         MusicManager.shared.deleteTrack(track)
         

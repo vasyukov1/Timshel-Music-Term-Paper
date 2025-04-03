@@ -13,8 +13,7 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         
         var navigationController: UINavigationController
         
-        if let _ = UserDefaults.standard.string(forKey: "savedLogin"),
-           let _ = UserDefaults.standard.string(forKey: "savedPassword") {
+        if let _ = UserDefaults.standard.string(forKey: "savedLogin") {
             let mainVC = MainViewController()
             navigationController = UINavigationController(rootViewController: mainVC)
         } else {

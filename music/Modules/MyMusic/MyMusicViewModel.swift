@@ -3,25 +3,26 @@ import AVFoundation
 import UIKit
 
 class MyMusicViewModel {
-    @Published var tracks: [Track] = []
+    @Published var tracks: [TrackResponse] = []
     
-    // Loading tracks
-    func loadMyTracks() async {
-        guard let login = UserDefaults.standard.string(forKey: "savedLogin") else {
-            print("Error: User is not logged in")
-            return
+    func loadMyTracks() {
+        NetworkManager.shared.fetchTracks { [weak self] result in
+            DispatchQueue.main.async {
+                switch result {
+                case .success(let trackResponses):
+                    self?.tracks = trackResponses
+                case .failure(let error):
+                    print("Failed to fetch tracks: \(error.localizedDescription)")
+                }
+            }
         }
-        tracks = await MusicManager.shared.getTracksByLogin(login)
-        print("Get \(tracks.count) tracks for [\(login)]")
     }
     
-    // Track selection and set queue
     func selectTrack(at index: Int) {
-        MusicPlayerManager.shared.setQueue(tracks: tracks, startIndex: index)
+//        MusicPlayerManager.shared.setQueue(tracks: tracks, startIndex: index)
     }
     
     func deleteTrack(_ track: Track) async {
-//        tracks.removeAll { $0 == track }
     }
     
     func documentPickerWasCancelled(_ controller: UIDocumentPickerViewController) {

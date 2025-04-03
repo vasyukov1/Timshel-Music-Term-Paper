@@ -3,7 +3,7 @@ import AVFoundation
 
 class MusicPlayerManager: NSObject {
     static let shared = MusicPlayerManager()
-    var audioPlayer: AVAudioPlayer?
+    private var avPlayer: AVPlayer?
     
     private var originalQueue: [Track] = []
     private var trackQueue: [Track] = []
@@ -18,29 +18,30 @@ class MusicPlayerManager: NSObject {
     var currentTrackIndex: Int?
     var lastTrack: Track?
     
-    private var currentTime: TimeInterval {
-        audioPlayer?.currentTime ?? 0
-    }
-    private var duration: TimeInterval {
-        audioPlayer?.duration ?? 0
+    var isPlaying: Bool {
+        return avPlayer?.timeControlStatus == .playing
     }
     
-    // Инициализация
+    enum RepeatMode {
+        case off
+        case one
+        case all
+    }
+    
+    private var repeatMode: RepeatMode = .off
+    
     private override init() {
         super.init()
-        NotificationCenter.default.addObserver(
-            self,
-            selector: #selector(handleTrackEnd),
-            name: .AVPlayerItemDidPlayToEndTime,
-            object: nil
-        )
+        NotificationCenter.default.addObserver(self,
+                                               selector: #selector(playerItemDidReachEnd),
+                                               name: .AVPlayerItemDidPlayToEndTime,
+                                               object: nil)
     }
     
     deinit {
         NotificationCenter.default.removeObserver(self)
     }
     
-    // Обновление мини-плеера
     private func updateMiniPlayer() {
         guard let track = currentTrack else {
             MiniPlayerView.shared.hide()
@@ -50,19 +51,16 @@ class MusicPlayerManager: NSObject {
         MiniPlayerView.shared.show()
     }
     
-    // Включить проигрывание
     func startPlaying(track: Track) {
         guard let index = trackQueue.firstIndex(of: track) else { return }
         playTrack(at: index)
         MiniPlayerView.shared.show()
     }
     
-    // Получение текущего трека
     func getCurrentTrack() -> Track? {
         return currentTrack
     }
     
-    // Установка очереди треков
     func setQueue(tracks: [Track], startIndex: Int) {
         trackQueue = tracks
         currentTrackIndex = startIndex
@@ -77,17 +75,14 @@ class MusicPlayerManager: NSObject {
         print("Track [\(track.title)] added to queue")
     }
     
-    // Получение очереди треков
     func getQueue() -> [Track] {
         return trackQueue
     }
     
-    // Получение истории
     func getHistory() -> [Track] {
         return history
     }
     
-    // Запуск либо остановка трека
     func playOrPauseTrack(_ track: Track) {
         if currentTrack == track {
             togglePlayPause()
@@ -96,10 +91,9 @@ class MusicPlayerManager: NSObject {
         }
     }
     
-    // Нажатие на кнопку play/pause
     private func togglePlayPause() {
-        guard let player = audioPlayer else { return }
-        if player.isPlaying {
+        guard let player = avPlayer else { return }
+        if player.timeControlStatus == .playing {
             player.pause()
         } else {
             player.play()
@@ -107,29 +101,102 @@ class MusicPlayerManager: NSObject {
         NotificationCenter.default.post(name: .playbackStateDidChange, object: nil)
     }
     
-    // Включить трек
     func playTrack(at index: Int) {
-        guard 0 <= index && index < trackQueue.count else { return }
-        do {
-            let track = trackQueue[index]
-            audioPlayer = try AVAudioPlayer(contentsOf: track.url)
-            audioPlayer?.delegate = self
-            audioPlayer?.play()
-            currentTrack = track
-            currentTrackIndex = index
-            lastTrack = track
-            NotificationCenter.default.post(name: .trackDidChange, object: nil)
-            NotificationCenter.default.post(name: .playbackStateDidChange, object: nil)
-            if history.first != track {
-                history.insert(track, at: 0)
-            }
-        } catch {
-            print("Error playing track: \(error)\n")
+        guard 0 <= index && index < trackQueue.count else {
+            print("Index out of bounds")
+            return
         }
         
+        let track = trackQueue[index]
+        var urlRequest = URLRequest(url: track.url)
+        
+        if let token = UserDefaults.standard.string(forKey: "jwtToken") {
+            urlRequest.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        }
+        
+        URLSession.shared.dataTask(with: urlRequest) { [weak self] data, response, error in
+            guard let self = self else { return }
+            
+            if let error = error {
+                print("Ошибка загрузки: \(error.localizedDescription)")
+                return
+            }
+            
+            guard let data = data else {
+                print("Нет данных")
+                return
+            }
+            
+            let tempURL = URL(fileURLWithPath: NSTemporaryDirectory())
+                .appendingPathComponent(UUID().uuidString)
+                .appendingPathExtension("mp3")
+            
+            do {
+                try data.write(to: tempURL)
+                
+                DispatchQueue.main.async {
+                    let playerItem = AVPlayerItem(url: tempURL)
+                    
+                    if let existingPlayer = self.avPlayer {
+                        existingPlayer.removeObserver(self, forKeyPath: "timeControlStatus")
+                    }
+                    
+                    self.avPlayer = AVPlayer(playerItem: playerItem)
+                    
+                    self.avPlayer?.addObserver(self, forKeyPath: "timeControlStatus", options: [.old, .new], context: nil)
+                    
+                    self.avPlayer?.play()
+                    self.currentTrack = track
+                    self.currentTrackIndex = index
+                    
+                    NotificationCenter.default.post(name: .trackDidChange, object: track)
+                    NotificationCenter.default.post(name: .playbackStateDidChange, object: nil)
+                    
+                    NotificationCenter.default.addObserver(
+                        self,
+                        selector: #selector(self.playerItemDidReachEnd),
+                        name: .AVPlayerItemDidPlayToEndTime,
+                        object: playerItem
+                    )
+                    
+                    print("Начато воспроизведение: \(track.title)")
+                }
+            } catch {
+                print("Ошибка сохранения файла: \(error.localizedDescription)")
+            }
+        }.resume()
     }
     
-    // Проверка на существование предыдущего трека
+    override func observeValue(forKeyPath keyPath: String?,
+                             of object: Any?,
+                             change: [NSKeyValueChangeKey : Any]?,
+                             context: UnsafeMutableRawPointer?) {
+        if keyPath == "timeControlStatus" {
+            NotificationCenter.default.post(name: .playbackStateDidChange, object: nil)
+            return
+        }
+        
+        if keyPath == #keyPath(AVPlayerItem.status) {
+            let status: AVPlayerItem.Status
+            if let statusNumber = change?[.newKey] as? NSNumber {
+                status = AVPlayerItem.Status(rawValue: statusNumber.intValue)!
+            } else {
+                status = .unknown
+            }
+            
+            switch status {
+            case .readyToPlay:
+                print("Player item is ready to play")
+            case .failed:
+                print("Player item failed: \(avPlayer?.currentItem?.error?.localizedDescription ?? "Unknown error")")
+            case .unknown:
+                print("Player item status unknown")
+            @unknown default:
+                break
+            }
+        }
+    }
+    
     func hasPreviousTrack() -> Bool {
         guard let index = currentTrackIndex else {
             return false
@@ -137,7 +204,6 @@ class MusicPlayerManager: NSObject {
         return index > 0
     }
     
-    // Проверка на существование следующего трека
     func hasNextTrack() -> Bool {
         guard let index = currentTrackIndex else {
             return false
@@ -145,16 +211,23 @@ class MusicPlayerManager: NSObject {
         return index + 1 < trackQueue.count
     }
     
-    // Включение следующего трека
     func playNextTrack() {
         guard let index = currentTrackIndex, index + 1 < trackQueue.count else {
             stopPlayback()
             return
         }
-        playTrack(at: index + 1)
+        
+        if index + 1 < trackQueue.count {
+            playTrack(at: index + 1)
+        } else {
+            if repeatMode == .all {
+                playTrack(at: 0)
+            } else {
+                stopPlayback()
+            }
+        }
     }
     
-    // Включение предыдущего трека
     func playPreviousTrack() {
         guard let index = currentTrackIndex, index > 0 else {
             stopPlayback()
@@ -163,16 +236,12 @@ class MusicPlayerManager: NSObject {
         playTrack(at: index - 1)
     }
     
-    // Остановка проигрывания
     func stopPlayback() {
-        audioPlayer?.stop()
-        if let last = lastTrack {
-            currentTrack = last
-            PlayerViewController().configure(with: last)
-            MiniPlayerView.shared.configure(with: last)
-        } else {
-            MiniPlayerView.shared.hide()
-        }
+        avPlayer?.pause()
+        avPlayer = nil
+        currentTrack = nil
+        currentTrackIndex = nil
+        MiniPlayerView.shared.hide()
     }
     
     func stopPlayer() {
@@ -184,12 +253,13 @@ class MusicPlayerManager: NSObject {
         lastTrack = nil
     }
     
-    // Получение текущего положения прослушивания трека
     func getPlaybackProgress() -> (currentTime: TimeInterval, duration: TimeInterval) {
+        guard let currentItem = avPlayer?.currentItem else { return (0, 0) }
+        let currentTime = avPlayer?.currentTime().seconds ?? 0
+        let duration = currentItem.duration.seconds.isFinite ? currentItem.duration.seconds : 0
         return (currentTime, duration)
     }
     
-    // Запуск следующего трека
     @objc private func handleTrackEnd() {
         playNextTrack()
     }
@@ -237,11 +307,55 @@ class MusicPlayerManager: NSObject {
     func getIsShuffled() -> Bool {
         return isShuffled
     }
+    
+    func toggleRepeatMode() {
+        switch repeatMode {
+        case .off:
+            repeatMode = .one
+        case .one:
+            repeatMode = .all
+        case .all:
+            repeatMode = .off
+        }
+        NotificationCenter.default.post(name: .repeatModeDidChange, object: nil)
+    }
+    
+    func getRepeatMode() -> RepeatMode {
+        return repeatMode
+    }
+    
+    func seek(to progress: Float) {
+        guard let currentItem = avPlayer?.currentItem else { return }
+        let duration = currentItem.duration.seconds
+        let newTime = Double(progress) * duration
+        avPlayer?.seek(to: CMTime(seconds: newTime, preferredTimescale: 600))
+    }
+    
+    @objc private func playerItemDidReachEnd(notification: Notification) {
+        NotificationCenter.default.removeObserver(
+            self,
+            name: .AVPlayerItemDidPlayToEndTime,
+            object: notification.object
+        )
+        
+        if repeatMode == .one, let index = currentTrackIndex {
+            playTrack(at: index)
+        } else {
+            playNextTrack()
+        }
+    }
 }
 
 extension MusicPlayerManager: AVAudioPlayerDelegate {
     func audioPlayerDidFinishPlaying(_ player: AVAudioPlayer, successfully flag: Bool) {
-        playNextTrack()
+        switch repeatMode {
+        case .one:
+            if let currentIndex = currentTrackIndex {
+                playTrack(at: currentIndex)
+            }
+        case .all, .off:
+            playNextTrack()
+        }
     }
 }
 
@@ -250,4 +364,5 @@ extension Notification.Name {
     static let trackDidDelete = Notification.Name("trackDidDelete")
     static let playbackStateDidChange = Notification.Name("playbackStateDidChange")
     static let queueDidChange = Notification.Name("queueDidChange")
+    static let repeatModeDidChange = Notification.Name("repeatModeDidChange")
 }

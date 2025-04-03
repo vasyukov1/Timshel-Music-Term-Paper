@@ -1,4 +1,5 @@
 import Combine
+import Foundation
 
 class SearchViewModel {
     
@@ -6,11 +7,19 @@ class SearchViewModel {
     @Published var recentSearchTracks: [Track] = []
     @Published var popularTracks: [Track] = []
     @Published var filteredTracks: [Track] = []
-    @Published var playlists: [Playlist] = []
+    @Published var playlists: [PlaylistResponse] = []
     
-    func loadData() {        
-        recentSearchTracks = []
-        playlists = PlaylistManager.shared.getPlaylists()
+    func loadPlaylists() {
+        NetworkManager.shared.fetchPlaylists { [weak self] result in
+            DispatchQueue.main.async {
+                switch result {
+                case .success(let playlists):
+                    self?.playlists = playlists
+                case .failure(let error):
+                    print("Error loading playlists: \(error.localizedDescription)")
+                }
+            }
+        }
     }
     
     func filterTracks(with query: String) {

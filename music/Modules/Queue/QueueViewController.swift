@@ -71,7 +71,7 @@ class QueueViewController: UIViewController, UITableViewDataSource, UITableViewD
     
     private func setupConstraints() {
         NSLayoutConstraint.activate([
-            returnButton.topAnchor.constraint(equalTo: view.topAnchor, constant: 20),
+            returnButton.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 20),
             returnButton.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 20),
             returnButton.widthAnchor.constraint(equalToConstant: 30),
             returnButton.heightAnchor.constraint(equalToConstant: 30),
@@ -90,7 +90,7 @@ class QueueViewController: UIViewController, UITableViewDataSource, UITableViewD
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         let cell = tableView.dequeueReusableCell(withIdentifier: "TrackCell", for: indexPath) as! TrackCell
         let track = viewModel.queue[indexPath.row]
-        cell.configure(with: track, isMyMusic: true)
+//        cell.configure(with: track, isMyMusic: true)
         cell.delegate = self
         
         if track == MusicPlayerManager.shared.getCurrentTrack() {
@@ -128,18 +128,48 @@ class QueueViewController: UIViewController, UITableViewDataSource, UITableViewD
 }
 
 extension QueueViewController: TrackContextMenuDelegate {
-    func didSelectAddToQueue(track: Track) {
-        MusicPlayerManager.shared.addTrackToQueue(track: track)
+    func didSelectAddToQueue(track: TrackRepresentable) {
+        let trackToAdd: Track
+        if let t = track as? Track {
+            trackToAdd = t
+        } else if let tr = track as? TrackResponse {
+            trackToAdd = tr.toTrack()
+        } else {
+            return
+        }
+        MusicPlayerManager.shared.addTrackToQueue(track: trackToAdd)
         viewModel.updateQueue()
     }
     
-    func didSelectGoToArtist(track: Track) {
-        let artistVC = ArtistViewController(viewModel: ArtistViewModel(artistName: track.artist))
-        artistVC.navigationItem.hidesBackButton = true
-        navigationController?.pushViewController(artistVC, animated: true)
+    func didSelectGoToArtist(track: TrackRepresentable) {
+        if track.artists.count > 1 {
+            showArtistSelectionAlert(for: track)
+        } else {
+            navigateToArtist(track.artist)
+        }
     }
     
-    func didSelectAddToPlaylist(track: Track) {
+    private func showArtistSelectionAlert(for track: TrackRepresentable) {
+        let alert = UIAlertController(title: "Выберите артиста", message: nil, preferredStyle: .actionSheet)
+        
+        for artist in track.artists {
+            alert.addAction(UIAlertAction(title: artist, style: .default) { _ in
+                self.navigateToArtist(artist)
+            })
+        }
+        
+        alert.addAction(UIAlertAction(title: "Отмена", style: .cancel))
+        
+        present(alert, animated: true)
+    }
+    
+    private func navigateToArtist(_ artistName: String) {
+        let artistVC = ArtistViewController(viewModel: ArtistViewModel(artistName: artistName))
+        artistVC.navigationItem.hidesBackButton = true
+        navigationController?.pushViewController(artistVC, animated: false)
+    }
+    
+    func didSelectAddToPlaylist(track: TrackRepresentable) {
         let playlistMenu = UIAlertController(title: "Добавить в плейлист", message: nil, preferredStyle: .actionSheet)
         
         playlistMenu.addAction(UIAlertAction(title: "Создать плейлист", style: .default, handler: { _ in
@@ -149,7 +179,7 @@ extension QueueViewController: TrackContextMenuDelegate {
         
         for playlist in PlaylistManager.shared.getPlaylists() {
            playlistMenu.addAction(UIAlertAction(title: playlist.title, style: .default, handler: { _ in
-               PlaylistManager.shared.addTrackToPlaylist(track, playlist)
+               PlaylistManager.shared.addTrackToPlaylist(track as! Track, playlist)
            }))
         }
         
@@ -158,7 +188,8 @@ extension QueueViewController: TrackContextMenuDelegate {
         self.present(playlistMenu, animated: true)
     }
     
-    func didSelectDeleteTrack(track: Track) {
+    func didSelectDeleteTrack(track: TrackRepresentable) {
+        let track = track as! Track
         MusicPlayerManager.shared.deleteTrack(track)
         
         if let index = viewModel.queue.firstIndex(where: { $0 == track }) {

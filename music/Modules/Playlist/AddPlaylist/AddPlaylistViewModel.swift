@@ -3,44 +3,83 @@ import UIKit
 import Foundation
 
 class AddPlaylistViewModel {
-    @Published var tracks: [Track] = []
+    @Published var tracks: [SelectableTrack] = []
     
     private var cancellables = Set<AnyCancellable>()
     
-    func loadMyTracks() async {
-        guard let login = UserDefaults.standard.string(forKey: "savedLogin") else {
-            print("Error: User is not logged in")
-            return
+    func loadMyTracks() {
+        NetworkManager.shared.fetchTracks { [weak self] result in
+            DispatchQueue.main.async {
+                switch result {
+                case .success(let trackResponses):
+                    self?.tracks = trackResponses.map { SelectableTrack(base: $0, isSelected: false) }
+                case .failure(let error):
+                    print("Error: \(error.localizedDescription)")
+                }
+            }
         }
-        tracks = await MusicManager.shared.getTracksByLogin(login)
-        print("Get \(tracks.count) tracks of [\(login)] for creating of playlist")
     }
     
     func toggleTrackSelection(at index: Int) {
+        guard tracks.indices.contains(index) else { return }
         tracks[index].isSelected.toggle()
     }
     
     private func unselectAllTracks() {
-        tracks.forEach { track in
-            track.isSelected = false
+        tracks.forEach { $0.isSelected = false }
+    }
+    
+    func createPlaylist(title: String, navigationController: UINavigationController) {
+        let selectedTracks = tracks.filter { $0.isSelected }
+        let trackIds = selectedTracks.compactMap { $0.base.serverId }
+        
+        NetworkManager.shared.createPlaylist(title: title) { [weak self] result in
+            switch result {
+            case .success(let playlist):
+                self?.addTracksToPlaylist(playlistId: playlist.id, trackIds: trackIds, navigationController: navigationController)
+            case .failure(let error):
+                self?.showError(message: error.localizedDescription)
+            }
         }
     }
     
-    func createPlaylist(title: String, tracks: [Track], image: UIImage?, navigationController: UINavigationController) {
+    private func addTracksToPlaylist(playlistId: Int, trackIds: [Int], navigationController: UINavigationController) {
+        let group = DispatchGroup()
+        var errors: [Error] = []
         
-        var playlistImage: UIImage
-        if image == nil {
-            playlistImage = UIImage(systemName: "music.house.fill")!
-        } else {
-            playlistImage = image!
+        for trackId in trackIds {
+            group.enter()
+            NetworkManager.shared.addTrackToPlaylist(playlistId: playlistId, trackId: trackId) { result in
+                if case .failure(let error) = result {
+                    errors.append(error)
+                }
+                group.leave()
+            }
         }
         
-        let playlist = Playlist(title: title, image: playlistImage, tracks: tracks)
-        PlaylistManager.shared.addPlaylist(playlist)
+        group.notify(queue: .main) { [weak self] in
+            if errors.isEmpty {
+                self?.handleSuccess(navigationController: navigationController)
+            } else {
+                self?.showError(message: "Error adding \(errors.count) tracks")
+            }
+        }
+    }
+    
+    private func handleSuccess(navigationController: UINavigationController) {
         unselectAllTracks()
-        
-        let playlistVC = PlaylistViewController(viewModel: PlaylistViewModel(playlist: playlist))
-        playlistVC.navigationItem.hidesBackButton = true
-        navigationController.pushViewController(playlistVC, animated: false)
+        let alert = UIAlertController(
+            title: "Success",
+            message: "Playlist created successfully",
+            preferredStyle: .alert
+        )
+        alert.addAction(UIAlertAction(title: "OK", style: .default) { _ in
+            navigationController.popViewController(animated: true)
+        })
+        navigationController.present(alert, animated: true)
+    }
+    
+    private func showError(message: String) {
+        print("Error: \(message)")
     }
 }

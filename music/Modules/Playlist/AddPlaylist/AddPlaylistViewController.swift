@@ -61,9 +61,7 @@ class AddPlaylistViewController: BaseViewController, UITableViewDelegate, UITabl
             }
             .store(in: &cancellables)
         
-        Task {
-            await viewModel.loadMyTracks()
-        }
+        viewModel.loadMyTracks()
     }
     
     private func setupUI() {
@@ -146,14 +144,7 @@ class AddPlaylistViewController: BaseViewController, UITableViewDelegate, UITabl
     }
     
     @objc private func saveButtonTapped() {
-        let selectedTracks = viewModel.tracks.filter { $0.isSelected }
-        guard !selectedTracks.isEmpty, let title = titleTextField.text, !title.isEmpty else {
-            errorLabel.text = "Input the title and choose tracks"
-            errorLabel.isHidden = false
-            return
-        }
-        
-        viewModel.createPlaylist(title: titleTextField.text!, tracks: selectedTracks, image: playlistImageView.image, navigationController: self.navigationController!)
+        viewModel.createPlaylist(title: titleTextField.text ?? "Untitled", navigationController: navigationController!)
     }
     
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
@@ -171,6 +162,11 @@ class AddPlaylistViewController: BaseViewController, UITableViewDelegate, UITabl
         }
         
         return cell
+    }
+    
+    func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
+        viewModel.toggleTrackSelection(at: indexPath.row)
+        tableView.reloadRows(at: [indexPath], with: .automatic)
     }
 }
 

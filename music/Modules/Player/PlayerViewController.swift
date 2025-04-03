@@ -18,18 +18,25 @@ class PlayerViewController: UIViewController {
     private let queueButton = UIButton()
     private let shuffleButton = UIButton()
     private let restoreButton = UIButton()
+    private let repeatButton = UIButton()
     
     override func viewDidLoad() {
         super.viewDidLoad()
         setupUI()
         bindViewModel()
+        
+        updatePlayPauseButton()
+        updateRepeatButton()
+        updateShuffleState()
     }
     
     private func bindViewModel() {
         viewModel.$track
             .receive(on: RunLoop.main)
             .sink { [weak self] track in
-                self?.configure(with: track!)
+                guard let track = track else { return }
+                self?.configure(with: track)
+                self?.updatePlayPauseButton()
             }
             .store(in: &cancellables)
         
@@ -47,33 +54,64 @@ class PlayerViewController: UIViewController {
                 self?.progressSlider.value = progressValue
             }
             .store(in: &cancellables)
+        
+        NotificationCenter.default.publisher(for: .repeatModeDidChange)
+            .receive(on: RunLoop.main)
+            .sink { [weak self] _ in
+                self?.updateRepeatButton()
+            }
+            .store(in: &cancellables)
+        
+        NotificationCenter.default.publisher(for: .queueDidChange)
+            .receive(on: RunLoop.main)
+            .sink { [weak self] _ in
+                self?.viewModel.updateButtons(self?.previousTrackButton ?? UIButton(),
+                                            self?.nextTrackButton ?? UIButton())
+            }
+            .store(in: &cancellables)
     }
     
     func configure(with track: Track) {
         titleLabel.text = track.title
         artistButton.setTitle(track.artist, for: .normal)
-        viewModel.updateButtons(previousTrackButton, nextTrackButton)
         trackImageView.image = track.image
+        
+        viewModel.updateButtons(previousTrackButton, nextTrackButton)
+        updatePlayPauseButton()
+        
         if let dominantColor = track.image.dominnatColor() {
-            self.view.backgroundColor = dominantColor
+            UIView.animate(withDuration: 0.3) {
+                self.view.backgroundColor = dominantColor
+            }
         }
     }
     
-    private func updatePlayPauseButton() {
-        let buttonImage = UIImage(systemName: viewModel.isPlaying ? "pause.fill" : "play.fill")
+    func updatePlayPauseButton() {
+        let buttonImage = UIImage(systemName: MusicPlayerManager.shared.isPlaying ? "pause.fill" : "play.fill")
         playPauseButton.setImage(buttonImage, for: .normal)
     }
     
     @objc private func playOrStopTapped() {
         viewModel.playOrPause()
+        updatePlayPauseButton()
+        
+        UIView.animate(withDuration: 0.2, animations: {
+            self.playPauseButton.transform = CGAffineTransform(scaleX: 0.8, y: 0.8)
+        }) { _ in
+            UIView.animate(withDuration: 0.2) {
+                self.playPauseButton.transform = .identity
+            }
+        }
     }
     
     @objc private func playPreviousTrackTapped() {
         viewModel.playPreviousTrack()
+        updatePlayPauseButton()
     }
     
     @objc private func playNextTrackTapped() {
         viewModel.playNextTrack()
+        updatePlayPauseButton()
     }
     
     @objc private func minimizeScreenTapped() {
@@ -92,7 +130,30 @@ class PlayerViewController: UIViewController {
     }
     
     @objc private func openArtist() {
-        let artistName = artistButton.titleLabel!.text ?? "artist"
+        guard let track = viewModel.track else { return }
+        
+        if track.artists.count > 1 {
+            showArtistSelectionAlert(for: track)
+        } else {
+            navigateToArtist(track.artist)
+        }
+    }
+    
+    private func showArtistSelectionAlert(for track: Track) {
+        let alert = UIAlertController(title: "Выберите артиста", message: nil, preferredStyle: .actionSheet)
+        
+        for artist in track.artists {
+            alert.addAction(UIAlertAction(title: artist, style: .default) { _ in
+                self.navigateToArtist(artist)
+            })
+        }
+        
+        alert.addAction(UIAlertAction(title: "Отмена", style: .cancel))
+        
+        present(alert, animated: true)
+    }
+                            
+    private func navigateToArtist(_ artistName: String) {
         let artistVC = ArtistViewController(viewModel: ArtistViewModel(artistName: artistName))
         artistVC.navigationItem.hidesBackButton = true
         navigationController?.pushViewController(artistVC, animated: false)
@@ -108,6 +169,32 @@ class PlayerViewController: UIViewController {
         MusicPlayerManager.shared.restoreOriginalQueue()
         shuffleButton.isHidden = false
         restoreButton.isHidden = true
+    }
+    
+    @objc private func repeatButtonTapped() {
+        MusicPlayerManager.shared.toggleRepeatMode()
+        updateRepeatButton()
+    }
+    
+    private func updateRepeatButton() {
+        let mode = MusicPlayerManager.shared.getRepeatMode()
+        var imageName: String
+        var tintColor: UIColor
+        
+        switch mode {
+        case .off:
+            imageName = "repeat"
+            tintColor = .systemGray
+        case .one:
+            imageName = "repeat.1"
+            tintColor = .systemPurple
+        case .all:
+            imageName = "repeat"
+            tintColor = .systemPurple
+        }
+        
+        repeatButton.setImage(UIImage(systemName: imageName), for: .normal)
+        repeatButton.tintColor = tintColor
     }
     
     private func updateShuffleState() {
@@ -153,6 +240,9 @@ class PlayerViewController: UIViewController {
         restoreButton.addTarget(self, action: #selector(restoreTapped), for: .touchUpInside)
         restoreButton.isHidden = true
         
+        repeatButton.setImage(UIImage(systemName: "repeat"), for: .normal)
+        repeatButton.addTarget(self, action: #selector(repeatButtonTapped), for: .touchUpInside)
+        
         for subview in [
             titleLabel,
             artistButton,
@@ -164,13 +254,15 @@ class PlayerViewController: UIViewController {
             progressSlider,
             queueButton,
             shuffleButton,
-            restoreButton
+            restoreButton,
+            repeatButton
         ] {
             view.addSubview(subview)
             subview.translatesAutoresizingMaskIntoConstraints = false
         }
         
         setupConstraints()
+        updateRepeatButton()
     }
     
     private func setupConstraints() {
@@ -224,7 +316,12 @@ class PlayerViewController: UIViewController {
             restoreButton.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 20),
             restoreButton.topAnchor.constraint(equalTo: playPauseButton.topAnchor),
             restoreButton.heightAnchor.constraint(equalToConstant: 50),
-            restoreButton.widthAnchor.constraint(equalToConstant: 50)
+            restoreButton.widthAnchor.constraint(equalToConstant: 50),
+            
+            repeatButton.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 20),
+            repeatButton.topAnchor.constraint(equalTo: restoreButton.bottomAnchor, constant: 20),
+            repeatButton.widthAnchor.constraint(equalToConstant: 50),
+            repeatButton.heightAnchor.constraint(equalToConstant: 50)
         ])
     }
 }
@@ -251,5 +348,24 @@ extension UIImage {
         let b = CGFloat(data![2]) / 255.0
         
         return UIColor(red: r, green: g, blue: b, alpha: 1.0)
+    }
+}
+
+extension UIButton {
+    func addTouchAnimation() {
+        addTarget(self, action: #selector(touchDown), for: [.touchDown, .touchDragEnter])
+        addTarget(self, action: #selector(touchUp), for: [.touchUpInside, .touchDragExit, .touchCancel])
+    }
+    
+    @objc private func touchDown() {
+        UIView.animate(withDuration: 0.1) {
+            self.transform = CGAffineTransform(scaleX: 0.9, y: 0.9)
+        }
+    }
+    
+    @objc private func touchUp() {
+        UIView.animate(withDuration: 0.1) {
+            self.transform = .identity
+        }
     }
 }

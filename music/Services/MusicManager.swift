@@ -11,8 +11,12 @@ class MusicManager {
     private let fileManager = FileManager.default
     private let userDefaultsKey = "savedTracks"
     
+    private var artistsStatsByUser: [UserArtistStats] = []
+    private let artistsStatsKey = "artistsStats"
+    
     private init() {
         loadTracks()
+        loadArtistsStats()
     }
     
     // Addition of track
@@ -78,7 +82,7 @@ class MusicManager {
             let imageData = try await metadata.first(where: { $0.commonKey?.rawValue == "artwork"})?.load(.dataValue)
             let image = imageData != nil ? UIImage(data: imageData!)! : UIImage(systemName: "music.note")!
             
-            let newTrack = Track(title: title, artist: artistName, image: image, url: trackURL)
+            let newTrack = Track(title: title, artist: artistName, image: image, localURL: trackURL)
             
             if trackExistsByUser(login, newTrack) {
                 return
@@ -114,6 +118,32 @@ class MusicManager {
         guard let login = UserDefaults.standard.string(forKey: "savedLogin") else {
             print("Error: User is not logged in")
             return
+        }
+        
+        NetworkManager.shared.deleteTrack(trackID: track.id) { result in
+            DispatchQueue.main.async {
+                switch result {
+                case .success:
+                    let trackPath = track.url.path
+                    do {
+                        if self.fileManager.fileExists(atPath: trackPath) {
+                            try self.fileManager.removeItem(atPath: trackPath)
+                            print("Local track file deleted: \(track.title)")
+                        }
+                    } catch {
+                        print("Failed to delete local track file: \(error)")
+                    }
+                    
+                    if let index = self.tracksByUser.firstIndex(where: { $0.0 == login && $0.1 == track }) {
+                        self.tracksByUser.remove(at: index)
+                        self.saveTracks()
+                        print("Track [\(track.title)] deleted from music")
+                    }
+                    
+                case .failure(let error):
+                    print("Failed to delete track from server: \(error.localizedDescription)")
+                }
+            }
         }
         
         guard let index = tracksByUser.firstIndex(where: { $0.0 == login && $0.1 == track }) else {
@@ -159,5 +189,93 @@ class MusicManager {
         } catch {
             print("Failed to load tracks: \(error)")
         }
+    }
+    
+    func updateTrackStats(track: Track) {
+        guard let login = UserDefaults.standard.string(forKey: "savedLogin") else {
+            print("Error: User is not logged in")
+            return
+        }
+        
+        if let index = tracksByUser.firstIndex(where: { $0.0 == login && $0.1 == track }) {
+            tracksByUser[index].1 = track
+            saveTracks()
+        }
+    }
+    
+    func getTopTracks(by login: String, limit: Int = 10) async -> [Track] {
+        return tracksByUser
+            .filter { $0.0 == login }
+            .map { $0.1 }
+            .sorted { $0.playCount > $1.playCount }
+            .prefix(limit)
+            .map { $0 }
+    }
+    
+    func getRecentlyPlayed(by login: String, limit: Int = 10) async -> [Track] {
+        return tracksByUser
+            .filter { $0.0 == login && $0.1.lastPlayedDate != nil }
+            .map { $0.1 }
+            .sorted { $0.lastPlayedDate! > $1.lastPlayedDate! }
+            .prefix(limit)
+            .map { $0 }
+    }
+    
+    private func loadArtistsStats() {
+        guard let data = UserDefaults.standard.data(forKey: artistsStatsKey) else { return }
+        
+        do {
+            artistsStatsByUser = try JSONDecoder().decode([UserArtistStats].self, from: data)
+        } catch {
+            print("Failed to load artists stats: \(error)")
+        }
+    }
+    
+    private func saveArtistsStats() {
+        do {
+            let data = try JSONEncoder().encode(artistsStatsByUser)
+            UserDefaults.standard.set(data, forKey: artistsStatsKey)
+        } catch {
+            print("Failed to save artists stats: \(error)")
+        }
+    }
+    
+    func updateArtistStats(for track: Track) {
+        guard let login = UserDefaults.standard.string(forKey: "savedLogin") else { return }
+        
+        for artistName in track.artists {
+            if let userIndex = artistsStatsByUser.firstIndex(where: { $0.login == login }) {
+                if let artistIndex = artistsStatsByUser[userIndex].stats.firstIndex(where: { $0.name == artistName }) {
+                    artistsStatsByUser[userIndex].stats[artistIndex].incrementPlayCount()
+                } else {
+                    let newStats = ArtistStats(name: artistName, playCount: 1, lastPlayedDate: Date())
+                    artistsStatsByUser[userIndex].stats.append(newStats)
+                }
+            } else {
+                let newStats = ArtistStats(name: artistName, playCount: 1, lastPlayedDate: Date())
+                artistsStatsByUser.append(UserArtistStats(login: login, stats: [newStats]))
+            }
+        }
+        
+        saveArtistsStats()
+    }
+    
+    func getTopArtists(by login: String, limit: Int = 10) -> [ArtistStats] {
+        return artistsStatsByUser
+            .first { $0.login == login }?
+            .stats
+            .sorted { $0.playCount > $1.playCount }
+            .prefix(limit)
+            .map { $0 } ?? []
+    }
+    
+    func getRecentlyPlayedArtists(by login: String, limit: Int = 10) -> [ArtistStats] {
+        return artistsStatsByUser
+            .first { $0.login == login }?
+            .stats
+            .filter { $0.lastPlayedDate != nil }
+            .sorted { $0.lastPlayedDate! > $1.lastPlayedDate! }
+            .prefix(limit)
+            .map { $0 } ?? []
     }
 }
