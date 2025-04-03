@@ -10,6 +10,7 @@ class LoginViewController: UIViewController {
     }
     
     // MARK: - Actions
+    
     @objc private func loginTapped() {
         guard let login = loginTextField.text, !login.isEmpty,
               let password = passwordTextField.text, !password.isEmpty else {
@@ -18,57 +19,26 @@ class LoginViewController: UIViewController {
             return
         }
         
-        let dbPath = getDocumentsFilePath(filename: "testdb")
-        do {
-            let dbContent = try String(contentsOfFile: dbPath, encoding: .utf8)
-            let dbLines = dbContent.components(separatedBy: .newlines)
-            
-            var isLoginCorrect = false
-            var isPasswordCorrect = false
-            
-            for line in dbLines {
-                let trimmedLine = line.trimmingCharacters(in: .whitespacesAndNewlines)
-                if trimmedLine.isEmpty {
-                    continue
-                }
+        activityIndicator.startAnimating()
+        
+        NetworkManager.shared.loginUser(login: login, password: password) { [weak self] result in
+            DispatchQueue.main.async {
+                self?.activityIndicator.stopAnimating()
                 
-                let components = trimmedLine.components(separatedBy: ":")
-                if components.count == 2 {
-                    let storedLogin = components[0]
-                    let storedPassword = components[1]
+                switch result {
+                case .success(let loginResponse):
+                    UserDefaults.standard.set(login, forKey: "savedLogin")
+                    UserDefaults.standard.set(loginResponse.token, forKey: "jwtToken")
                     
-                    if login == storedLogin {
-                        isLoginCorrect = true
-                        if password == storedPassword {
-                            isPasswordCorrect = true
-                            break
-                        }
-                    }
+                    let mainVC = MainViewController()
+                    self?.navigationItem.hidesBackButton = true
+                    self?.navigationController?.pushViewController(mainVC, animated: true)
+                    
+                case .failure(let error):
+                    self?.errorLabel.text = error.localizedDescription
+                    self?.errorLabel.isHidden = false
                 }
             }
-            
-            if !isLoginCorrect {
-                errorLabel.text = "Login is incorrect"
-                errorLabel.isHidden = false
-            } else if !isPasswordCorrect {
-                errorLabel.text = "Password is wrong"
-                errorLabel.isHidden = false
-            } else {
-                errorLabel.isHidden = true
-                
-                // Сохраняем логин и пароль в UserDefaults
-                UserDefaults.standard.set(login, forKey: "savedLogin")
-                UserDefaults.standard.set(password, forKey: "savedPassword")
-                
-                // Переходим на главный экран
-                let mainVC = MainViewController()
-                mainVC.navigationItem.hidesBackButton = true
-                navigationController?.pushViewController(mainVC, animated: true)
-            }
-        } catch {
-            print("Error file reading: \(error)")
-            errorLabel.text = "An error occurred. Please try again."
-            errorLabel.isHidden = false
         }
     }
     
@@ -85,6 +55,7 @@ class LoginViewController: UIViewController {
     }
     
     // MARK: - Setup Actions
+    
     private func setupActions() {
         showPasswordButton.addTarget(self, action: #selector(togglePasswordVisibility), for: .touchUpInside)
         loginButton.addTarget(self, action: #selector(loginTapped), for: .touchUpInside)
@@ -92,6 +63,7 @@ class LoginViewController: UIViewController {
     }
     
     // MARK: - Setup UI
+    
     private func setupUI() {
         title = "Login"
         view.backgroundColor = .systemBackground
@@ -103,10 +75,12 @@ class LoginViewController: UIViewController {
             loginButton,
             registerButton,
             errorLabel,
+            activityIndicator
         ]
         
         for subview in UIElements {
             view.addSubview(subview)
+            subview.translatesAutoresizingMaskIntoConstraints = false
         }
         
         setupConstraints()
@@ -114,10 +88,6 @@ class LoginViewController: UIViewController {
     
     // MARK: - Setup Constraints
     private func setupConstraints() {
-        for subview in view.subviews {
-            subview.translatesAutoresizingMaskIntoConstraints = false
-        }
-        
         NSLayoutConstraint.activate([
             loginTextField.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 50),
             loginTextField.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 20),
@@ -142,11 +112,15 @@ class LoginViewController: UIViewController {
 
             errorLabel.topAnchor.constraint(equalTo: loginButton.bottomAnchor, constant: 20),
             errorLabel.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 20),
-            errorLabel.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -20)
+            errorLabel.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -20),
+            
+            activityIndicator.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+            activityIndicator.centerYAnchor.constraint(equalTo: view.centerYAnchor)
         ])
     }
     
     // MARK: - UI Elements
+    
     private let loginTextField: UITextField = {
         let textField = UITextField()
         textField.placeholder = "Login"
@@ -198,5 +172,12 @@ class LoginViewController: UIViewController {
         label.isHidden = true
         label.translatesAutoresizingMaskIntoConstraints = false
         return label
+    }()
+    
+    private let activityIndicator: UIActivityIndicatorView = {
+        let indicator = UIActivityIndicatorView(style: .medium)
+        indicator.translatesAutoresizingMaskIntoConstraints = false
+        indicator.hidesWhenStopped = true
+        return indicator
     }()
 }

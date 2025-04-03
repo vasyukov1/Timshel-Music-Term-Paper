@@ -2,7 +2,6 @@ import Combine
 import Foundation
 
 class ArtistViewModel {
-    
     let artistName: String
     
     @Published var tracks: [Track] = []
@@ -19,13 +18,11 @@ class ArtistViewModel {
             return
         }
         Task {
-//            tracks = await MusicManager.shared.getTracksByLogin(login).filter { $0.artist == artistName }
             tracks = await MusicManager.shared.getTracksByLogin(login).filter { $0.artists.contains(artistName)}
             print("Tracks loaded: \(tracks.count)")
         }
     }
     
-    // Track selection and set queue
     func selectTrack(at index: Int) {
         MusicPlayerManager.shared.setQueue(tracks: tracks, startIndex: index)
     }
