@@ -177,7 +177,7 @@ extension SearchViewController: UICollectionViewDataSource, UICollectionViewDele
     func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
         let playlistResponse = viewModel.playlists[indexPath.item]
         let playlistVC = PlaylistViewController(viewModel: PlaylistViewModel(playlistResponse: playlistResponse))
-        navigationController?.pushViewController(playlistVC, animated: true)
+        navigationController?.pushViewController(playlistVC, animated: false)
     }
     
     func collectionView(_ collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, sizeForItemAt indexPath: IndexPath) -> CGSize {

@@ -62,8 +62,8 @@ class EditPlaylistViewController: BaseViewController {
         super.viewDidLoad()
         bindViewModel()
         
-        playlistImageView.image = viewModel.playlist.image
-        titleTextField.text = viewModel.playlist.title
+//        playlistImageView.image = viewModel.playlist.image
+        titleTextField.text = viewModel.playlist.name
     }
     
     private func bindViewModel() {
@@ -170,14 +170,16 @@ class EditPlaylistViewController: BaseViewController {
     }
     
     @objc private func saveButtonTapped() {
-        let selectedTracks = viewModel.tracks.filter { $0.isSelected }
+//        let selectedTracks = viewModel.tracks
+//            .filter { $0.isSelected }
+//            .map { $0.toTrack() }
         guard let title = titleTextField.text, !title.isEmpty else {
             errorLabel.text = "Input the title"
             errorLabel.isHidden = false
             return
         }
         
-        viewModel.editPlaylist(title: titleTextField.text!, tracks: selectedTracks, image: playlistImageView.image, navigationController: self.navigationController!)
+//        viewModel.editPlaylist(title: titleTextField.text!, tracks: selectedTracks, image: playlistImageView.image, navigationController: self.navigationController!)
     }
     
     @objc private func deleteImageButtonTapped() {
@@ -185,6 +187,27 @@ class EditPlaylistViewController: BaseViewController {
             playlistImageView.image = nil
             plusIcon.isHidden = false
         }
+    }
+}
+
+extension EditPlaylistViewController: UITableViewDataSource, UITableViewDelegate {
+    func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
+        return viewModel.tracks.count
+    }
+    
+    func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
+        let cell = tableView.dequeueReusableCell(withIdentifier: "SelectTrackCell", for: indexPath) as! SelectTrackCell
+        let track = viewModel.tracks[indexPath.row]
+
+        let isSelected = viewModel.isTrackSelected(track.id)
+        cell.configure(with: track.toTrack(), isSelected: isSelected)
+
+        cell.selectTrackAction = { [weak self] in
+            self?.viewModel.toggleTrackSelection(trackId: track.id)
+            tableView.reloadRows(at: [indexPath], with: .automatic)
+        }
+
+        return cell
     }
 }
 
@@ -202,24 +225,5 @@ extension EditPlaylistViewController: PHPickerViewControllerDelegate {
                 }
             }
         }
-    }
-}
-
-extension EditPlaylistViewController: UITableViewDataSource, UITableViewDelegate {
-    func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        return viewModel.tracks.count
-    }
-    
-    func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
-        let cell = tableView.dequeueReusableCell(withIdentifier: "SelectTrackCell", for: indexPath) as! SelectTrackCell
-        let track = viewModel.tracks[indexPath.row]
-//        cell.configure(with: track as! TrackRepresentable as! SelectableTrack)
-        
-        cell.selectTrackAction = { [weak self] in
-            self?.viewModel.toggleTrackSelection(at: indexPath.row)
-            tableView.reloadData()
-        }
-        
-        return cell
     }
 }

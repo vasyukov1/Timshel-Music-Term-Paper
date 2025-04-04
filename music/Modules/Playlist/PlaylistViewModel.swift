@@ -7,44 +7,32 @@ class PlaylistViewModel {
     
     init(playlistResponse: PlaylistResponse) {
         self.playlist = playlistResponse
+    }
+    
+    func loadPlaylistDetails() {
         loadTracks()
-    }
-    
-    func loadPlaylistData() {
-        loadPlaylistDetails()
-        loadTracks()
-    }
-    
-    private func loadPlaylistDetails() {
-        NetworkManager.shared.fetchPlaylistDetails(id: playlist.id) { [weak self] result in
-            switch result {
-            case .success(let playlist):
-                self?.playlist = playlist
-                self?.tracks = playlist.tracks
-            case .failure(let error):
-                print("Error loading playlist details: \(error.localizedDescription)")
-            }
-        }
-    }
-    
-    private func loadTracks() {
-//        NetworkManager.shared.fetchPlaylistTracks(id: playlist.id) { [weak self] result in
+        // Есть какие-то проблемы. Всегда возвращается ничего.
+        // Возможно, ошибка добавления трека на сервер.
+        
+//        NetworkManager.shared.fetchPlaylistDetails(id: playlist.id) { [weak self] result in
 //            switch result {
-//            case .success(let tracks):
-//                self?.tracks = tracks
+//            case .success(let playlist):
+//                self?.playlist = playlist
+//                self?.tracks = playlist.tracks
+//                print("We have \(playlist.tracks.count) треков для плейлсита \(playlist.name)")
 //            case .failure(let error):
-//                print("Error loading tracks: \(error.localizedDescription)")
+//                print("Error loading playlist details: \(error.localizedDescription)")
 //            }
 //        }
     }
     
-//    func createEditViewModel() -> EditPlaylistViewModel {
-//        return EditPlaylistViewModel(
-//            playlistId: playlist.id,
-//            initialTitle: playlist.name,
-//            initialDescription: playlist.description ?? ""
-//        )
-//    }
+    private func loadTracks() {
+        tracks = [
+            TrackResponse(id: 1, title: "Mock Track 1", artist: "Artist 1", album: "", genre: "", duration: 180, createdAt: "", image_url: ""),
+            TrackResponse(id: 1, title: "Mock Track 2", artist: "Artist 2", album: "", genre: "", duration: 180, createdAt: "", image_url: ""),
+            TrackResponse(id: 1, title: "Mock Track 3", artist: "Artist 3", album: "", genre: "", duration: 180, createdAt: "", image_url: ""),
+        ]
+    }
     
     func playTrack(at index: Int) {
         guard index < tracks.count else { return }
