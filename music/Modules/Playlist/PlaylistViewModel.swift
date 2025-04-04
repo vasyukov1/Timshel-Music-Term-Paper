@@ -48,7 +48,7 @@ class PlaylistViewModel {
     
     func playTrack(at index: Int) {
         guard index < tracks.count else { return }
-        let track = tracks[index].toTrack()
+//        let track = tracks[index].toTrack()
 //        MusicPlayerManager.shared.setQueue(tracks: tracks, startIndex: 0)
 //        MusicPlayerManager.shared.playTrack(0)
     }

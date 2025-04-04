@@ -145,30 +145,26 @@ class NetworkManager {
                      artist: String,
                      album: String?,
                      genre: String?,
+                     image: UIImage?,
                      completion: @escaping (Result<TrackResponse, Error>) -> Void) {
-        // Формируем URL запроса
         let url = URL(string: "\(baseURL)/api/tracks")!
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         
-        // Добавляем заголовок авторизации
         if let token = UserDefaults.standard.string(forKey: "jwtToken") {
             request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         }
         
-        // Формируем boundary для multipart/form-data
         let boundary = "Boundary-\(UUID().uuidString)"
         request.setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
         
-        // Собираем тело запроса
         var body = Data()
         
-        // Добавляем текстовые параметры
         let params: [String: String] = [
             "title": title,
             "artist": artist,
             "album": album ?? "",
-            "genre": genre ?? ""
+            "genre": genre ?? "",
         ]
         
         for (key, value) in params {
@@ -177,9 +173,8 @@ class NetworkManager {
             body.append("\(value)\r\n".data(using: .utf8)!)
         }
         
-        // Добавляем файл
         let filename = fileURL.lastPathComponent
-        let mimetype = "audio/mpeg" // Здесь можно определить MIME-тип динамически, если нужно
+        let mimetype = "audio/mpeg"
         do {
             let fileData = try Data(contentsOf: fileURL)
             body.append("--\(boundary)\r\n".data(using: .utf8)!)
@@ -192,11 +187,17 @@ class NetworkManager {
             return
         }
         
-        // Завершающий boundary
+        if let image = image, let imageData = image.jpegData(compressionQuality: 0.9) {
+            body.append("--\(boundary)\r\n".data(using: .utf8)!)
+            body.append("Content-Disposition: form-data; name=\"image\"; filename=\"cover.jpg\"\r\n".data(using: .utf8)!)
+            body.append("Content-Type: image/jpeg\r\n\r\n".data(using: .utf8)!)
+            body.append(imageData)
+            body.append("\r\n".data(using: .utf8)!)
+        }
+        
         body.append("--\(boundary)--\r\n".data(using: .utf8)!)
         request.httpBody = body
         
-        // Отправляем запрос
         URLSession.shared.dataTask(with: request) { data, response, error in
             if let error = error {
                 completion(.failure(error))
@@ -274,10 +275,65 @@ class NetworkManager {
             }
         }.resume()
     }
+    
+    // MARK: - Fetch Track Image
+    func fetchTrackImage(trackId: Int, completion: @escaping (Result<UIImage, Error>) -> Void) {
+        let urlString = "\(baseURL)/api/tracks/\(trackId)/image"
+        guard let url = URL(string: urlString) else {
+            completion(.failure(NSError(domain: "Invalid URL", code: 0)))
+            return
+        }
+        
+        var request = URLRequest(url: url)
+        request.httpMethod = "GET"
+        
+        // Добавляем JWT токен если есть
+        if let token = UserDefaults.standard.string(forKey: "jwtToken") {
+            request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        }
+        
+        URLSession.shared.dataTask(with: request) { data, response, error in
+            // Обработка ошибок сети
+            if let error = error {
+                DispatchQueue.main.async {
+                    completion(.failure(error))
+                }
+                return
+            }
+            
+            // Проверка HTTP статуса
+            guard let httpResponse = response as? HTTPURLResponse else {
+                DispatchQueue.main.async {
+                    completion(.failure(NSError(domain: "Invalid response", code: 0)))
+                }
+                return
+            }
+            
+            guard (200...299).contains(httpResponse.statusCode) else {
+                let statusCode = httpResponse.statusCode
+                DispatchQueue.main.async {
+                    completion(.failure(NSError(domain: "HTTP Error", code: statusCode)))
+                }
+                return
+            }
+            
+            // Конвертация данных в изображение
+            guard let data = data, let image = UIImage(data: data) else {
+                DispatchQueue.main.async {
+                    completion(.failure(NSError(domain: "Invalid image data", code: 0)))
+                }
+                return
+            }
+            
+            DispatchQueue.main.async {
+                completion(.success(image))
+            }
+        }.resume()
+    }
 
     // MARK: Delete Track
     
-    func deleteTrack(trackID: String, completion: @escaping (Result<Void, Error>) -> Void) {
+    func deleteTrack(trackID: Int, completion: @escaping (Result<Void, Error>) -> Void) {
         guard let url = URL(string: "\(baseURL)/api/tracks/\(trackID)") else {
             completion(.failure(NSError(domain: "Invalid URL", code: 0)))
             return
@@ -586,8 +642,6 @@ class NetworkManager {
             }
         }.resume()
     }
-
-
 }
 
 extension NSError {
@@ -605,78 +659,5 @@ extension UIViewController {
         )
         alert.addAction(UIAlertAction(title: "OK", style: .default))
         present(alert, animated: true)
-    }
-}
-
-// MARK: Response
-
-struct UserResponse: Codable {
-    let id: Int
-    let username: String
-    let email: String
-}
-
-struct ResponseWrapper<T: Codable>: Codable {
-    let success: Bool
-    let data: T?
-    let error: String?
-}
-
-struct LoginResponse: Codable {
-    let token: String
-}
-
-struct PlaylistRequest: Codable {
-    let name: String
-    let description: String?
-}
-
-struct PlaylistResponse: Codable {
-    let id: Int
-    let name: String
-    let description: String?
-    let tracks: [TrackResponse]
-    let createdAt: String
-    
-    private enum CodingKeys: String, CodingKey {
-        case id, name, description, tracks, createdAt
-    }
-    
-    init(from decoder: Decoder) throws {
-        let container = try decoder.container(keyedBy: CodingKeys.self)
-        id = try container.decode(Int.self, forKey: .id)
-        name = try container.decode(String.self, forKey: .name)
-        description = try container.decodeIfPresent(String.self, forKey: .description)
-        tracks = try container.decodeIfPresent([TrackResponse].self, forKey: .tracks) ?? []
-        createdAt = try container.decode(String.self, forKey: .createdAt)
-    }
-}
-
-struct AddTrackToPlaylistRequest: Codable {
-    let trackId: Int
-}
-
-struct TrackResponse: Codable, TrackRepresentable {
-    let id: Int
-    let title: String
-    let artist: String
-    let album: String
-    let genre: String
-    let duration: Int
-    let createdAt: String
-    
-    var idString: String {
-        return String(id)
-    }
-    
-    var image: UIImage {
-        return UIImage(systemName: "music.note")!
-    }
-    
-    func toTrack() -> Track {
-        return Track(title: title,
-                     artist: artist,
-                     image: image,
-                     id: String(id))
     }
 }

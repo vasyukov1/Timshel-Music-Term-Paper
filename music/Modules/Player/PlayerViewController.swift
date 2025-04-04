@@ -79,9 +79,22 @@ class PlayerViewController: UIViewController {
         viewModel.updateButtons(previousTrackButton, nextTrackButton)
         updatePlayPauseButton()
         
-        if let dominantColor = track.image.dominnatColor() {
-            UIView.animate(withDuration: 0.3) {
-                self.view.backgroundColor = dominantColor
+        NetworkManager.shared.fetchTrackImage(trackId: track.serverId!) { [weak self] result in
+            switch result {
+            case .success(let image):
+                DispatchQueue.main.async {
+                    self?.trackImageView.image = image
+                    if let dominantColor = image.dominantColor() {
+                        UIView.animate(withDuration: 0.3) {
+                            self!.view.backgroundColor = dominantColor
+                        }
+                    }
+                }
+            case .failure(let error):
+                print("Error loading image: \(error.localizedDescription)")
+                DispatchQueue.main.async {
+                    self?.trackImageView.image = UIImage(systemName: "exclamationmark.triangle")
+                }
             }
         }
     }
@@ -327,25 +340,35 @@ class PlayerViewController: UIViewController {
 }
 
 extension UIImage {
-    func dominnatColor() -> UIColor? {
-        guard let ciImage = CIImage(image: self) else { return nil }
+    func dominantColor() -> UIColor? {
+        guard let cgImage = self.cgImage else { return nil }
+        let context = CIContext(options: [.workingColorSpace: kCFNull!])
         
-        let context = CIContext()
+        let ciImage = CIImage(cgImage: cgImage)
         let parameters = [
             kCIInputImageKey: ciImage,
             kCIInputExtentKey: CIVector(cgRect: ciImage.extent)
         ]
         
-        guard let filter = CIFilter(name: "CIAreaAverage", parameters: parameters) else { return nil }
-        guard let outputImage = filter.outputImage else { return nil }
-                
-        let bitmap = context.createCGImage(outputImage, from: outputImage.extent)
-        let rawData = bitmap?.dataProvider?.data
-        let data = CFDataGetBytePtr(rawData)
+        guard let filter = CIFilter(name: "CIAreaAverage", parameters: parameters),
+              let outputImage = filter.outputImage else { return nil }
         
-        let r = CGFloat(data![0]) / 255.0
-        let g = CGFloat(data![1]) / 255.0
-        let b = CGFloat(data![2]) / 255.0
+        var bitmap = [UInt8](repeating: 0, count: 4)
+        let outputExtent = outputImage.extent
+        let outputSize = CGSize(width: 1, height: 1)
+        
+        context.render(
+            outputImage,
+            toBitmap: &bitmap,
+            rowBytes: 4,
+            bounds: CGRect(origin: .zero, size: outputSize),
+            format: .RGBA8,
+            colorSpace: nil
+        )
+        
+        let r = CGFloat(bitmap[0]) / 255.0
+        let g = CGFloat(bitmap[1]) / 255.0
+        let b = CGFloat(bitmap[2]) / 255.0
         
         return UIColor(red: r, green: g, blue: b, alpha: 1.0)
     }

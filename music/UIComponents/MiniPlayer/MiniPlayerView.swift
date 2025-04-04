@@ -84,6 +84,20 @@ class MiniPlayerView: UIView {
         artistLabel.text = track.artist
         trackImageView.image = track.image
         updatePlayPauseButton()
+        
+        NetworkManager.shared.fetchTrackImage(trackId: track.serverId!) { [weak self] result in
+            switch result {
+            case .success(let image):
+                DispatchQueue.main.async {
+                    self?.trackImageView.image = image
+                }
+            case .failure(let error):
+                print("Error loading image: \(error.localizedDescription)")
+                DispatchQueue.main.async {
+                    self?.trackImageView.image = UIImage(systemName: "exclamationmark.triangle")
+                }
+            }
+        }
     }
     
     @objc private func updateUI() {

@@ -235,7 +235,7 @@ extension PlaylistViewController: TrackContextMenuDelegate {
         }
         
         Task {
-            await viewModel.deleteTrack(trackId: Int(track.id) ?? 0)
+            await viewModel.deleteTrack(trackId: track.id)
         }
     }
     

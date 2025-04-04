@@ -8,6 +8,7 @@ protocol TrackRepresentable {
     var image: UIImage { get }
     var artists: [String] { get }
     var serverId: Int? { get }
+    var image_url: String { get }
 }
 
 extension TrackRepresentable {
@@ -25,11 +26,12 @@ class Track: Codable, Equatable {
     var artists: [String] {
         return artist.components(separatedBy: ",").map { $0.trimmingCharacters(in: .whitespaces) }
     }
-    var id: String
+    var id: Int
     var isLocal: Bool?
     
     private(set) var image: UIImage
     private(set) var urlString: String
+    let image_url: String
     
     var isSelected: Bool
     var playCount: Int
@@ -37,7 +39,7 @@ class Track: Codable, Equatable {
     
     var serverId: Int? { Int(id) }
     var idString: String {
-        return id
+        return String(id)
     }
     
     var url: URL {
@@ -61,16 +63,17 @@ class Track: Codable, Equatable {
     init(title: String, artist: String, image: UIImage, localURL: URL) {
         self.title = title
         self.artist = artist
-        self.id = title + "_" + artist
+        self.id = 0
         self.image = image
         self.urlString = localURL.absoluteString
         self.isLocal = true
         self.isSelected = false
         self.playCount = 0
         self.lastPlayedDate = nil
+        self.image_url = ""
     }
     
-    init(title: String, artist: String, image: UIImage, id: String) {
+    init(title: String, artist: String, image: UIImage, id: Int, image_url: String) {
         self.title = title
         self.artist = artist
         self.id = id
@@ -80,19 +83,20 @@ class Track: Codable, Equatable {
         self.isSelected = false
         self.playCount = 0
         self.lastPlayedDate = nil
+        self.image_url = image_url
     }
     
     // MARK: Codable
     
     enum CodingKeys: String, CodingKey {
-        case title, artist, id, imageData, urlString, isSelected, playCount, lastPlayedDate, isLocal
+        case title, artist, id, imageData, urlString, isSelected, playCount, lastPlayedDate, isLocal, image_url
     }
     
     required init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         title = try container.decode(String.self, forKey: .title)
         artist = try container.decode(String.self, forKey: .artist)
-        id = try container.decode(String.self, forKey: .id)
+        id = try container.decode(Int.self, forKey: .id)
         isLocal = try container.decodeIfPresent(Bool.self, forKey: .isLocal) ?? false
         isSelected = try container.decode(Bool.self, forKey: .isSelected)
         playCount = try container.decode(Int.self, forKey: .playCount)
@@ -102,6 +106,7 @@ class Track: Codable, Equatable {
         image = UIImage(data: imageData) ?? UIImage(systemName: "music.note")!
 
         urlString = try container.decode(String.self, forKey: .urlString)
+        image_url = try container.decode(String.self, forKey: .image_url)
     }
     
     func encode(to encoder: Encoder) throws {
@@ -113,6 +118,7 @@ class Track: Codable, Equatable {
         try container.encode(isSelected, forKey: .isSelected)
         try container.encode(playCount, forKey: .playCount)
         try container.encodeIfPresent(lastPlayedDate, forKey: .lastPlayedDate)
+        try container.encode(image_url, forKey: .image_url)
         
         let imageData = image.pngData() ?? Data()
         try container.encode(imageData, forKey: .imageData)
@@ -145,6 +151,7 @@ class SelectableTrack: TrackRepresentable {
     var artist: String { base.artist }
     var image: UIImage { base.image }
     var artists: [String] { base.artists }
+    var image_url: String { base.image_url }
     
     init(base: TrackRepresentable, isSelected: Bool = false) {
         self.base = base
