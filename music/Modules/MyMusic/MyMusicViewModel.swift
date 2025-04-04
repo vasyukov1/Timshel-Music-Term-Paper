@@ -18,9 +18,6 @@ class MyMusicViewModel {
         }
     }
     
-    func deleteTrack(_ track: TrackResponse) async {
-    }
-    
     func documentPickerWasCancelled(_ controller: UIDocumentPickerViewController) {
         print("Document picker was cancelled.")
     }

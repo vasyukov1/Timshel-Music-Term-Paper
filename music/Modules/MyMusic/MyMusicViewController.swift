@@ -201,10 +201,6 @@ extension MyMusicViewController: TrackContextMenuDelegate {
                 tableView.deleteRows(at: [IndexPath(row: index, section: 0)], with: .automatic)
             }, completion: nil)
         }
-        
-        Task {
-            await viewModel.deleteTrack(track)
-        }
     }
     
     func tableView(_ tableView: UITableView, editingStyleForRowAt indexPath: IndexPath) -> UITableViewCell.EditingStyle {

@@ -98,7 +98,7 @@ class ProfileViewController: BaseViewController {
         if let userInfo = readUserInfo(login: savedLogin) {
             nameLabel.text = "\(userInfo.firstName) \(userInfo.lastName)"
         } else {
-            nameLabel.text = "Data is not found"
+            nameLabel.text = savedLogin
         }
     }
     
