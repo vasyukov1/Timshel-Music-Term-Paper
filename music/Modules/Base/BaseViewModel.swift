@@ -1,7 +1,7 @@
 import Combine
 
 class BaseViewModel {
-    @Published var currentTrack: Track?
+    @Published var currentTrack: TrackResponse?
     @Published var isMiniPlayerVisible: Bool = false
     
     init() {

@@ -20,7 +20,7 @@ struct LoginResponse: Codable {
 
 // MARK: Track
 
-struct TrackResponse: Codable, TrackRepresentable {
+struct TrackResponse: Codable, Equatable {
     let id: Int
     let title: String
     let artist: String
@@ -38,12 +38,20 @@ struct TrackResponse: Codable, TrackRepresentable {
         return UIImage(systemName: "music.note")!
     }
     
+    func getArtists() -> [String] {
+        return artist.components(separatedBy: ", ")
+    }
+    
     func toTrack() -> Track {
         return Track(title: title,
                      artist: artist,
                      image: image,
                      id: id,
                      image_url: image_url)
+    }
+    
+    static func == (lhs: TrackResponse, rhs: TrackResponse) -> Bool {
+        return lhs.id == rhs.id
     }
 }
 

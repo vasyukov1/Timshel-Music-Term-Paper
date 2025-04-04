@@ -213,7 +213,7 @@ extension EditPlaylistViewController: UITableViewDataSource, UITableViewDelegate
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         let cell = tableView.dequeueReusableCell(withIdentifier: "SelectTrackCell", for: indexPath) as! SelectTrackCell
         let track = viewModel.tracks[indexPath.row]
-        cell.configure(with: track as! TrackRepresentable as! SelectableTrack)
+//        cell.configure(with: track as! TrackRepresentable as! SelectableTrack)
         
         cell.selectTrackAction = { [weak self] in
             self?.viewModel.toggleTrackSelection(at: indexPath.row)

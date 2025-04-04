@@ -12,7 +12,8 @@ class AddPlaylistViewModel {
             DispatchQueue.main.async {
                 switch result {
                 case .success(let trackResponses):
-                    self?.tracks = trackResponses.map { SelectableTrack(base: $0, isSelected: false) }
+                    print("Ok")
+                    //                    self?.tracks = trackResponses.map { SelectableTrack(base: $0, isSelected: false) }
                 case .failure(let error):
                     print("Error: \(error.localizedDescription)")
                 }
@@ -26,21 +27,21 @@ class AddPlaylistViewModel {
     }
     
     private func unselectAllTracks() {
-        tracks.forEach { $0.isSelected = false }
+        //        tracks.forEach { $0.isSelected = false }
     }
     
     func createPlaylist(title: String, navigationController: UINavigationController) {
-        let selectedTracks = tracks.filter { $0.isSelected }
-        let trackIds = selectedTracks.compactMap { $0.base.serverId }
-        
-        NetworkManager.shared.createPlaylist(title: title) { [weak self] result in
-            switch result {
-            case .success(let playlist):
-                self?.addTracksToPlaylist(playlistId: playlist.id, trackIds: trackIds, navigationController: navigationController)
-            case .failure(let error):
-                self?.showError(message: error.localizedDescription)
-            }
-        }
+        //        let selectedTracks = tracks.filter { $0.isSelected }
+        //        let trackIds = selectedTracks.compactMap { $0.id }
+        //
+        //        NetworkManager.shared.createPlaylist(title: title) { [weak self] result in
+        //            switch result {
+        //            case .success(let playlist):
+        //                self?.addTracksToPlaylist(playlistId: playlist.id, trackIds: trackIds, navigationController: navigationController)
+        //            case .failure(let error):
+        //                self?.showError(message: error.localizedDescription)
+        //            }
+        //        }
     }
     
     private func addTracksToPlaylist(playlistId: Int, trackIds: [Int], navigationController: UINavigationController) {
@@ -57,17 +58,17 @@ class AddPlaylistViewModel {
             }
         }
         
-        group.notify(queue: .main) { [weak self] in
-            if errors.isEmpty {
-                self?.handleSuccess(navigationController: navigationController)
-            } else {
-                self?.showError(message: "Error adding \(errors.count) tracks")
-            }
-        }
+        //        group.notify(queue: .main) { [weak self] in
+        //            if errors.isEmpty {
+        //                self?.handleSuccess(navigationController: navigationController)
+        //            } else {
+        //                self?.showError(message: "Error adding \(errors.count) tracks")
+        //            }
+        //        }
     }
     
     private func handleSuccess(navigationController: UINavigationController) {
-        unselectAllTracks()
+        //        unselectAllTracks()
         let alert = UIAlertController(
             title: "Success",
             message: "Playlist created successfully",

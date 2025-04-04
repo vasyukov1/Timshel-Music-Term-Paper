@@ -1,10 +1,10 @@
 import UIKit
 
 protocol TrackContextMenuDelegate: AnyObject {
-    func didSelectAddToQueue(track: TrackRepresentable)
-    func didSelectGoToArtist(track: TrackRepresentable)
-    func didSelectAddToPlaylist(track: TrackRepresentable)
-    func didSelectDeleteTrack(track: TrackRepresentable)
+    func didSelectAddToQueue(track: TrackResponse)
+    func didSelectGoToArtist(track: TrackResponse)
+    func didSelectAddToPlaylist(track: TrackResponse)
+    func didSelectDeleteTrack(track: TrackResponse)
 }
 
 private enum SwipeDirection {
@@ -19,7 +19,7 @@ class TrackCell: UITableViewCell {
     private let menuButton = UIButton(type: .system)
     
     weak var delegate: TrackContextMenuDelegate?
-    private var track: TrackRepresentable?
+    private var track: TrackResponse?
     private var isMyMusic = false
     
     override init(style: UITableViewCell.CellStyle, reuseIdentifier: String?) {
@@ -32,7 +32,7 @@ class TrackCell: UITableViewCell {
         setupUI()
     }
     
-    func configure(with track: TrackRepresentable, isMyMusic: Bool) {
+    func configure(with track: TrackResponse, isMyMusic: Bool) {
         self.track = track
         self.isMyMusic = isMyMusic
         
@@ -40,7 +40,7 @@ class TrackCell: UITableViewCell {
         artistLabel.text = track.artist
         trackImageView.image = track.image
         
-        NetworkManager.shared.fetchTrackImage(trackId: track.serverId!) { [weak self] result in
+        NetworkManager.shared.fetchTrackImage(trackId: track.id) { [weak self] result in
             switch result {
             case .success(let image):
                 DispatchQueue.main.async {
@@ -115,7 +115,7 @@ class TrackCell: UITableViewCell {
 }
 
 extension UIViewController {
-    func presentTrackContextMenu(for track: TrackRepresentable, delegate: TrackContextMenuDelegate) {
+    func presentTrackContextMenu(for track: TrackResponse, delegate: TrackContextMenuDelegate) {
         let menu = UIAlertController(title: nil, message: nil, preferredStyle: .actionSheet)
         
         menu.addAction(UIAlertAction(title: "Add to queue", style: .default) { _ in
@@ -139,10 +139,10 @@ extension UIViewController {
         self.present(menu, animated: true)
     }
         
-    func presentArtistSelection(for track: TrackRepresentable, completion: @escaping (String) -> Void) {
+    func presentArtistSelection(for track: TrackResponse, completion: @escaping (String) -> Void) {
         let alert = UIAlertController(title: "Select Artist", message: nil, preferredStyle: .actionSheet)
         
-        for artist in track.artists {
+        for artist in track.getArtists() {
             alert.addAction(UIAlertAction(title: artist, style: .default) { _ in
                 completion(artist)
             })

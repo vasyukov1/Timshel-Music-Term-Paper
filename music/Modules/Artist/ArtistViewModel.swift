@@ -17,14 +17,14 @@ class ArtistViewModel {
             print("Error: User is not logged in")
             return
         }
-        Task {
-            tracks = await MusicManager.shared.getTracksByLogin(login).filter { $0.artists.contains(artistName)}
-            print("Tracks loaded: \(tracks.count)")
-        }
+//        Task {
+//            tracks = await MusicManager.shared.getTracksByLogin(login).filter { $0.artists.contains(artistName)}
+//            print("Tracks loaded: \(tracks.count)")
+//        }
     }
     
     func selectTrack(at index: Int) {
-        MusicPlayerManager.shared.setQueue(tracks: tracks, startIndex: index)
+//        MusicPlayerManager.shared.setQueue(tracks: tracks, startIndex: index)
     }
     
     func deleteTrack(_ track: Track) async {

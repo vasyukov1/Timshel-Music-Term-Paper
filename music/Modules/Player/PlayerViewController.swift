@@ -35,7 +35,7 @@ class PlayerViewController: UIViewController {
             .receive(on: RunLoop.main)
             .sink { [weak self] track in
                 guard let track = track else { return }
-                self?.configure(with: track)
+                self?.configure(with: track.toTrack())
                 self?.updatePlayPauseButton()
             }
             .store(in: &cancellables)
@@ -145,8 +145,8 @@ class PlayerViewController: UIViewController {
     @objc private func openArtist() {
         guard let track = viewModel.track else { return }
         
-        if track.artists.count > 1 {
-            showArtistSelectionAlert(for: track)
+        if track.getArtists().count > 1 {
+            showArtistSelectionAlert(for: track.toTrack())
         } else {
             navigateToArtist(track.artist)
         }
@@ -354,7 +354,7 @@ extension UIImage {
               let outputImage = filter.outputImage else { return nil }
         
         var bitmap = [UInt8](repeating: 0, count: 4)
-        let outputExtent = outputImage.extent
+//        let outputExtent = outputImage.extent
         let outputSize = CGSize(width: 1, height: 1)
         
         context.render(

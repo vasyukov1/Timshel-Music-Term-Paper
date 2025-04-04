@@ -18,11 +18,7 @@ class MyMusicViewModel {
         }
     }
     
-    func selectTrack(at index: Int) {
-//        MusicPlayerManager.shared.setQueue(tracks: tracks, startIndex: index)
-    }
-    
-    func deleteTrack(_ track: Track) async {
+    func deleteTrack(_ track: TrackResponse) async {
     }
     
     func documentPickerWasCancelled(_ controller: UIDocumentPickerViewController) {

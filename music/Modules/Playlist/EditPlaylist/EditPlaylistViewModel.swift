@@ -16,9 +16,9 @@ class EditPlaylistViewModel {
             return
         }
         let allTracks = await MusicManager.shared.getTracksByLogin(login)
-        tracks = allTracks.filter { track in
-            !playlist.tracks.contains(where: { $0 == track })
-        }
+//        tracks = allTracks.filter { track in
+//            !playlist.tracks.contains(where: { $0 == track })
+//        }
         
         print("Get \(tracks.count) tracks of [\(login)] for addition to playlist")
     }

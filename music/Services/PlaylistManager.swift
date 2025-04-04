@@ -47,20 +47,20 @@ class PlaylistManager {
         saveRecentTracks()
     }
     
-    func addTrackToPlaylist(_ track: Track, _ playlist: Playlist) {
+    func addTrackToPlaylist(_ track: TrackResponse, _ playlist: Playlist) {
         guard let login = UserDefaults.standard.string(forKey: "savedLogin") else {
             print("Error: User is not logged in")
             return
         }
         
         if let index = playlists.firstIndex(where: { $0.0 == login && $0.1.title == playlist.title }) {
-            if !playlist.tracks.contains(track) {
-                playlists[index].1.tracks.append(track)
-                savePlaylists()
-                print("Track [\(track.title)] added to [\(playlist.title)]")
-            } else {
-                print("Track [\(track.title)] already exists in [\(playlist.title)]")
-            }
+//            if !playlist.tracks.contains(track) {
+//                playlists[index].1.tracks.append(track)
+//                savePlaylists()
+//                print("Track [\(track.title)] added to [\(playlist.title)]")
+//            } else {
+//                print("Track [\(track.title)] already exists in [\(playlist.title)]")
+//            }
         } else {
             print("Playlist [\(playlist.title)] didn't find")
         }

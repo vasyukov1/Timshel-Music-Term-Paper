@@ -3,7 +3,7 @@ import AVFoundation
 
 class QueueViewModel {
     
-    @Published var queue: [Track] = []
+    @Published var queue: [TrackResponse] = []
     private var cancellable = Set<AnyCancellable>()
     
     private var currentTrackIndex: Int?
@@ -45,7 +45,7 @@ class QueueViewModel {
         MusicPlayerManager.shared.playTrack(at: index)
     }
     
-    func deleteTrack(_ track: Track) async {
+    func deleteTrack(_ track: TrackResponse) async {
         MusicPlayerManager.shared.deleteTrack(track)
     }
     

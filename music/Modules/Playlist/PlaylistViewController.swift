@@ -124,7 +124,7 @@ extension PlaylistViewController: UITableViewDataSource, UITableViewDelegate {
         let cell = tableView.dequeueReusableCell(withIdentifier: "TrackCell", for: indexPath) as! TrackCell
         let trackResponse = viewModel.tracks[indexPath.row]
         cell.configure(with: trackResponse, isMyMusic: false)
-        cell.delegate = self
+//        cell.delegate = self
         return cell
     }
     
@@ -134,114 +134,114 @@ extension PlaylistViewController: UITableViewDataSource, UITableViewDelegate {
     }
 }
 
-extension PlaylistViewController: TrackContextMenuDelegate {
-    func didSelectAddToQueue(track: TrackRepresentable) {
-        let trackToAdd: Track
-        if let t = track as? Track {
-            trackToAdd = t
-        } else if let tr = track as? TrackResponse {
-            trackToAdd = tr.toTrack()
-        } else {
-            return
-        }
-        MusicPlayerManager.shared.addTrackToQueue(track: trackToAdd)
-    }
-    
-    func didSelectGoToArtist(track: TrackRepresentable) {
-        if track.artists.count > 1 {
-            showArtistSelectionAlert(for: track)
-        } else {
-            navigateToArtist(track.artist)
-        }
-    }
-    
-    private func showArtistSelectionAlert(for track: TrackRepresentable) {
-        let alert = UIAlertController(title: "Выберите артиста", message: nil, preferredStyle: .actionSheet)
-        
-        for artist in track.artists {
-            alert.addAction(UIAlertAction(title: artist, style: .default) { _ in
-                self.navigateToArtist(artist)
-            })
-        }
-        
-        alert.addAction(UIAlertAction(title: "Отмена", style: .cancel))
-        present(alert, animated: true)
-    }
-    
-    private func navigateToArtist(_ artistName: String) {
-        let artistVC = ArtistViewController(viewModel: ArtistViewModel(artistName: artistName))
-        artistVC.navigationItem.hidesBackButton = true
-        navigationController?.pushViewController(artistVC, animated: true)
-    }
-    
-    func didSelectAddToPlaylist(track: TrackRepresentable) {
-        let trackToAdd: Track
-        if let t = track as? Track {
-            trackToAdd = t
-        } else if let tr = track as? TrackResponse {
-            trackToAdd = tr.toTrack()
-        } else {
-            return
-        }
-        
-        let playlistMenu = UIAlertController(title: "Добавить в плейлист", message: nil, preferredStyle: .actionSheet)
-        
-        playlistMenu.addAction(UIAlertAction(title: "Создать плейлист", style: .default) { _ in
-            let addPlaylistVC = AddPlaylistViewController()
-            self.navigationController?.pushViewController(addPlaylistVC, animated: true)
-        })
-        
-        for playlist in PlaylistManager.shared.getPlaylists() {
-            playlistMenu.addAction(UIAlertAction(title: playlist.title, style: .default) { _ in
-                PlaylistManager.shared.addTrackToPlaylist(trackToAdd, playlist)
-                self.showSuccessAlert(message: "Трек добавлен в \(playlist.title)")
-            })
-        }
-        
-        playlistMenu.addAction(UIAlertAction(title: "Отмена", style: .cancel))
-        present(playlistMenu, animated: true)
-    }
-    
-    func didSelectDeleteTrack(track: TrackRepresentable) {
-        let trackForDeletion: Track
-        if let t = track as? Track {
-            trackForDeletion = t
-        } else if let tr = track as? TrackResponse {
-            trackForDeletion = tr.toTrack()
-        } else {
-            return
-        }
-        
-        let alert = UIAlertController(
-            title: "Удалить трек из плейлиста?",
-            message: "Вы уверены, что хотите удалить \(trackForDeletion.title) из плейлиста?",
-            preferredStyle: .alert
-        )
-        
-        alert.addAction(UIAlertAction(title: "Отмена", style: .cancel))
-        alert.addAction(UIAlertAction(title: "Удалить", style: .destructive) { [weak self] _ in
-            self?.deleteTrack(trackForDeletion)
-        })
-        
-        present(alert, animated: true)
-    }
-    
-    private func deleteTrack(_ track: Track) {
-        guard let index = viewModel.tracks.firstIndex(where: { $0.id == Int(track.id) }) else { return }
-        
-        viewModel.tracks.remove(at: index)
-        tableView.performBatchUpdates {
-            tableView.deleteRows(at: [IndexPath(row: index, section: 0)], with: .automatic)
-        }
-        
-        Task {
-            await viewModel.deleteTrack(trackId: track.id)
-        }
-    }
-    
-    private func showSuccessAlert(message: String) {
-        let alert = UIAlertController(title: "Успешно", message: message, preferredStyle: .alert)
-        alert.addAction(UIAlertAction(title: "OK", style: .default))
-        present(alert, animated: true)
-    }
-}
+//extension PlaylistViewController: TrackContextMenuDelegate {
+//    func didSelectAddToQueue(track: TrackRepresentable) {
+////        let trackToAdd: Track
+////        if let t = track as? Track {
+////            trackToAdd = t
+////        } else if let tr = track as? TrackResponse {
+////            trackToAdd = tr.toTrack()
+////        } else {
+////            return
+////        }
+////        MusicPlayerManager.shared.addTrackToQueue(track: trackToAdd)
+//    }
+//    
+//    func didSelectGoToArtist(track: TrackRepresentable) {
+//        if track.artists.count > 1 {
+//            showArtistSelectionAlert(for: track)
+//        } else {
+//            navigateToArtist(track.artist)
+//        }
+//    }
+//    
+//    private func showArtistSelectionAlert(for track: TrackRepresentable) {
+//        let alert = UIAlertController(title: "Выберите артиста", message: nil, preferredStyle: .actionSheet)
+//        
+//        for artist in track.artists {
+//            alert.addAction(UIAlertAction(title: artist, style: .default) { _ in
+//                self.navigateToArtist(artist)
+//            })
+//        }
+//        
+//        alert.addAction(UIAlertAction(title: "Отмена", style: .cancel))
+//        present(alert, animated: true)
+//    }
+//    
+//    private func navigateToArtist(_ artistName: String) {
+//        let artistVC = ArtistViewController(viewModel: ArtistViewModel(artistName: artistName))
+//        artistVC.navigationItem.hidesBackButton = true
+//        navigationController?.pushViewController(artistVC, animated: true)
+//    }
+//    
+//    func didSelectAddToPlaylist(track: TrackRepresentable) {
+//        let trackToAdd: Track
+//        if let t = track as? Track {
+//            trackToAdd = t
+//        } else if let tr = track as? TrackResponse {
+//            trackToAdd = tr.toTrack()
+//        } else {
+//            return
+//        }
+//        
+//        let playlistMenu = UIAlertController(title: "Добавить в плейлист", message: nil, preferredStyle: .actionSheet)
+//        
+//        playlistMenu.addAction(UIAlertAction(title: "Создать плейлист", style: .default) { _ in
+//            let addPlaylistVC = AddPlaylistViewController()
+//            self.navigationController?.pushViewController(addPlaylistVC, animated: true)
+//        })
+//        
+//        for playlist in PlaylistManager.shared.getPlaylists() {
+//            playlistMenu.addAction(UIAlertAction(title: playlist.title, style: .default) { _ in
+//                PlaylistManager.shared.addTrackToPlaylist(trackToAdd, playlist)
+//                self.showSuccessAlert(message: "Трек добавлен в \(playlist.title)")
+//            })
+//        }
+//        
+//        playlistMenu.addAction(UIAlertAction(title: "Отмена", style: .cancel))
+//        present(playlistMenu, animated: true)
+//    }
+//    
+//    func didSelectDeleteTrack(track: TrackRepresentable) {
+//        let trackForDeletion: Track
+//        if let t = track as? Track {
+//            trackForDeletion = t
+//        } else if let tr = track as? TrackResponse {
+//            trackForDeletion = tr.toTrack()
+//        } else {
+//            return
+//        }
+//        
+//        let alert = UIAlertController(
+//            title: "Удалить трек из плейлиста?",
+//            message: "Вы уверены, что хотите удалить \(trackForDeletion.title) из плейлиста?",
+//            preferredStyle: .alert
+//        )
+//        
+//        alert.addAction(UIAlertAction(title: "Отмена", style: .cancel))
+//        alert.addAction(UIAlertAction(title: "Удалить", style: .destructive) { [weak self] _ in
+//            self?.deleteTrack(trackForDeletion)
+//        })
+//        
+//        present(alert, animated: true)
+//    }
+//    
+//    private func deleteTrack(_ track: Track) {
+//        guard let index = viewModel.tracks.firstIndex(where: { $0.id == Int(track.id) }) else { return }
+//        
+//        viewModel.tracks.remove(at: index)
+//        tableView.performBatchUpdates {
+//            tableView.deleteRows(at: [IndexPath(row: index, section: 0)], with: .automatic)
+//        }
+//        
+//        Task {
+//            await viewModel.deleteTrack(trackId: track.id)
+//        }
+//    }
+//    
+//    private func showSuccessAlert(message: String) {
+//        let alert = UIAlertController(title: "Успешно", message: message, preferredStyle: .alert)
+//        alert.addAction(UIAlertAction(title: "OK", style: .default))
+//        present(alert, animated: true)
+//    }
+//}

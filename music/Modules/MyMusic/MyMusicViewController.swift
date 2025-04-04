@@ -104,7 +104,7 @@ class MyMusicViewController: BaseViewController, UITableViewDelegate, UITableVie
            currentTrack.idString == String(trackResponse.id) {
             MusicPlayerManager.shared.playOrPauseTrack(currentTrack)
         } else {
-            let queue = viewModel.tracks.map { $0.toTrack() }
+            let queue = viewModel.tracks.map { $0 }
             MusicPlayerManager.shared.setQueue(tracks: queue, startIndex: indexPath.row)
         }
         
@@ -125,30 +125,22 @@ class MyMusicViewController: BaseViewController, UITableViewDelegate, UITableVie
 }
 
 extension MyMusicViewController: TrackContextMenuDelegate {
-    func didSelectAddToQueue(track: TrackRepresentable) {
-        let trackToAdd: Track
-        if let t = track as? Track {
-            trackToAdd = t
-        } else if let tr = track as? TrackResponse {
-            trackToAdd = tr.toTrack()
-        } else {
-            return
-        }
-        MusicPlayerManager.shared.addTrackToQueue(track: trackToAdd)
+    func didSelectAddToQueue(track: TrackResponse) {
+        MusicPlayerManager.shared.addTrackToQueue(track: track)
     }
     
-    func didSelectGoToArtist(track: TrackRepresentable) {
-        if track.artists.count > 1 {
+    func didSelectGoToArtist(track: TrackResponse) {
+        if track.getArtists().count > 1 {
             showArtistSelectionAlert(for: track)
         } else {
             navigateToArtist(track.artist)
         }
     }
     
-    private func showArtistSelectionAlert(for track: TrackRepresentable) {
+    private func showArtistSelectionAlert(for track: TrackResponse) {
         let alert = UIAlertController(title: "Выберите артиста", message: nil, preferredStyle: .actionSheet)
         
-        for artist in track.artists {
+        for artist in track.getArtists() {
             alert.addAction(UIAlertAction(title: artist, style: .default) { _ in
                 self.navigateToArtist(artist)
             })
@@ -165,7 +157,7 @@ extension MyMusicViewController: TrackContextMenuDelegate {
         navigationController?.pushViewController(artistVC, animated: false)
     }
     
-    func didSelectAddToPlaylist(track: TrackRepresentable) {
+    func didSelectAddToPlaylist(track: TrackResponse) {
         let playlistMenu = UIAlertController(title: "Добавить в плейлист", message: nil, preferredStyle: .actionSheet)
         
         playlistMenu.addAction(UIAlertAction(title: "Создать плейлист", style: .default, handler: { _ in
@@ -175,7 +167,7 @@ extension MyMusicViewController: TrackContextMenuDelegate {
         
         for playlist in PlaylistManager.shared.getPlaylists() {
            playlistMenu.addAction(UIAlertAction(title: playlist.title, style: .default, handler: { _ in
-               PlaylistManager.shared.addTrackToPlaylist(track as! Track, playlist)
+               PlaylistManager.shared.addTrackToPlaylist(track, playlist)
            }))
         }
         
@@ -184,31 +176,22 @@ extension MyMusicViewController: TrackContextMenuDelegate {
         self.present(playlistMenu, animated: true)
     }
     
-    func didSelectDeleteTrack(track: TrackRepresentable) {
-        let trackForDeletion: Track
-        if let t = track as? Track {
-            trackForDeletion = t
-        } else if let tr = track as? TrackResponse {
-            trackForDeletion = tr.toTrack()
-        } else {
-            return
-        }
-        
+    func didSelectDeleteTrack(track: TrackResponse) {
         let alert = UIAlertController(
             title: "Удалить трек?",
-            message: "Вы уверены, что хотите удалить \(trackForDeletion.title)?",
+            message: "Вы уверены, что хотите удалить \(track.title)?",
             preferredStyle: .alert
         )
         
         alert.addAction(UIAlertAction(title: "Отмена", style: .cancel))
         alert.addAction(UIAlertAction(title: "Удалить", style: .destructive) { [weak self] _ in
-            self?.deleteTrack(trackForDeletion)
+            self?.deleteTrack(track)
         })
         
         self.present(alert, animated: true)
     }
     
-    private func deleteTrack(_ track: Track) {
+    private func deleteTrack(_ track: TrackResponse) {
         MusicPlayerManager.shared.deleteTrack(track)
         MusicManager.shared.deleteTrack(track)
         

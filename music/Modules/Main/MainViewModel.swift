@@ -2,11 +2,11 @@ import Combine
 import AVFoundation
 
 class MainViewModel {
-    @Published var myTracks: [Track] = []
+    @Published var myTracks: [TrackResponse] = []
     @Published var myPlaylists: [Playlist] = []
     
     private var cancellables = Set<AnyCancellable>()
-    private var tracks = [Track]()
+    private var tracks = [TrackResponse]()
     
     init() {
         loadMyTracksAndPlaylists()
@@ -25,7 +25,7 @@ class MainViewModel {
         myPlaylists = PlaylistManager.shared.getPlaylists()
     }
     
-    func getMyTracks() -> [Track] {
+    func getMyTracks() -> [TrackResponse] {
         return myTracks
     }
     

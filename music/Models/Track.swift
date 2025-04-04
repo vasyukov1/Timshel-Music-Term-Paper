@@ -1,24 +1,24 @@
 import UIKit
 import AVFoundation
 
-protocol TrackRepresentable {
-    var idString: String { get }
-    var title: String { get }
-    var artist: String { get }
-    var image: UIImage { get }
-    var artists: [String] { get }
-    var serverId: Int? { get }
-    var image_url: String { get }
-}
+//protocol TrackRepresentable {
+//    var idString: String { get }
+//    var title: String { get }
+//    var artist: String { get }
+//    var image: UIImage { get }
+//    var artists: [String] { get }
+//    var serverId: Int? { get }
+//    var image_url: String { get }
+//}
 
-extension TrackRepresentable {
-    var serverId: Int? {
-        return Int(idString)
-    }
-    var artists: [String] {
-        return artist.components(separatedBy: ",").map { $0.trimmingCharacters(in: .whitespaces) }
-    }
-}
+//extension TrackRepresentable {
+//    var serverId: Int? {
+//        return Int(idString)
+//    }
+//    var artists: [String] {
+//        return artist.components(separatedBy: ",").map { $0.trimmingCharacters(in: .whitespaces) }
+//    }
+//}
 
 class Track: Codable, Equatable {
     let title: String
@@ -139,22 +139,26 @@ class Track: Codable, Equatable {
 
 struct SavedTrack: Codable {
     let login: String
-    let track: Track
+    let track: TrackResponse
 }
 
-class SelectableTrack: TrackRepresentable {
-    let base: TrackRepresentable
+struct SelectableTrack {
     var isSelected: Bool
     
-    var idString: String { base.idString }
-    var title: String { base.title }
-    var artist: String { base.artist }
-    var image: UIImage { base.image }
-    var artists: [String] { base.artists }
-    var image_url: String { base.image_url }
+    let title: String
+    let artist: String
+    let image: UIImage
+    let image_url: String
     
-    init(base: TrackRepresentable, isSelected: Bool = false) {
-        self.base = base
-        self.isSelected = isSelected
-    }
+//    var idString: String { base.idString }
+//    var title: String { base.title }
+//    var artist: String { base.artist }
+//    var image: UIImage { base.image }
+//    var artists: [String] { base.artists }
+//    var image_url: String { base.image_url }
+//    
+//    init(base: TrackRepresentable, isSelected: Bool = false) {
+//        self.base = base
+//        self.isSelected = isSelected
+//    }
 }

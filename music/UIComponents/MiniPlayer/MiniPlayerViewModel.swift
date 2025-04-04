@@ -3,19 +3,14 @@ import Combine
 
 class MiniPlayerViewModel {
     
-    @Published var track = MusicPlayerManager.shared.getCurrentTrack() ?? Track(title: "None",
-                                                  artist: "None",
-                                                  image: UIImage(systemName: "questionmark.circle.fill")!,
-                                                  localURL: URL(fileURLWithPath: ""))
+    @Published var track = MusicPlayerManager.shared.getCurrentTrack()
+    ?? TrackResponse(id: 0, title: "None", artist: "None", album: "", genre: "", duration: 0, createdAt: "", image_url: "")
     
     @Published var isPlaying = MusicPlayerManager.shared.isPlaying
     @Published var playbackProgress = MusicPlayerManager.shared.getPlaybackProgress()
     private var cancellables = Set<AnyCancellable>()
     
-    let mockTrack = Track(title: "None",
-                          artist: "None",
-                          image: UIImage(systemName: "questionmark.circle.fill")!,
-                          localURL: URL(fileURLWithPath: ""))
+    let mockTrack = TrackResponse(id: 0, title: "None", artist: "None", album: "", genre: "", duration: 0, createdAt: "", image_url: "")
     
     init() {
         NotificationCenter.default.publisher(for: .trackDidChange)

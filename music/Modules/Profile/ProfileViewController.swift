@@ -108,15 +108,15 @@ class ProfileViewController: BaseViewController {
             return
         }
         
-        Task {
-            topTracks = await MusicManager.shared.getTopTracks(by: login)
-            recentlyPlayed = await MusicManager.shared.getRecentlyPlayed(by: login)
-            
-            topArtists = MusicManager.shared.getTopArtists(by: login)
-            recentlyPlayedArtists = MusicManager.shared.getRecentlyPlayedArtists(by: login)
-            
-            tableView.reloadData()
-        }
+//        Task {
+//            topTracks = await MusicManager.shared.getTopTracks(by: login)
+//            recentlyPlayed = await MusicManager.shared.getRecentlyPlayed(by: login)
+//            
+//            topArtists = MusicManager.shared.getTopArtists(by: login)
+//            recentlyPlayedArtists = MusicManager.shared.getRecentlyPlayedArtists(by: login)
+//            
+//            tableView.reloadData()
+//        }
     }
     
     private func readUserInfo(login: String) -> (firstName: String, lastName: String)? {
@@ -202,7 +202,7 @@ extension ProfileViewController: UITableViewDataSource, UITableViewDelegate {
         switch currentSegment {
         case 0, 1:
             let track = currentSegment == 0 ? topTracks[indexPath.row] : recentlyPlayed[indexPath.row]
-            MusicPlayerManager.shared.startPlaying(track: track)
+//            MusicPlayerManager.shared.startPlaying(track: track)
             
         case 2, 3:
             let artist = currentSegment == 2 ? topArtists[indexPath.row] : recentlyPlayedArtists[indexPath.row]

@@ -18,11 +18,11 @@ class HistoryViewModel {
     }
     
     private func loadHistory() {
-        historyQueue = MusicPlayerManager.shared.getHistory()
+//        historyQueue = MusicPlayerManager.shared.getHistory()
     }
     
     func playTrack(at index: Int) {
-        MusicPlayerManager.shared.setQueue(tracks: historyQueue, startIndex: index)
+//        MusicPlayerManager.shared.setQueue(tracks: historyQueue, startIndex: index)
     }
     
     func deleteTrack(_ track: Track) async {

@@ -79,13 +79,13 @@ class MiniPlayerView: UIView {
         updatePlayPauseButton()
     }
     
-    func configure(with track: Track) {
+    func configure(with track: TrackResponse) {
         titleLabel.text = track.title
         artistLabel.text = track.artist
         trackImageView.image = track.image
         updatePlayPauseButton()
         
-        NetworkManager.shared.fetchTrackImage(trackId: track.serverId!) { [weak self] result in
+        NetworkManager.shared.fetchTrackImage(trackId: track.id) { [weak self] result in
             switch result {
             case .success(let image):
                 DispatchQueue.main.async {

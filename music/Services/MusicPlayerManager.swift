@@ -5,11 +5,11 @@ class MusicPlayerManager: NSObject {
     static let shared = MusicPlayerManager()
     private var avPlayer: AVPlayer?
     
-    private var originalQueue: [Track] = []
-    private var trackQueue: [Track] = []
+    private var originalQueue: [TrackResponse] = []
+    private var trackQueue: [TrackResponse] = []
     private var isShuffled = false
-    private var history: [Track] = []
-    private var currentTrack: Track? {
+    private var history: [TrackResponse] = []
+    private var currentTrack: TrackResponse? {
         didSet {
             NotificationCenter.default.post(name: .trackDidChange, object: currentTrack)
             updateMiniPlayer()
@@ -51,39 +51,39 @@ class MusicPlayerManager: NSObject {
         MiniPlayerView.shared.show()
     }
     
-    func startPlaying(track: Track) {
+    func startPlaying(track: TrackResponse) {
         guard let index = trackQueue.firstIndex(of: track) else { return }
         playTrack(at: index)
         MiniPlayerView.shared.show()
     }
     
-    func getCurrentTrack() -> Track? {
+    func getCurrentTrack() -> TrackResponse? {
         return currentTrack
     }
     
-    func setQueue(tracks: [Track], startIndex: Int) {
+    func setQueue(tracks: [TrackResponse], startIndex: Int) {
         trackQueue = tracks
         currentTrackIndex = startIndex
         playTrack(at: currentTrackIndex!)
         NotificationCenter.default.post(name: .queueDidChange, object: nil)
     }
     
-    func addTrackToQueue(track: Track) {
+    func addTrackToQueue(track: TrackResponse) {
         trackQueue.append(track)
         originalQueue.append(track)
         NotificationCenter.default.post(name: .queueDidChange, object: nil)
         print("Track [\(track.title)] added to queue")
     }
     
-    func getQueue() -> [Track] {
+    func getQueue() -> [TrackResponse] {
         return trackQueue
     }
     
-    func getHistory() -> [Track] {
+    func getHistory() -> [TrackResponse] {
         return history
     }
     
-    func playOrPauseTrack(_ track: Track) {
+    func playOrPauseTrack(_ track: TrackResponse) {
         if currentTrack == track {
             togglePlayPause()
         } else {
@@ -108,7 +108,7 @@ class MusicPlayerManager: NSObject {
         }
         
         let track = trackQueue[index]
-        var urlRequest = URLRequest(url: track.url)
+        var urlRequest = URLRequest(url: track.toTrack().url)
         
         if let token = UserDefaults.standard.string(forKey: "jwtToken") {
             urlRequest.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
@@ -264,7 +264,7 @@ class MusicPlayerManager: NSObject {
         playNextTrack()
     }
     
-    func deleteTrack(_ track: Track) {
+    func deleteTrack(_ track: TrackResponse) {
         trackQueue.removeAll { $0 == track }
         history.removeAll { $0 == track }
         NotificationCenter.default.post(name: .trackDidDelete, object: nil)
