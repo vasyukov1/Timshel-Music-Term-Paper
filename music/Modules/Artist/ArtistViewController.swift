@@ -72,6 +72,14 @@ class ArtistViewController: BaseViewController, UITableViewDelegate, UITableView
             .store(in: &cancellable)
     }
     
+    @objc private func trackDidDelete() {
+        tracksTableView.reloadData()
+    }
+    
+    @objc private func trackDidChange() {
+        tracksTableView.reloadData()
+    }
+    
     private func updatePhotoImageView() {
         if let track = viewModel.tracks.first {
             UIView.transition(with: photoImageView, duration: 0.3, options: .transitionCrossDissolve, animations: {
@@ -98,6 +106,19 @@ class ArtistViewController: BaseViewController, UITableViewDelegate, UITableView
             coverImageView.backgroundColor = .systemGray
         }
     }
+    
+    private func setupActivityIndicator() {
+        activityIndicator.hidesWhenStopped = true
+        activityIndicator.startAnimating()
+        view.addSubview(activityIndicator)
+        activityIndicator.translatesAutoresizingMaskIntoConstraints = false
+        NSLayoutConstraint.activate([
+            activityIndicator.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+            activityIndicator.centerYAnchor.constraint(equalTo: view.centerYAnchor)
+        ])
+    }
+    
+    // MARK: - Setup UI
     
     private func setupUI() {
         title = "Artist"
@@ -135,6 +156,8 @@ class ArtistViewController: BaseViewController, UITableViewDelegate, UITableView
         setupConstraints()
     }
     
+    // MARK: - Setup Constraints
+    
     private func setupConstraints() {
         NSLayoutConstraint.activate([
             activityIndicator.centerXAnchor.constraint(equalTo: view.centerXAnchor),
@@ -158,17 +181,6 @@ class ArtistViewController: BaseViewController, UITableViewDelegate, UITableView
             tracksTableView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             tracksTableView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             tracksTableView.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -150)
-        ])
-    }
-    
-    private func setupActivityIndicator() {
-        activityIndicator.hidesWhenStopped = true
-        activityIndicator.startAnimating()
-        view.addSubview(activityIndicator)
-        activityIndicator.translatesAutoresizingMaskIntoConstraints = false
-        NSLayoutConstraint.activate([
-            activityIndicator.centerXAnchor.constraint(equalTo: view.centerXAnchor),
-            activityIndicator.centerYAnchor.constraint(equalTo: view.centerYAnchor)
         ])
     }
     
@@ -197,18 +209,11 @@ class ArtistViewController: BaseViewController, UITableViewDelegate, UITableView
     
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         viewModel.selectTrack(at: indexPath.row)
-//        tableView.reloadData()
         tableView.deselectRow(at: indexPath, animated: true)
     }
-    
-    @objc private func trackDidDelete() {
-        tracksTableView.reloadData()
-    }
-    
-    @objc private func trackDidChange() {
-        tracksTableView.reloadData()
-    }
 }
+
+// MARK: - Track Context Menu Delegate
 
 extension ArtistViewController: TrackContextMenuDelegate {
     func didSelectAddToQueue(track: TrackResponse) {

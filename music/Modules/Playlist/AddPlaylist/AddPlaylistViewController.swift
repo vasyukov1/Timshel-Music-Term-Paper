@@ -51,6 +51,7 @@ class AddPlaylistViewController: BaseViewController, UITableViewDelegate, UITabl
         setupUI()
         super.viewDidLoad()
         bindViewModel()
+        viewModel.loadMyTracks()
     }
     
     private func bindViewModel() {
@@ -61,7 +62,12 @@ class AddPlaylistViewController: BaseViewController, UITableViewDelegate, UITabl
             }
             .store(in: &cancellables)
         
-        viewModel.loadMyTracks()
+        viewModel.$selectedTrackIds
+            .receive(on: RunLoop.main)
+            .sink { [weak self] _ in
+                self?.tableView.reloadData()
+            }
+            .store(in: &cancellables)
     }
     
     private func setupUI() {
@@ -154,18 +160,21 @@ class AddPlaylistViewController: BaseViewController, UITableViewDelegate, UITabl
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         let cell = tableView.dequeueReusableCell(withIdentifier: "SelectTrackCell", for: indexPath) as! SelectTrackCell
         let track = viewModel.tracks[indexPath.row]
-        cell.configure(with: track)
-        
+
+        let isSelected = viewModel.isTrackSelected(track.id)
+        cell.configure(with: track.toTrack(), isSelected: isSelected)
+
         cell.selectTrackAction = { [weak self] in
-            self?.viewModel.toggleTrackSelection(at: indexPath.row)
-            tableView.reloadData()
+            self?.viewModel.toggleTrackSelection(trackId: track.id)
+            tableView.reloadRows(at: [indexPath], with: .automatic)
         }
-        
+
         return cell
     }
     
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
-        viewModel.toggleTrackSelection(at: indexPath.row)
+        let track = viewModel.tracks[indexPath.row]
+        viewModel.toggleTrackSelection(trackId: track.id)
         tableView.reloadRows(at: [indexPath], with: .automatic)
     }
 }

@@ -141,24 +141,3 @@ struct SavedTrack: Codable {
     let login: String
     let track: TrackResponse
 }
-
-struct SelectableTrack {
-    var isSelected: Bool
-    
-    let title: String
-    let artist: String
-    let image: UIImage
-    let image_url: String
-    
-//    var idString: String { base.idString }
-//    var title: String { base.title }
-//    var artist: String { base.artist }
-//    var image: UIImage { base.image }
-//    var artists: [String] { base.artists }
-//    var image_url: String { base.image_url }
-//    
-//    init(base: TrackRepresentable, isSelected: Bool = false) {
-//        self.base = base
-//        self.isSelected = isSelected
-//    }
-}

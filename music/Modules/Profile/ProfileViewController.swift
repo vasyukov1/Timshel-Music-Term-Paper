@@ -13,7 +13,8 @@ class ProfileViewController: BaseViewController {
     private var recentlyPlayedArtists: [ArtistStats] = []
     private var currentSegment = 0
     
-    // MARK: Lifecycle
+    // MARK: - Lifecycle
+    
     override func viewDidLoad() {
         super.viewDidLoad()
         setupUI()
@@ -21,7 +22,8 @@ class ProfileViewController: BaseViewController {
         loadStatsData()
     }
     
-    // MARK: Setup UI
+    // MARK: - Setup UI
+    
     private func setupUI() {
         title = "Profile"
         view.backgroundColor = .systemBackground

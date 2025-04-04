@@ -3,8 +3,6 @@ import UIKit
 class SelectTrackCell: UITableViewCell {
     private let titleLabel = UILabel()
     private let artistLabel = UILabel()
-//    private let trackImageView = UIImageView()
-//    private let selectButton = UIButton(type: .system)
     private let checkmarkImageView: UIImageView = {
         let iv = UIImageView(image: UIImage(systemName: "checkmark.circle.fill"))
         iv.tintColor = .systemBlue
@@ -14,8 +12,6 @@ class SelectTrackCell: UITableViewCell {
     }()
     
     var selectTrackAction: (() -> Void)?
-    
-    private var selectableTrack: SelectableTrack?
     
     override init(style: UITableViewCell.CellStyle, reuseIdentifier: String?) {
         super.init(style: style, reuseIdentifier: reuseIdentifier)
@@ -29,11 +25,10 @@ class SelectTrackCell: UITableViewCell {
         setupUI()
     }
     
-    func configure(with selectableTrack: SelectableTrack) {
-        self.selectableTrack = selectableTrack
-        titleLabel.text = selectableTrack.title
-        artistLabel.text = selectableTrack.artist
-        checkmarkImageView.isHidden = !selectableTrack.isSelected
+    func configure(with track: Track, isSelected: Bool) {
+        titleLabel.text = track.title
+        artistLabel.text = track.artist
+        checkmarkImageView.isHidden = !isSelected
     }
     
     private func setupUI() {

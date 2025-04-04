@@ -3,6 +3,7 @@ import AVFoundation
 import UIKit
 
 class MyMusicViewModel {
+    static let shared = MyMusicViewModel()
     @Published var tracks: [TrackResponse] = []
     
     func loadMyTracks() {
