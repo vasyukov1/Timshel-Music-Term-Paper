@@ -40,16 +40,20 @@ class TrackCell: UITableViewCell {
         artistLabel.text = track.artist
         trackImageView.image = track.image
         
-        NetworkManager.shared.fetchTrackImage(trackId: track.id) { [weak self] result in
-            switch result {
-            case .success(let image):
-                DispatchQueue.main.async {
-                    self?.trackImageView.image = image
-                }
-            case .failure(let error):
-                print("Error loading image: \(error.localizedDescription)")
-                DispatchQueue.main.async {
-                    self?.trackImageView.image = UIImage(systemName: "exclamationmark.triangle")
+        if let cachedTrack = MusicPlayerManager.shared.getCachedTrack(trackId: track.id) {
+            trackImageView.image = cachedTrack.image
+        } else {
+            NetworkManager.shared.fetchTrackImage(trackId: track.id) { [weak self] result in
+                switch result {
+                case .success(let image):
+                    DispatchQueue.main.async {
+                        self?.trackImageView.image = image
+                    }
+                case .failure(let error):
+                    print("Error loading image: \(error.localizedDescription)")
+                    DispatchQueue.main.async {
+                        self?.trackImageView.image = UIImage(systemName: "exclamationmark.triangle")
+                    }
                 }
             }
         }

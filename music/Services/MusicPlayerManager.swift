@@ -5,6 +5,9 @@ class MusicPlayerManager: NSObject {
     static let shared = MusicPlayerManager()
     private var avPlayer: AVPlayer?
     
+    let trackCache = NSCache<NSNumber, CachedTrack>()
+    private var cachedKeys = Set<NSNumber>()
+    
     private var originalQueue: [TrackResponse] = []
     private var trackQueue: [TrackResponse] = []
     private var isShuffled = false
@@ -32,6 +35,7 @@ class MusicPlayerManager: NSObject {
     
     private override init() {
         super.init()
+        trackCache.delegate = self
         NotificationCenter.default.addObserver(self,
                                                selector: #selector(playerItemDidReachEnd),
                                                name: .AVPlayerItemDidPlayToEndTime,
@@ -40,6 +44,10 @@ class MusicPlayerManager: NSObject {
     
     deinit {
         NotificationCenter.default.removeObserver(self)
+    }
+    
+    func getAllCachedTracks() -> [CachedTrack] {
+        return cachedKeys.compactMap { trackCache.object(forKey: $0) }
     }
     
     private func updateMiniPlayer() {
@@ -108,6 +116,15 @@ class MusicPlayerManager: NSObject {
         }
         
         let track = trackQueue[index]
+        
+        if let cachedTrack = trackCache.object(forKey: NSNumber(value: track.id)),
+           let cachedFileURL = cachedTrack.fileURL {
+            DispatchQueue.main.async {
+                self.playCachedTrack(track, from: cachedFileURL, index: index)
+            }
+            return
+        }
+        
         var urlRequest = URLRequest(url: track.toTrack().url)
         
         if let token = UserDefaults.standard.string(forKey: "jwtToken") {
@@ -133,6 +150,8 @@ class MusicPlayerManager: NSObject {
             
             do {
                 try data.write(to: tempURL)
+                
+                cacheTrack(track, url: tempURL)
                 
                 DispatchQueue.main.async {
                     let playerItem = AVPlayerItem(url: tempURL)
@@ -165,6 +184,62 @@ class MusicPlayerManager: NSObject {
                 print("Ошибка сохранения файла: \(error.localizedDescription)")
             }
         }.resume()
+    }
+    
+    private func playCachedTrack(_ track: TrackResponse, from url: URL, index: Int) {
+        let playerItem = AVPlayerItem(url: url)
+
+        if let existingPlayer = self.avPlayer {
+            existingPlayer.removeObserver(self, forKeyPath: "timeControlStatus")
+        }
+
+        self.avPlayer = AVPlayer(playerItem: playerItem)
+        self.avPlayer?.addObserver(self, forKeyPath: "timeControlStatus", options: [.old, .new], context: nil)
+        self.avPlayer?.play()
+
+        self.currentTrack = track
+        self.currentTrackIndex = index
+
+        NotificationCenter.default.post(name: .trackDidChange, object: track)
+        NotificationCenter.default.post(name: .playbackStateDidChange, object: nil)
+
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(self.playerItemDidReachEnd),
+            name: .AVPlayerItemDidPlayToEndTime,
+            object: playerItem
+        )
+
+        print("Начато воспроизведение из кэша: \(track.title)")
+    }
+    
+    private func cacheTrack(_ track: TrackResponse, url: URL?) {
+        NetworkManager.shared.fetchTrackImage(trackId: track.id) { [weak self] result in
+            guard let self = self else { return }
+            
+            switch result {
+            case .success(let image):
+                DispatchQueue.main.async {
+                    let cachedTrack = CachedTrack(track: track, image: image, fileURL: url)
+                    self.trackCache.setObject(cachedTrack, forKey: NSNumber(value: track.id))
+                    self.cachedKeys.insert(NSNumber(value: track.id))
+                    print("Загрузили обложку для трека \(track.id)")
+                }
+            case .failure(let error):
+                print("Error loading image: \(error.localizedDescription)")
+                DispatchQueue.main.async {
+                    let placeholderImage = UIImage(systemName: "exclamationmark.triangle")
+                    let cachedTrack = CachedTrack(track: track, image: placeholderImage, fileURL: url)
+                    self.trackCache.setObject(cachedTrack, forKey: NSNumber(value: track.id))
+                    self.cachedKeys.insert(NSNumber(value: track.id))
+                }
+            }
+        }
+    }
+    
+    func getCachedTrack(trackId: Int) -> CachedTrack? {
+        let key = NSNumber(value: trackId)
+        return trackCache.object(forKey: key)
     }
     
     override func observeValue(forKeyPath keyPath: String?,
@@ -343,6 +418,14 @@ class MusicPlayerManager: NSObject {
         } else {
             playNextTrack()
         }
+    }
+}
+
+extension MusicPlayerManager: NSCacheDelegate {
+    func cache(_ cache: NSCache<AnyObject, AnyObject>, willEvictObject obj: Any) {
+        guard let cachedTrack = obj as? CachedTrack else { return }
+        let key = NSNumber(value: cachedTrack.track.id)
+        cachedKeys.remove(key)
     }
 }
 

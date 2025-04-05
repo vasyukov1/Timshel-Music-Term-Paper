@@ -79,21 +79,30 @@ class PlayerViewController: UIViewController {
         viewModel.updateButtons(previousTrackButton, nextTrackButton)
         updatePlayPauseButton()
         
-        NetworkManager.shared.fetchTrackImage(trackId: track.serverId!) { [weak self] result in
-            switch result {
-            case .success(let image):
-                DispatchQueue.main.async {
-                    self?.trackImageView.image = image
-                    if let dominantColor = image.dominantColor() {
-                        UIView.animate(withDuration: 0.3) {
-                            self!.view.backgroundColor = dominantColor
+        if let cachedTrack = MusicPlayerManager.shared.getCachedTrack(trackId: track.id) {
+            trackImageView.image = cachedTrack.image
+            if let dominantColor = cachedTrack.image?.dominantColor() {
+                UIView.animate(withDuration: 0.3) {
+                    self.view.backgroundColor = dominantColor
+                }
+            }
+        } else {
+            NetworkManager.shared.fetchTrackImage(trackId: track.serverId!) { [weak self] result in
+                switch result {
+                case .success(let image):
+                    DispatchQueue.main.async {
+                        self?.trackImageView.image = image
+                        if let dominantColor = image.dominantColor() {
+                            UIView.animate(withDuration: 0.3) {
+                                self?.view.backgroundColor = dominantColor
+                            }
                         }
                     }
-                }
-            case .failure(let error):
-                print("Error loading image: \(error.localizedDescription)")
-                DispatchQueue.main.async {
-                    self?.trackImageView.image = UIImage(systemName: "exclamationmark.triangle")
+                case .failure(let error):
+                    print("Error loading image: \(error.localizedDescription)")
+                    DispatchQueue.main.async {
+                        self?.trackImageView.image = UIImage(systemName: "exclamationmark.triangle")
+                    }
                 }
             }
         }

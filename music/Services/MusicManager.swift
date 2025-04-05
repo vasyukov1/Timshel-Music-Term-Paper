@@ -19,9 +19,7 @@ class MusicManager {
 //        loadArtistsStats()
     }
     
-    // Addition of track
     func addTrack(from url: URL) async {
-        // Getting user's login
         guard let login = UserDefaults.standard.string(forKey: "savedLogin") else {
             print("Error: User is not logged in")
             return
@@ -32,7 +30,6 @@ class MusicManager {
             return
         }
         
-        // Path to Application Support
         guard let appSupportDir = fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask).first else {
             print("Error: Application Support directory not found")
             return
@@ -40,13 +37,10 @@ class MusicManager {
 
         let musicDBPath = appSupportDir.appendingPathComponent("musidb_music")
         
-        // Path to user's folder
         let userDir = musicDBPath.appendingPathComponent(login)
         
-        // Check of existence of the folder and creation if answer is negative
         if !fileManager.fileExists(atPath: userDir.path) {
             do {
-                // Creation of user's folder
                 try fileManager.createDirectory(at: userDir, withIntermediateDirectories: true)
                 print("Directory for [\(login)] created")
             } catch {
@@ -55,10 +49,8 @@ class MusicManager {
             }
         }
         
-        // Path for addition of track
         let trackURL = userDir.appendingPathComponent(url.lastPathComponent)
         
-        // Check of existence of file
         if fileManager.fileExists(atPath: trackURL.path) {
             print("File already exists in songs folder")
         } else {
@@ -71,7 +63,6 @@ class MusicManager {
             }
         }
         
-        // Loading of track
         let asset = AVURLAsset(url: trackURL)
         do {
             let metadata = try await asset.load(.commonMetadata)
@@ -89,11 +80,6 @@ class MusicManager {
                 localURL: trackURL
             )
             
-//            if trackExistsByUser(login, newTrack) {
-//                return
-//            }
-            
-//            tracksByUser.append((login, newTrack))
             saveTracks()
             print("Track [\(newTrack.title)] added for [\(login)]")
             
@@ -108,16 +94,6 @@ class MusicManager {
             .filter { $0.0 == login}
             .map { $0.1 }
     }
-    
-//    private func trackExistsByUser(_ login: String, _ track: Track) -> Bool {
-//
-//        if tracksByUser.contains(where: { $0.0 == login && $0.1 == track }) {
-//            print("Track [\(track.title)] for [\(login)] already exists.")
-//            return true
-//        }
-//        print("Track [\(track.title)] for [\(login)] does not exist.")
-//        return false
-//    }
     
     func deleteTrack(_ track: TrackResponse) {
         guard let login = UserDefaults.standard.string(forKey: "savedLogin") else {

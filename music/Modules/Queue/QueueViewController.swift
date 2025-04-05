@@ -90,6 +90,7 @@ class QueueViewController: UIViewController, UITableViewDataSource, UITableViewD
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         let cell = tableView.dequeueReusableCell(withIdentifier: "TrackCell", for: indexPath) as! TrackCell
         let track = viewModel.queue[indexPath.row]
+        self.preloadImages(for: track)
         cell.configure(with: track, isMyMusic: true)
         cell.delegate = self
         
@@ -124,6 +125,10 @@ class QueueViewController: UIViewController, UITableViewDataSource, UITableViewD
         
         let indexPath = IndexPath(row: index, section: 0)
         tableView.scrollToRow(at: indexPath, at: .top, animated: false)
+    }
+    
+    private func preloadImages(for track: TrackResponse) {
+        guard MusicPlayerManager.shared.getCachedTrack(trackId: track.id) == nil else { return }
     }
 }
 
@@ -183,9 +188,11 @@ extension QueueViewController: TrackContextMenuDelegate {
     func didSelectDeleteTrack(track: TrackResponse) {
         MusicPlayerManager.shared.deleteTrack(track)
         
-        if let index = viewModel.queue.firstIndex(where: { $0 == track }) {
+        if let index = viewModel.queue.firstIndex(where: { $0.id == track.id }) {
             viewModel.queue.remove(at: index)
-            tableView.deleteRows(at: [IndexPath(row: index, section: 0)], with: .automatic)
+            tableView.performBatchUpdates({
+                tableView.deleteRows(at: [IndexPath(row: index, section: 0)], with: .automatic)
+            }, completion: nil)
         }
         
         Task {
