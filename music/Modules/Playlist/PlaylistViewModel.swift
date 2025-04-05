@@ -28,9 +28,9 @@ class PlaylistViewModel {
     
     private func loadTracks() {
         tracks = [
-            TrackResponse(id: 1, title: "Mock Track 1", artist: "Artist 1", album: "", genre: "", duration: 180, createdAt: "", image_url: ""),
-            TrackResponse(id: 1, title: "Mock Track 2", artist: "Artist 2", album: "", genre: "", duration: 180, createdAt: "", image_url: ""),
-            TrackResponse(id: 1, title: "Mock Track 3", artist: "Artist 3", album: "", genre: "", duration: 180, createdAt: "", image_url: ""),
+            TrackResponse(id: 1, title: "Mock Track 1", artist: "Artist 1", album: "", genre: "", duration: 180, createdAt: "", image_url: "", uploadedBy: 0),
+            TrackResponse(id: 1, title: "Mock Track 2", artist: "Artist 2", album: "", genre: "", duration: 180, createdAt: "", image_url: "", uploadedBy: 0),
+            TrackResponse(id: 1, title: "Mock Track 3", artist: "Artist 3", album: "", genre: "", duration: 180, createdAt: "", image_url: "", uploadedBy: 0),
         ]
     }
     

@@ -5,7 +5,7 @@ class NetworkManager {
     static let shared = NetworkManager()
     let baseURL = "http://localhost:8080"
     
-    // MARK: Registration
+    // MARK: - Registration
     
     func registerUser(login: String, password: String, completion: @escaping (Result<UserResponse, Error>) -> Void) {
         let url = URL(string: "\(baseURL)/auth/register")!
@@ -54,6 +54,7 @@ class NetworkManager {
                 do {
                     let wrapper = try JSONDecoder().decode(ResponseWrapper<UserResponse>.self, from: data)
                     if let userResponse = wrapper.data {
+                        UserDefaults.standard.set(userResponse.id, forKey: "currentUserId")
                         completion(.success(userResponse))
                     } else if let errorMessage = wrapper.error {
                         completion(.failure(NSError(domain: errorMessage, code: httpResponse.statusCode)))
@@ -72,7 +73,7 @@ class NetworkManager {
         }.resume()
     }
     
-    // MARK: Login
+    // MARK: - Login
     
     func loginUser(login: String, password: String, completion: @escaping (Result<LoginResponse, Error>) -> Void) {
         let url = URL(string: "\(baseURL)/auth/login")!
@@ -120,6 +121,8 @@ class NetworkManager {
                 do {
                     let wrapper = try JSONDecoder().decode(ResponseWrapper<LoginResponse>.self, from: data)
                     if let loginResponse = wrapper.data {
+                        UserDefaults.standard.set(loginResponse.user.id, forKey: "currentUserId")
+                        print("Get user id: \(loginResponse.user.id)")
                         completion(.success(loginResponse))
                     } else if let errorMessage = wrapper.error {
                         completion(.failure(NSError(domain: errorMessage, code: httpResponse.statusCode)))
@@ -138,7 +141,7 @@ class NetworkManager {
         }.resume()
     }
     
-    // MARK: Upload Track
+    // MARK: - Upload Track
 
     func uploadTrack(fileURL: URL,
                      title: String,
@@ -165,6 +168,7 @@ class NetworkManager {
             "artist": artist,
             "album": album ?? "",
             "genre": genre ?? "",
+            "uploadedBy": String(UserDefaults.standard.integer(forKey: "currentUserId"))
         ]
         
         for (key, value) in params {
@@ -187,7 +191,7 @@ class NetworkManager {
             return
         }
         
-        if let image = image, let imageData = image.jpegData(compressionQuality: 0.9) {
+        if let image = image, let imageData = image.jpegData(compressionQuality: 1) {
             body.append("--\(boundary)\r\n".data(using: .utf8)!)
             body.append("Content-Disposition: form-data; name=\"image\"; filename=\"cover.jpg\"\r\n".data(using: .utf8)!)
             body.append("Content-Type: image/jpeg\r\n\r\n".data(using: .utf8)!)
@@ -216,6 +220,51 @@ class NetworkManager {
                     let wrapper = try JSONDecoder().decode(ResponseWrapper<TrackResponse>.self, from: data)
                     if let trackResponse = wrapper.data {
                         completion(.success(trackResponse))
+                    } else if let errorMessage = wrapper.error {
+                        completion(.failure(NSError(domain: errorMessage, code: httpResponse.statusCode)))
+                    } else {
+                        completion(.failure(NSError(domain: "Unknown error", code: httpResponse.statusCode)))
+                    }
+                } catch {
+                    completion(.failure(error))
+                }
+            default:
+                let errorMessage = String(data: data, encoding: .utf8) ?? "Unknown error"
+                completion(.failure(NSError(domain: errorMessage, code: httpResponse.statusCode)))
+            }
+        }.resume()
+    }
+    
+    // MARK: - Fetch User Tracks
+    
+    func fetchUserTracks(userId: Int, completion: @escaping (Result<[TrackResponse], Error>) -> Void) {
+        let url = URL(string: "\(baseURL)/api/tracks/user/\(userId)")!
+        var request = URLRequest(url: url)
+        request.httpMethod = "GET"
+        request.setValue("application/json", forHTTPHeaderField: "Accept")
+
+        if let token = UserDefaults.standard.string(forKey: "jwtToken") {
+            request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        }
+        
+        URLSession.shared.dataTask(with: request) { data, response, error in
+            if let error = error {
+                completion(.failure(error))
+                return
+            }
+            
+            guard let httpResponse = response as? HTTPURLResponse,
+                  let data = data else {
+                completion(.failure(NSError(domain: "Invalid response", code: 0)))
+                return
+            }
+            
+            switch httpResponse.statusCode {
+            case 200:
+                do {
+                    let wrapper = try JSONDecoder().decode(ResponseWrapper<[TrackResponse]>.self, from: data)
+                    if let tracks = wrapper.data {
+                        completion(.success(tracks))
                     } else if let errorMessage = wrapper.error {
                         completion(.failure(NSError(domain: errorMessage, code: httpResponse.statusCode)))
                     } else {

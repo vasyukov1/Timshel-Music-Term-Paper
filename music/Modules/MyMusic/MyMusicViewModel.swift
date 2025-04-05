@@ -6,22 +6,7 @@ class MyMusicViewModel {
     static let shared = MyMusicViewModel()
     @Published var tracks: [TrackResponse] = []
     
-//    func loadMyTracks() {
-//        let cachedTracks = MusicPlayerManager.shared.getAllCachedTracks().map { $0.track }
-//
-//        self.tracks = cachedTracks
-//        
-//        NetworkManager.shared.fetchTracks { [weak self] result in
-//            DispatchQueue.main.async {
-//                switch result {
-//                case .success(let trackResponses):
-//                    self?.tracks.append(contentsOf: trackResponses)
-//                case .failure(let error):
-//                    print("Failed to fetch tracks: \(error.localizedDescription)")
-//                }
-//            }
-//        }
-//    }
+    // Not used
     func loadMyTracks() {
         NetworkManager.shared.fetchTracks { [weak self] result in
             DispatchQueue.main.async {
@@ -39,6 +24,22 @@ class MyMusicViewModel {
                 case .failure(_):
                     let cachedTracks = MusicPlayerManager.shared.getAllCachedTracks().map { $0.track }
                     self?.tracks = cachedTracks
+                }
+            }
+        }
+    }
+    
+    func loadUserTracks() {
+        let userId = UserDefaults.standard.integer(forKey: "currentUserId")
+        print("User id: \(userId)")
+        
+        NetworkManager.shared.fetchUserTracks(userId: userId) { [weak self] result in
+            DispatchQueue.main.async {
+                switch result {
+                case .success(let tracks):
+                    self?.tracks = tracks
+                case .failure(let error):
+                    print("Error loading user tracks: \(error)")
                 }
             }
         }

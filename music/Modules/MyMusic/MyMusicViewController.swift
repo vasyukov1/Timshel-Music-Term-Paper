@@ -33,7 +33,7 @@ class MyMusicViewController: BaseViewController, UITableViewDelegate, UITableVie
     }
     
     private func bindViewModel() {
-        viewModel.loadMyTracks()
+        viewModel.loadUserTracks()
         
         viewModel.$tracks
             .receive(on: DispatchQueue.main)

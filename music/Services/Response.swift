@@ -16,6 +16,7 @@ struct UserResponse: Codable {
 
 struct LoginResponse: Codable {
     let token: String
+    let user: UserResponse
 }
 
 // MARK: Track
@@ -29,6 +30,7 @@ struct TrackResponse: Codable, Equatable {
     let duration: Int
     let createdAt: String
     let image_url: String
+    let uploadedBy: Int
     
     var idString: String {
         return String(id)
