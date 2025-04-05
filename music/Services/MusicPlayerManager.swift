@@ -11,7 +11,6 @@ class MusicPlayerManager: NSObject {
     private var originalQueue: [TrackResponse] = []
     private var trackQueue: [TrackResponse] = []
     private var isShuffled = false
-    private var history: [TrackResponse] = []
     private var currentTrack: TrackResponse? {
         didSet {
             NotificationCenter.default.post(name: .trackDidChange, object: currentTrack)
@@ -85,10 +84,6 @@ class MusicPlayerManager: NSObject {
     
     func getQueue() -> [TrackResponse] {
         return trackQueue
-    }
-    
-    func getHistory() -> [TrackResponse] {
-        return history
     }
     
     func playOrPauseTrack(_ track: TrackResponse) {
@@ -322,7 +317,6 @@ class MusicPlayerManager: NSObject {
     func stopPlayer() {
         stopPlayback()
         trackQueue = []
-        history = []
         currentTrack = nil
         currentTrackIndex = nil
         lastTrack = nil
@@ -341,9 +335,8 @@ class MusicPlayerManager: NSObject {
     
     func deleteTrack(_ track: TrackResponse) {
         trackQueue.removeAll { $0 == track }
-        history.removeAll { $0 == track }
+        trackCache.removeObject(forKey: NSNumber(value: track.id))
         NotificationCenter.default.post(name: .trackDidDelete, object: nil)
-        print("Track [\(track.title)] deleted from queue and history")
     }
     
     func shuffleQueue() {

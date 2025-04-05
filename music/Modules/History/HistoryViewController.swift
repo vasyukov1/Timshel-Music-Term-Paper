@@ -1,7 +1,7 @@
 import UIKit
 import Combine
 
-class HistoryViewController: UIViewController, UITableViewDelegate, UITableViewDataSource {
+class HistoryViewController: BaseViewController, UITableViewDelegate, UITableViewDataSource {
     
     private let viewModel = HistoryViewModel()
     private var cancellable = Set<AnyCancellable>()
@@ -10,13 +10,15 @@ class HistoryViewController: UIViewController, UITableViewDelegate, UITableViewD
     private let returnButton = UIButton()
     
     override func viewDidLoad() {
-        super.viewDidLoad()
         setupUI()
+        super.viewDidLoad()
         bindViewModel()
     }
     
     private func bindViewModel() {
-        viewModel.$historyQueue
+        viewModel.loadHistory()
+        
+        viewModel.$history
             .receive(on: RunLoop.main)
             .sink { [weak self] _ in
                 self?.tableView.reloadData()
@@ -56,27 +58,37 @@ class HistoryViewController: UIViewController, UITableViewDelegate, UITableViewD
     }
     
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        return viewModel.historyQueue.count
+        return viewModel.history.count
     }
     
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         let cell = tableView.dequeueReusableCell(withIdentifier: "TrackCell", for: indexPath) as! TrackCell
-        let track = viewModel.historyQueue[indexPath.row]
-//        cell.configure(with: track, isMyMusic: true)
-//        cell.delegate = self
+        let trackResponse = viewModel.history[indexPath.row]
         
-//        if track == MusicPlayerManager.shared.getCurrentTrack() {
-//            cell.backgroundColor = .systemGray2
-//        } else {
-//            cell.backgroundColor = .clear
-//        }
+        cell.configure(with: trackResponse)
+        cell.delegate = self
+        
+        if let currentTrack = MusicPlayerManager.shared.getCurrentTrack(),
+           currentTrack.id == trackResponse.id {
+            cell.backgroundColor = .systemGray5
+        } else {
+            cell.backgroundColor = .clear
+        }
         
         return cell
     }
     
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
-        viewModel.playTrack(at: indexPath.row)
-        MiniPlayerView.shared.hide()
+        let trackResponse = viewModel.history[indexPath.row]
+        
+        if let currentTrack = MusicPlayerManager.shared.getCurrentTrack(),
+           currentTrack.idString == String(trackResponse.id) {
+            MusicPlayerManager.shared.playOrPauseTrack(currentTrack)
+        } else {
+            let queue = viewModel.history.map { $0 }
+            MusicPlayerManager.shared.setQueue(tracks: queue, startIndex: indexPath.row)
+        }
+        
         tableView.deselectRow(at: indexPath, animated: true)
     }
     
@@ -86,74 +98,90 @@ class HistoryViewController: UIViewController, UITableViewDelegate, UITableViewD
     }
 }
 
-//extension HistoryViewController: TrackContextMenuDelegate {
-//    func didSelectAddToQueue(track: TrackRepresentable) {
-//        let trackToAdd: Track
-//        if let t = track as? Track {
-//            trackToAdd = t
-//        } else if let tr = track as? TrackResponse {
-//            trackToAdd = tr.toTrack()
-//        } else {
-//            return
-//        }
-////        MusicPlayerManager.shared.addTrackToQueue(track: trackToAdd)
-//    }
-//    
-//    func didSelectGoToArtist(track: TrackRepresentable) {
-//        if track.artists.count > 1 {
-//            showArtistSelectionAlert(for: track)
-//        } else {
-//            navigateToArtist(track.artist)
-//        }
-//    }
-//    
-//    private func showArtistSelectionAlert(for track: TrackRepresentable) {
-//        let alert = UIAlertController(title: "Выберите артиста", message: nil, preferredStyle: .actionSheet)
-//        
-//        for artist in track.artists {
-//            alert.addAction(UIAlertAction(title: artist, style: .default) { _ in
-//                self.navigateToArtist(artist)
-//            })
-//        }
-//        
-//        alert.addAction(UIAlertAction(title: "Отмена", style: .cancel))
-//        
-//        present(alert, animated: true)
-//    }
-//    
-//    private func navigateToArtist(_ artistName: String) {
-//        let artistVC = ArtistViewController(viewModel: ArtistViewModel(artistName: artistName))
-//        artistVC.navigationItem.hidesBackButton = true
-//        navigationController?.pushViewController(artistVC, animated: false)
-//    }
-//    
-//    func didSelectAddToPlaylist(track: TrackRepresentable) {
-//        let playlistMenu = UIAlertController(title: "Добавить в плейлист", message: nil, preferredStyle: .actionSheet)
-//        
-//        playlistMenu.addAction(UIAlertAction(title: "Создать плейлист", style: .default, handler: { _ in
-//            let addPlaylistVC = AddPlaylistViewController()
-//            self.navigationController?.pushViewController(addPlaylistVC, animated: true)
-//        }))
-//        
-//        for playlist in PlaylistManager.shared.getPlaylists() {
-//           playlistMenu.addAction(UIAlertAction(title: playlist.title, style: .default, handler: { _ in
-//               PlaylistManager.shared.addTrackToPlaylist(track as! Track, playlist)
-//           }))
-//        }
-//        
-//        playlistMenu.addAction(UIAlertAction(title: "Отмена", style: .cancel, handler: nil))
-//        
-//        self.present(playlistMenu, animated: true)
-//    }
-//    
-//    func didSelectDeleteTrack(track: TrackRepresentable) {
-//        if let index = viewModel.historyQueue.firstIndex(where: { $0 == track as! Track }) {
-//            viewModel.historyQueue.remove(at: index)
-//            tableView.deleteRows(at: [IndexPath(row: index, section: 0)], with: .automatic)
-//        }
-//        
-//        Task {
-//            await viewModel.deleteTrack(track as! Track)
-//        }
-//    }
-//}
+extension HistoryViewController: TrackContextMenuDelegate {
+    func didSelectAddToQueue(track: TrackResponse) {
+        MusicPlayerManager.shared.addTrackToQueue(track: track)
+    }
+    
+    func didSelectGoToArtist(track: TrackResponse) {
+        if track.getArtists().count > 1 {
+            showArtistSelectionAlert(for: track)
+        } else {
+            navigateToArtist(track.artist)
+        }
+    }
+    
+    private func showArtistSelectionAlert(for track: TrackResponse) {
+        let alert = UIAlertController(title: "Выберите артиста", message: nil, preferredStyle: .actionSheet)
+        
+        for artist in track.getArtists() {
+            alert.addAction(UIAlertAction(title: artist, style: .default) { _ in
+                self.navigateToArtist(artist)
+            })
+        }
+        
+        alert.addAction(UIAlertAction(title: "Отмена", style: .cancel))
+        
+        present(alert, animated: true)
+    }
+    
+    private func navigateToArtist(_ artistName: String) {
+        let artistVC = ArtistViewController(viewModel: ArtistViewModel(artistName: artistName))
+        artistVC.navigationItem.hidesBackButton = true
+        navigationController?.pushViewController(artistVC, animated: false)
+    }
+    
+    func didSelectAddToPlaylist(track: TrackResponse) {
+        let playlistMenu = UIAlertController(title: "Добавить в плейлист", message: nil, preferredStyle: .actionSheet)
+        
+        playlistMenu.addAction(UIAlertAction(title: "Создать плейлист", style: .default, handler: { _ in
+            let addPlaylistVC = AddPlaylistViewController()
+            self.navigationController?.pushViewController(addPlaylistVC, animated: true)
+        }))
+        
+        for playlist in PlaylistManager.shared.getPlaylists() {
+           playlistMenu.addAction(UIAlertAction(title: playlist.title, style: .default, handler: { _ in
+               PlaylistManager.shared.addTrackToPlaylist(track, playlist)
+           }))
+        }
+        
+        playlistMenu.addAction(UIAlertAction(title: "Отмена", style: .cancel, handler: nil))
+        
+        self.present(playlistMenu, animated: true)
+    }
+    
+    func didSelectDeleteTrack(track: TrackResponse) {
+        let alert = UIAlertController(
+            title: "Удалить трек?",
+            message: "Вы уверены, что хотите удалить \(track.title)?",
+            preferredStyle: .alert
+        )
+        
+        alert.addAction(UIAlertAction(title: "Отмена", style: .cancel))
+        alert.addAction(UIAlertAction(title: "Удалить", style: .destructive) { [weak self] _ in
+            self?.deleteTrack(track)
+        })
+        
+        self.present(alert, animated: true)
+    }
+    
+    private func deleteTrack(_ track: TrackResponse) {
+        MusicPlayerManager.shared.deleteTrack(track)
+        MusicManager.shared.deleteTrack(track)
+        
+        if let index = viewModel.history.firstIndex(where: { $0.id == track.id }) {
+            viewModel.history.remove(at: index)
+            tableView.performBatchUpdates({
+                tableView.deleteRows(at: [IndexPath(row: index, section: 0)], with: .automatic)
+            }, completion: nil)
+        }
+    }
+    
+    func tableView(_ tableView: UITableView, editingStyleForRowAt indexPath: IndexPath) -> UITableViewCell.EditingStyle {
+        return .none
+    }
+    
+    func tableView(_ tableView: UITableView, shouldIndentWhileEditingRowAt indexPath: IndexPath) -> Bool {
+        return false
+    }
+}

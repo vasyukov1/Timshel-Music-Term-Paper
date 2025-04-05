@@ -10,8 +10,10 @@ class MyMusicViewModel {
         let userId = UserDefaults.standard.integer(forKey: "currentUserId")
         let cachedTracks = MusicPlayerManager.shared.getAllCachedTracks()
         
-        if !NetworkMonitor.shared.isConnected {
-            print("Offline mode: loading from cache.")
+        let isOfflineMode = PlaybackSettings.shared.mode == .offline
+        let isOfflineNetwork = !NetworkMonitor.shared.isConnected
+
+        if isOfflineMode || isOfflineNetwork {
             self.tracks = cachedTracks.map { $0.track }.filter { $0.uploadedBy == userId }
             return
         }

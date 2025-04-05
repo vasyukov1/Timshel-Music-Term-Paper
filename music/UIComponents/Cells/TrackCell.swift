@@ -15,7 +15,6 @@ class TrackCell: UITableViewCell {
     
     weak var delegate: TrackContextMenuDelegate?
     private var track: TrackResponse?
-    private var isMyMusic = false
     
     override init(style: UITableViewCell.CellStyle, reuseIdentifier: String?) {
         super.init(style: style, reuseIdentifier: reuseIdentifier)
@@ -27,9 +26,8 @@ class TrackCell: UITableViewCell {
         setupUI()
     }
     
-    func configure(with track: TrackResponse, isMyMusic: Bool) {
+    func configure(with track: TrackResponse) {
         self.track = track
-        self.isMyMusic = isMyMusic
         
         titleLabel.text = track.title
         artistLabel.text = track.artist

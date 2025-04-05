@@ -13,7 +13,6 @@ class AddPlaylistViewModel {
         let cachedTracks = MusicPlayerManager.shared.getAllCachedTracks()
         
         if !NetworkMonitor.shared.isConnected {
-            print("Offline mode: loading from cache.")
             self.tracks = cachedTracks.map { $0.track }.filter { $0.uploadedBy == userId }
             return
         }
@@ -25,7 +24,6 @@ class AddPlaylistViewModel {
                     self?.tracks = tracks
                 case .failure:
                     self?.tracks = cachedTracks.map { $0.track }.filter { $0.uploadedBy == userId }
-                    print("Error server loading user tracks.")
                 }
             }
         }

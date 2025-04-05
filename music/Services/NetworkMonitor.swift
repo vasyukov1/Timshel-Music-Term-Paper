@@ -16,3 +16,14 @@ class NetworkMonitor {
         monitor.start(queue: queue)
     }
 }
+
+enum PlaybackMode {
+    case online
+    case offline
+}
+
+class PlaybackSettings {
+    static var shared = PlaybackSettings()
+    
+    var mode: PlaybackMode = .online
+}

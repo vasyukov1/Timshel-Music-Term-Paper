@@ -84,7 +84,7 @@ class MyMusicViewController: BaseViewController, UITableViewDelegate, UITableVie
         let cell = tableView.dequeueReusableCell(withIdentifier: "TrackCell", for: indexPath) as! TrackCell
         let trackResponse = viewModel.tracks[indexPath.row]
         
-        cell.configure(with: trackResponse, isMyMusic: true)
+        cell.configure(with: trackResponse)
         cell.delegate = self
         
         if let currentTrack = MusicPlayerManager.shared.getCurrentTrack(),

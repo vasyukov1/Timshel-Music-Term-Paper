@@ -3,12 +3,10 @@ import AVFoundation
 
 class HistoryViewModel {
     
-    @Published var historyQueue: [Track] = []
+    @Published var history: [TrackResponse] = []
     private var cancellable = Set<AnyCancellable>()
     
     init() {
-        loadHistory()
-        
         NotificationCenter.default.publisher(for: .trackDidChange)
             .receive(on: RunLoop.main)
             .sink { [weak self] _ in
@@ -17,15 +15,8 @@ class HistoryViewModel {
             .store(in: &cancellable)
     }
     
-    private func loadHistory() {
-//        historyQueue = MusicPlayerManager.shared.getHistory()
-    }
-    
-    func playTrack(at index: Int) {
-//        MusicPlayerManager.shared.setQueue(tracks: historyQueue, startIndex: index)
-    }
-    
-    func deleteTrack(_ track: Track) async {
-        historyQueue.removeAll { $0 == track }
+    func loadHistory() {
+        let userId = UserDefaults.standard.integer(forKey: "currentUserId")
+        history = MusicPlayerManager.shared.getAllCachedTracks().map { $0.track }.filter { $0.uploadedBy == userId }
     }
 }

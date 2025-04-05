@@ -5,6 +5,7 @@ class ProfileViewController: BaseViewController {
     private let nameLabel = UILabel()
     private let imageView = UIImageView()
     private let settingsButton = UIButton()
+    private let modeToggleButton = UIButton()
     
     private let tableView = UITableView()
     private var topTracks: [Track] = []
@@ -40,6 +41,16 @@ class ProfileViewController: BaseViewController {
         settingsButton.setTitleColor(.systemBlue, for: .normal)
         settingsButton.addTarget(self, action: #selector(settingsTapped), for: .touchUpInside)
         
+        switch PlaybackSettings.shared.mode {
+        case .online:
+            modeToggleButton.setTitle("Online", for: .normal)
+        case .offline:
+            modeToggleButton.setTitle("Offline", for: .normal)
+        }
+        
+        modeToggleButton.setTitleColor(.systemBlue, for: .normal)
+        modeToggleButton.addTarget(self, action: #selector(modeToggleTapped), for: .touchUpInside)
+        
         let logoutButton = UIBarButtonItem(title: "Выйти", style: .plain, target: self, action: #selector(logoutTapped))
         navigationItem.rightBarButtonItem = logoutButton
         
@@ -54,11 +65,11 @@ class ProfileViewController: BaseViewController {
         tableView.register(TrackStatsCell.self, forCellReuseIdentifier: TrackStatsCell.reuseIdentifier)
         tableView.register(ArtistCell.self, forCellReuseIdentifier: ArtistCell.reuseIdentifier)
 
-
         let UIElements = [
             imageView,
             nameLabel,
             settingsButton,
+            modeToggleButton,
             tableView
         ]
         
@@ -81,6 +92,9 @@ class ProfileViewController: BaseViewController {
             nameLabel.centerXAnchor.constraint(equalTo: view.centerXAnchor),
             nameLabel.topAnchor.constraint(equalTo: imageView.bottomAnchor, constant: 20),
             
+            modeToggleButton.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+            modeToggleButton.topAnchor.constraint(equalTo: nameLabel.bottomAnchor, constant: 20),
+            
             settingsButton.topAnchor.constraint(equalTo: nameLabel.bottomAnchor, constant: 20),
             settingsButton.trailingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.trailingAnchor, constant: -10),
             
@@ -96,19 +110,15 @@ class ProfileViewController: BaseViewController {
             nameLabel.text = "User is not found"
             return
         }
-
-        if let userInfo = readUserInfo(login: savedLogin) {
-            nameLabel.text = "\(userInfo.firstName) \(userInfo.lastName)"
-        } else {
-            nameLabel.text = savedLogin
-        }
+        
+        nameLabel.text = savedLogin
     }
     
     private func loadStatsData() {
-        guard let login = UserDefaults.standard.string(forKey: "savedLogin") else {
-            print("Error: User is not logged in")
-            return
-        }
+//        guard let login = UserDefaults.standard.string(forKey: "savedLogin") else {
+//            print("Error: User is not logged in")
+//            return
+//        }
         
 //        Task {
 //            topTracks = await MusicManager.shared.getTopTracks(by: login)
@@ -119,25 +129,6 @@ class ProfileViewController: BaseViewController {
 //            
 //            tableView.reloadData()
 //        }
-    }
-    
-    private func readUserInfo(login: String) -> (firstName: String, lastName: String)? {
-        let infoPath = getDocumentsFilePath(filename: "testdb_info")
-        
-        do {
-            let infoContent = try String(contentsOfFile: infoPath, encoding: .utf8)
-            let infoLines = infoContent.components(separatedBy: .newlines)
-
-            for line in infoLines {
-                let components = line.components(separatedBy: ",")
-                if components.count == 3, components[0] == login {
-                    return (firstName: components[1], lastName: components[2])
-                }
-            }
-        } catch {
-            print("Error file reading: \(error)")
-        }
-        return nil
     }
     
     @objc private func settingsTapped() {
@@ -155,6 +146,23 @@ class ProfileViewController: BaseViewController {
         let loginVC = LoginViewController()
         navigationItem.hidesBackButton = true
         navigationController?.setViewControllers([loginVC], animated: true)
+    }
+    
+    @objc private func modeToggleTapped() {
+        switch PlaybackSettings.shared.mode {
+        case .online:
+            PlaybackSettings.shared.mode = .offline
+            modeToggleButton.setTitle("Offline", for: .normal)
+        case .offline:
+            if NetworkMonitor.shared.isConnected {
+                PlaybackSettings.shared.mode = .online
+                modeToggleButton.setTitle("Online", for: .normal)
+            } else {
+                let alert = UIAlertController(title: "Нет подключения", message: "Для перехода в онлайн-режим нужно интернет-соединение", preferredStyle: .alert)
+                alert.addAction(UIAlertAction(title: "Ок", style: .default))
+                present(alert, animated: true)
+            }
+        }
     }
     
     @objc private func segmentChanged(_ sender: UISegmentedControl) {
@@ -201,18 +209,19 @@ extension ProfileViewController: UITableViewDataSource, UITableViewDelegate {
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         tableView.deselectRow(at: indexPath, animated: true)
         
-        switch currentSegment {
-        case 0, 1:
-            let track = currentSegment == 0 ? topTracks[indexPath.row] : recentlyPlayed[indexPath.row]
+//        switch currentSegment {
+//        case 0, 1:
+            
+//            let track = currentSegment == 0 ? topTracks[indexPath.row] : recentlyPlayed[indexPath.row]
 //            MusicPlayerManager.shared.startPlaying(track: track)
             
-        case 2, 3:
-            let artist = currentSegment == 2 ? topArtists[indexPath.row] : recentlyPlayedArtists[indexPath.row]
-            showArtistTracks(artistName: artist.name)
-            
-        default:
-            break
-        }
+//        case 2, 3:
+//            let artist = currentSegment == 2 ? topArtists[indexPath.row] : recentlyPlayedArtists[indexPath.row]
+//            showArtistTracks(artistName: artist.name)
+//            
+//        default:
+//            break
+//        }
     }
     
     func tableView(_ tableView: UITableView, titleForHeaderInSection section: Int) -> String? {

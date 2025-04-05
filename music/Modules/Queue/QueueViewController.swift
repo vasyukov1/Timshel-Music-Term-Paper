@@ -91,7 +91,7 @@ class QueueViewController: UIViewController, UITableViewDataSource, UITableViewD
         let cell = tableView.dequeueReusableCell(withIdentifier: "TrackCell", for: indexPath) as! TrackCell
         let track = viewModel.queue[indexPath.row]
         self.preloadImages(for: track)
-        cell.configure(with: track, isMyMusic: true)
+        cell.configure(with: track)
         cell.delegate = self
         
         if track == MusicPlayerManager.shared.getCurrentTrack() {
