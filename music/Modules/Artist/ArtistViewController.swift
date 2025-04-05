@@ -55,8 +55,6 @@ class ArtistViewController: BaseViewController, UITableViewDelegate, UITableView
             .sink { [weak self] tracks in
                 guard let self = self else { return }
 
-                guard !tracks.isEmpty else { return }
-
                 self.tracksTableView.reloadData()
                 self.updatePhotoImageView()
                 
@@ -82,6 +80,15 @@ class ArtistViewController: BaseViewController, UITableViewDelegate, UITableView
     
     private func updatePhotoImageView() {
         if let track = viewModel.tracks.first {
+            
+            if !NetworkMonitor.shared.isConnected {
+                photoImageView.image = track.image
+                if let dominantColor = track.image.dominantColor() {
+                    coverImageView.backgroundColor = dominantColor
+                }
+                return
+            }
+            
             UIView.transition(with: photoImageView, duration: 0.3, options: .transitionCrossDissolve, animations: {
                 NetworkManager.shared.fetchTrackImage(trackId: track.id) { [weak self] result in
                     switch result {

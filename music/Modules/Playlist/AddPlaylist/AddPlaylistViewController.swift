@@ -74,8 +74,8 @@ class AddPlaylistViewController: BaseViewController, UITableViewDelegate, UITabl
         title = "New Playlist"
         view.backgroundColor = .systemBackground
         
-        playlistImageView.addSubview(plusIcon)
         let tapGesture = UITapGestureRecognizer(target: self, action: #selector(imageTapped))
+        playlistImageView.addSubview(plusIcon)
         playlistImageView.addGestureRecognizer(tapGesture)
         playlistImageView.isUserInteractionEnabled = true
         
@@ -96,18 +96,14 @@ class AddPlaylistViewController: BaseViewController, UITableViewDelegate, UITabl
             errorLabel,
         ] {
             view.addSubview(subview)
+            subview.translatesAutoresizingMaskIntoConstraints = false
         }
         
         setupConstraints()
     }
     
     private func setupConstraints() {
-        for subview in view.subviews {
-            subview.translatesAutoresizingMaskIntoConstraints = false
-        }
-        
         NSLayoutConstraint.activate([
-            
             playlistImageView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 10),
             playlistImageView.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 20),
             playlistImageView.widthAnchor.constraint(equalToConstant: 100),

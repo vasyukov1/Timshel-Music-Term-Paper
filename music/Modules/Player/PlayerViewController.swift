@@ -19,6 +19,8 @@ class PlayerViewController: UIViewController {
     private let shuffleButton = UIButton()
     private let restoreButton = UIButton()
     private let repeatButton = UIButton()
+    private let currentTimeLabel = UILabel()
+    private let durationLabel = UILabel()
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -50,8 +52,10 @@ class PlayerViewController: UIViewController {
         viewModel.$playbackProgress
             .receive(on: RunLoop.main)
             .sink { [weak self] progress in
-                let progressValue = Float(progress.currentTime / progress.duration)
+                let progressValue = Float(progress.duration == 0 ? 0 : progress.currentTime / progress.duration)
                 self?.progressSlider.value = progressValue
+                self?.currentTimeLabel.text = self?.formatTime(progress.currentTime)
+                self?.durationLabel.text = self?.formatTime(progress.duration)
             }
             .store(in: &cancellables)
         
@@ -101,7 +105,7 @@ class PlayerViewController: UIViewController {
                 case .failure(let error):
                     print("Error loading image: \(error.localizedDescription)")
                     DispatchQueue.main.async {
-                        self?.trackImageView.image = UIImage(systemName: "exclamationmark.triangle")
+                        self?.trackImageView.image = UIImage(systemName: "music.note")
                     }
                 }
             }
@@ -225,6 +229,14 @@ class PlayerViewController: UIViewController {
         restoreButton.isHidden = !isShuffled
     }
     
+    private func formatTime(_ time: TimeInterval) -> String {
+        let minutes = Int(time) / 60
+        let seconds = Int(time) % 60
+        return String(format: "%d:%02d", minutes, seconds)
+    }
+    
+    // MARK: - Setup UI
+    
     private func setupUI() {
         title = "Player"
         
@@ -265,6 +277,14 @@ class PlayerViewController: UIViewController {
         repeatButton.setImage(UIImage(systemName: "repeat"), for: .normal)
         repeatButton.addTarget(self, action: #selector(repeatButtonTapped), for: .touchUpInside)
         
+        currentTimeLabel.font = UIFont.monospacedDigitSystemFont(ofSize: 14, weight: .regular)
+        currentTimeLabel.text = "0:00"
+        currentTimeLabel.textColor = .gray
+
+        durationLabel.font = UIFont.monospacedDigitSystemFont(ofSize: 14, weight: .regular)
+        durationLabel.text = "0:00"
+        durationLabel.textColor = .gray
+        
         for subview in [
             titleLabel,
             artistButton,
@@ -277,7 +297,9 @@ class PlayerViewController: UIViewController {
             queueButton,
             shuffleButton,
             restoreButton,
-            repeatButton
+            repeatButton,
+            currentTimeLabel,
+            durationLabel
         ] {
             view.addSubview(subview)
             subview.translatesAutoresizingMaskIntoConstraints = false
@@ -311,7 +333,7 @@ class PlayerViewController: UIViewController {
             progressSlider.topAnchor.constraint(equalTo: artistButton.bottomAnchor, constant: 20),
             
             playPauseButton.centerXAnchor.constraint(equalTo: view.centerXAnchor),
-            playPauseButton.topAnchor.constraint(equalTo: progressSlider.bottomAnchor, constant: 20),
+            playPauseButton.topAnchor.constraint(equalTo: progressSlider.bottomAnchor, constant: 40),
             playPauseButton.heightAnchor.constraint(equalToConstant: 50),
             playPauseButton.widthAnchor.constraint(equalToConstant: 50),
             
@@ -343,7 +365,13 @@ class PlayerViewController: UIViewController {
             repeatButton.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 20),
             repeatButton.topAnchor.constraint(equalTo: restoreButton.bottomAnchor, constant: 20),
             repeatButton.widthAnchor.constraint(equalToConstant: 50),
-            repeatButton.heightAnchor.constraint(equalToConstant: 50)
+            repeatButton.heightAnchor.constraint(equalToConstant: 50),
+            
+            currentTimeLabel.leadingAnchor.constraint(equalTo: progressSlider.leadingAnchor),
+            currentTimeLabel.topAnchor.constraint(equalTo: progressSlider.bottomAnchor, constant: 5),
+            
+            durationLabel.trailingAnchor.constraint(equalTo: progressSlider.trailingAnchor),
+            durationLabel.topAnchor.constraint(equalTo: progressSlider.bottomAnchor, constant: 5),
         ])
     }
 }
@@ -363,7 +391,6 @@ extension UIImage {
               let outputImage = filter.outputImage else { return nil }
         
         var bitmap = [UInt8](repeating: 0, count: 4)
-//        let outputExtent = outputImage.extent
         let outputSize = CGSize(width: 1, height: 1)
         
         context.render(

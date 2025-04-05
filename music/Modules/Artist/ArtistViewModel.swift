@@ -13,6 +13,14 @@ class ArtistViewModel {
     }
     
     func loadTracks() {
+        let cachedTracks = MusicPlayerManager.shared.getAllCachedTracks()
+        
+        if !NetworkMonitor.shared.isConnected {
+            print("Offline mode: loading from cache.")
+            self.tracks = cachedTracks.map { $0.track }.filter { $0.getArtists().contains(artistName) }
+            return
+        }
+        
         NetworkManager.shared.fetchTracksByArtist(artist: artistName) { [weak self] result in
             DispatchQueue.main.async {
                 switch result {

@@ -9,13 +9,23 @@ class AddPlaylistViewModel {
     private var cancellables = Set<AnyCancellable>()
     
     func loadMyTracks() {
-        NetworkManager.shared.fetchTracks { [weak self] result in
+        let userId = UserDefaults.standard.integer(forKey: "currentUserId")
+        let cachedTracks = MusicPlayerManager.shared.getAllCachedTracks()
+        
+        if !NetworkMonitor.shared.isConnected {
+            print("Offline mode: loading from cache.")
+            self.tracks = cachedTracks.map { $0.track }.filter { $0.uploadedBy == userId }
+            return
+        }
+        
+        NetworkManager.shared.fetchUserTracks(userId: userId) { [weak self] result in
             DispatchQueue.main.async {
                 switch result {
-                case .success(let trackResponses):
-                    self?.tracks = trackResponses
-                case .failure(let error):
-                    print("Failed to fetch tracks: \(error.localizedDescription)")
+                case .success(let tracks):
+                    self?.tracks = tracks
+                case .failure:
+                    self?.tracks = cachedTracks.map { $0.track }.filter { $0.uploadedBy == userId }
+                    print("Error server loading user tracks.")
                 }
             }
         }

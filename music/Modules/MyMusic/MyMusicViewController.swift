@@ -124,6 +124,9 @@ class MyMusicViewController: BaseViewController, UITableViewDelegate, UITableVie
     }
 }
 
+
+// MARK: - Track Context Menu Delegate
+
 extension MyMusicViewController: TrackContextMenuDelegate {
     func didSelectAddToQueue(track: TrackResponse) {
         MusicPlayerManager.shared.addTrackToQueue(track: track)

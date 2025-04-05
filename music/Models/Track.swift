@@ -1,25 +1,6 @@
 import UIKit
 import AVFoundation
 
-//protocol TrackRepresentable {
-//    var idString: String { get }
-//    var title: String { get }
-//    var artist: String { get }
-//    var image: UIImage { get }
-//    var artists: [String] { get }
-//    var serverId: Int? { get }
-//    var image_url: String { get }
-//}
-
-//extension TrackRepresentable {
-//    var serverId: Int? {
-//        return Int(idString)
-//    }
-//    var artists: [String] {
-//        return artist.components(separatedBy: ",").map { $0.trimmingCharacters(in: .whitespaces) }
-//    }
-//}
-
 class Track: Codable, Equatable {
     let title: String
     let artist: String

@@ -7,11 +7,6 @@ protocol TrackContextMenuDelegate: AnyObject {
     func didSelectDeleteTrack(track: TrackResponse)
 }
 
-private enum SwipeDirection {
-    case left
-    case right
-}
-
 class TrackCell: UITableViewCell {
     private let titleLabel = UILabel()
     private let artistLabel = UILabel()
@@ -52,7 +47,7 @@ class TrackCell: UITableViewCell {
                 case .failure(let error):
                     print("Error loading image: \(error.localizedDescription)")
                     DispatchQueue.main.async {
-                        self?.trackImageView.image = UIImage(systemName: "exclamationmark.triangle")
+                        self?.trackImageView.image = UIImage(systemName: "music.note")
                     }
                 }
             }
