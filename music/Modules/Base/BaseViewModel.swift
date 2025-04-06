@@ -9,7 +9,7 @@ class BaseViewModel {
     }
     
     private func setupBindings() {
-        currentTrack = MusicPlayerManager.shared.getCurrentTrack()
+        currentTrack = MusicPlayerManager.shared.getCurrentTrack()?.track
         isMiniPlayerVisible = currentTrack != nil
     }
     

@@ -203,7 +203,7 @@ class ArtistViewController: BaseViewController, UITableViewDelegate, UITableView
         cell.configure(with: track)
         cell.delegate = self
         
-        if track == MusicPlayerManager.shared.getCurrentTrack() {
+        if let currentTrack = MusicPlayerManager.shared.getCurrentTrack(), track == currentTrack.track {
             cell.backgroundColor = .systemGray2
         } else {
             cell.backgroundColor = .clear
@@ -223,6 +223,11 @@ class ArtistViewController: BaseViewController, UITableViewDelegate, UITableView
 // MARK: - Track Context Menu Delegate
 
 extension ArtistViewController: TrackContextMenuDelegate {
+    func didSelectAddToQueue(queuedTrack: QueuedTrack) {}
+    func didSelectGoToArtist(queuedTrack: QueuedTrack) {}
+    func didSelectAddToPlaylist(queuedTrack: QueuedTrack) {}
+    func didSelectDeleteTrack(queuedTrack: QueuedTrack) {}
+    
     func didSelectAddToQueue(track: TrackResponse) {
         MusicPlayerManager.shared.addTrackToQueue(track: track)
     }

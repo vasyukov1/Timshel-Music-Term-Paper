@@ -153,6 +153,7 @@ class ProfileViewController: BaseViewController {
         case .online:
             PlaybackSettings.shared.mode = .offline
             modeToggleButton.setTitle("Offline", for: .normal)
+            MusicPlayerManager.shared.updateQueueForOffline()
         case .offline:
             if NetworkMonitor.shared.isConnected {
                 PlaybackSettings.shared.mode = .online

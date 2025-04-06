@@ -30,7 +30,7 @@ class MiniPlayerView: UIView {
         viewModel.$track
             .receive(on: RunLoop.main)
             .sink { [weak self] track in
-                self?.configure(with: track)
+                self?.configure(with: track.track)
             }
             .store(in: &cancellables)
         
@@ -105,7 +105,7 @@ class MiniPlayerView: UIView {
     }
     
     @objc private func updateUI() {
-        configure(with: viewModel.track)
+        configure(with: viewModel.track.track)
     }
     
     @objc private func updateProgressBar() {

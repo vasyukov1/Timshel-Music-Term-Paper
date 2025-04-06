@@ -32,10 +32,6 @@ struct TrackResponse: Codable, Equatable {
     let image_url: String
     let uploadedBy: Int
     
-    var idString: String {
-        return String(id)
-    }
-    
     var image: UIImage {
         return UIImage(systemName: "music.note")!
     }

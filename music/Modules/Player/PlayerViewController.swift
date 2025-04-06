@@ -37,7 +37,7 @@ class PlayerViewController: UIViewController {
             .receive(on: RunLoop.main)
             .sink { [weak self] track in
                 guard let track = track else { return }
-                self?.configure(with: track.toTrack())
+                self?.configure(with: track.track.toTrack())
                 self?.updatePlayPauseButton()
             }
             .store(in: &cancellables)
@@ -156,7 +156,7 @@ class PlayerViewController: UIViewController {
     }
     
     @objc private func openArtist() {
-        guard let track = viewModel.track else { return }
+        guard let track = viewModel.track?.track else { return }
         
         if track.getArtists().count > 1 {
             showArtistSelectionAlert(for: track.toTrack())

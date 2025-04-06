@@ -69,7 +69,7 @@ class HistoryViewController: BaseViewController, UITableViewDelegate, UITableVie
         cell.delegate = self
         
         if let currentTrack = MusicPlayerManager.shared.getCurrentTrack(),
-           currentTrack.id == trackResponse.id {
+           currentTrack.track.id == trackResponse.id {
             cell.backgroundColor = .systemGray5
         } else {
             cell.backgroundColor = .clear
@@ -82,8 +82,8 @@ class HistoryViewController: BaseViewController, UITableViewDelegate, UITableVie
         let trackResponse = viewModel.history[indexPath.row]
         
         if let currentTrack = MusicPlayerManager.shared.getCurrentTrack(),
-           currentTrack.idString == String(trackResponse.id) {
-            MusicPlayerManager.shared.playOrPauseTrack(currentTrack)
+           currentTrack.track.id == trackResponse.id {
+            MusicPlayerManager.shared.playOrPauseTrack(currentTrack.track)
         } else {
             let queue = viewModel.history.map { $0 }
             MusicPlayerManager.shared.setQueue(tracks: queue, startIndex: indexPath.row)
@@ -99,6 +99,11 @@ class HistoryViewController: BaseViewController, UITableViewDelegate, UITableVie
 }
 
 extension HistoryViewController: TrackContextMenuDelegate {
+    func didSelectAddToQueue(queuedTrack: QueuedTrack) {}
+    func didSelectGoToArtist(queuedTrack: QueuedTrack) {}
+    func didSelectAddToPlaylist(queuedTrack: QueuedTrack) {}
+    func didSelectDeleteTrack(queuedTrack: QueuedTrack) {}
+    
     func didSelectAddToQueue(track: TrackResponse) {
         MusicPlayerManager.shared.addTrackToQueue(track: track)
     }

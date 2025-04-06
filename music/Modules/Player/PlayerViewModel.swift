@@ -55,7 +55,7 @@ class PlayerViewModel {
     
     func playOrPause() {
         guard let currentTrack = track else { return }
-        MusicPlayerManager.shared.playOrPauseTrack(currentTrack)
+        MusicPlayerManager.shared.playOrPauseTrack(currentTrack.track)
     }
     
     func updateButtons(_ previousButton: UIButton, _ nextButton: UIButton) {

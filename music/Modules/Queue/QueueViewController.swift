@@ -14,7 +14,6 @@ class QueueViewController: UIViewController, UITableViewDataSource, UITableViewD
         setupUI()
         MiniPlayerView.shared.hide()
         bindViewModel()
-        viewModel.updateQueue()
         
         NotificationCenter.default.addObserver(
             self,
@@ -34,6 +33,8 @@ class QueueViewController: UIViewController, UITableViewDataSource, UITableViewD
     }
     
     private func bindViewModel() {
+        viewModel.loadQueue()
+        
         viewModel.$queue
             .receive(on: RunLoop.main)
             .sink { [weak self] _ in
@@ -47,13 +48,10 @@ class QueueViewController: UIViewController, UITableViewDataSource, UITableViewD
         title = "Queue"
         view.backgroundColor = .systemBackground
         
-        tableView = UITableView(frame: .zero, style: .plain)
         tableView.delegate = self
         tableView.dataSource = self
         tableView.register(TrackCell.self, forCellReuseIdentifier: "TrackCell")
-        tableView.rowHeight = 60
-        tableView.alwaysBounceVertical = true
-        tableView.contentInset = UIEdgeInsets(top: 0, left: 0, bottom: 50, right: 0)
+        tableView.frame = view.bounds
         
         returnButton.setImage(UIImage(systemName: "arrow.left"), for: .normal)
         returnButton.addTarget(self, action: #selector(returnButtonTapped), for: .touchUpInside)
@@ -71,12 +69,12 @@ class QueueViewController: UIViewController, UITableViewDataSource, UITableViewD
     
     private func setupConstraints() {
         NSLayoutConstraint.activate([
-            returnButton.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 20),
+            returnButton.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
             returnButton.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 20),
             returnButton.widthAnchor.constraint(equalToConstant: 30),
             returnButton.heightAnchor.constraint(equalToConstant: 30),
             
-            tableView.topAnchor.constraint(equalTo: view.topAnchor),
+            tableView.topAnchor.constraint(equalTo: returnButton.bottomAnchor, constant: 10),
             tableView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             tableView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             tableView.bottomAnchor.constraint(equalTo: view.bottomAnchor)
@@ -88,14 +86,19 @@ class QueueViewController: UIViewController, UITableViewDataSource, UITableViewD
     }
     
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
+        guard indexPath.row < viewModel.queue.count else {
+            return UITableViewCell()
+        }
+        
         let cell = tableView.dequeueReusableCell(withIdentifier: "TrackCell", for: indexPath) as! TrackCell
-        let track = viewModel.queue[indexPath.row]
-        self.preloadImages(for: track)
-        cell.configure(with: track)
+        let queuedTrack = viewModel.queue[indexPath.row]
+        
+        cell.configure(with: queuedTrack)
         cell.delegate = self
         
-        if track == MusicPlayerManager.shared.getCurrentTrack() {
-            cell.backgroundColor = .lightGray
+        if let currentTrack = MusicPlayerManager.shared.getCurrentTrack(),
+           currentTrack.instanceId == queuedTrack.instanceId {
+            cell.backgroundColor = .systemGray5
         } else {
             cell.backgroundColor = .clear
         }
@@ -104,12 +107,21 @@ class QueueViewController: UIViewController, UITableViewDataSource, UITableViewD
     }
     
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
-        viewModel.playTrack(at: indexPath.row)
+        let queuedTrack = viewModel.queue[indexPath.row]
+        
+        if let currentTrack = MusicPlayerManager.shared.getCurrentTrack(),
+           currentTrack.instanceId == queuedTrack.instanceId {
+            MusicPlayerManager.shared.playOrPauseTrack(currentTrack.track)
+        } else {
+            let queue = viewModel.queue.map { $0.track }
+            MusicPlayerManager.shared.setQueue(tracks: queue, startIndex: indexPath.row)
+        }
+        
         tableView.deselectRow(at: indexPath, animated: true)
     }
     
     @objc private func queueDidChange() {
-        viewModel.updateQueue()
+        viewModel.loadQueue()
     }
     
     @objc private func returnButtonTapped() {
@@ -133,16 +145,20 @@ class QueueViewController: UIViewController, UITableViewDataSource, UITableViewD
 }
 
 extension QueueViewController: TrackContextMenuDelegate {
-    func didSelectAddToQueue(track: TrackResponse) {
-        MusicPlayerManager.shared.addTrackToQueue(track: track)
-        viewModel.updateQueue()
+    func didSelectAddToQueue(track: TrackResponse) {}
+    func didSelectGoToArtist(track: TrackResponse) {}
+    func didSelectAddToPlaylist(track: TrackResponse) {}
+    func didSelectDeleteTrack(track: TrackResponse) {}
+    
+    func didSelectAddToQueue(queuedTrack: QueuedTrack) {
+        MusicPlayerManager.shared.addTrackToQueue(track: queuedTrack.track)
     }
     
-    func didSelectGoToArtist(track: TrackResponse) {
-        if track.getArtists().count > 1 {
-            showArtistSelectionAlert(for: track)
+    func didSelectGoToArtist(queuedTrack: QueuedTrack) {
+        if queuedTrack.track.getArtists().count > 1 {
+            showArtistSelectionAlert(for: queuedTrack.track)
         } else {
-            navigateToArtist(track.artist)
+            navigateToArtist(queuedTrack.track.artist)
         }
     }
     
@@ -166,7 +182,7 @@ extension QueueViewController: TrackContextMenuDelegate {
         navigationController?.pushViewController(artistVC, animated: false)
     }
     
-    func didSelectAddToPlaylist(track: TrackResponse) {
+    func didSelectAddToPlaylist(queuedTrack: QueuedTrack) {
         let playlistMenu = UIAlertController(title: "Добавить в плейлист", message: nil, preferredStyle: .actionSheet)
         
         playlistMenu.addAction(UIAlertAction(title: "Создать плейлист", style: .default, handler: { _ in
@@ -176,7 +192,7 @@ extension QueueViewController: TrackContextMenuDelegate {
         
         for playlist in PlaylistManager.shared.getPlaylists() {
            playlistMenu.addAction(UIAlertAction(title: playlist.title, style: .default, handler: { _ in
-               PlaylistManager.shared.addTrackToPlaylist(track, playlist)
+               PlaylistManager.shared.addTrackToPlaylist(queuedTrack.track, playlist)
            }))
         }
         
@@ -185,18 +201,14 @@ extension QueueViewController: TrackContextMenuDelegate {
         self.present(playlistMenu, animated: true)
     }
     
-    func didSelectDeleteTrack(track: TrackResponse) {
-        MusicPlayerManager.shared.deleteTrack(track)
-        
-        if let index = viewModel.queue.firstIndex(where: { $0.id == track.id }) {
-            viewModel.queue.remove(at: index)
-            tableView.performBatchUpdates({
-                tableView.deleteRows(at: [IndexPath(row: index, section: 0)], with: .automatic)
-            }, completion: nil)
-        }
-        
-        Task {
-            await viewModel.deleteTrack(track)
-        }
+    func didSelectDeleteTrack(queuedTrack: QueuedTrack) {
+        guard let index = viewModel.queue.firstIndex(where: { $0.instanceId == queuedTrack.instanceId }) else { return }
+        let queuedTrack = viewModel.queue[index]
+
+        MusicPlayerManager.shared.deleteTrackFromQueue(withInstanceId: queuedTrack.instanceId)
+
+        tableView.performBatchUpdates({
+            tableView.deleteRows(at: [IndexPath(row: index, section: 0)], with: .automatic)
+        }, completion: nil)
     }
 }

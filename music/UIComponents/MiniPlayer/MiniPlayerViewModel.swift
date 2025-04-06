@@ -4,13 +4,13 @@ import Combine
 class MiniPlayerViewModel {
     
     @Published var track = MusicPlayerManager.shared.getCurrentTrack()
-    ?? TrackResponse(id: 0, title: "None", artist: "None", album: "", genre: "", duration: 0, createdAt: "", image_url: "", uploadedBy: 0)
+    ?? QueuedTrack(track: TrackResponse(id: 0, title: "None", artist: "None", album: "", genre: "", duration: 0, createdAt: "", image_url: "", uploadedBy: 0))
     
     @Published var isPlaying = MusicPlayerManager.shared.isPlaying
     @Published var playbackProgress = MusicPlayerManager.shared.getPlaybackProgress()
     private var cancellables = Set<AnyCancellable>()
     
-    let mockTrack = TrackResponse(id: 0, title: "None", artist: "None", album: "", genre: "", duration: 0, createdAt: "", image_url: "", uploadedBy: 0)
+    let mockTrack = QueuedTrack(track: TrackResponse(id: 0, title: "None", artist: "None", album: "", genre: "", duration: 0, createdAt: "", image_url: "", uploadedBy: 0))
     
     init() {
         NotificationCenter.default.publisher(for: .trackDidChange)
@@ -48,7 +48,7 @@ class MiniPlayerViewModel {
     }
     
     func playPauseButtonTapped() {
-        MusicPlayerManager.shared.playOrPauseTrack(track)
+        MusicPlayerManager.shared.playOrPauseTrack(track.track)
     }
     
     func miniPlayerTapped() {

@@ -8,10 +8,10 @@ class MusicPlayerManager: NSObject {
     let trackCache = NSCache<NSNumber, CachedTrack>()
     private var cachedKeys = Set<NSNumber>()
     
-    private var originalQueue: [TrackResponse] = []
-    private var trackQueue: [TrackResponse] = []
+    private var originalQueue: [QueuedTrack] = []
+    private var trackQueue: [QueuedTrack] = []
     private var isShuffled = false
-    private var currentTrack: TrackResponse? {
+    private var currentTrack: QueuedTrack? {
         didSet {
             NotificationCenter.default.post(name: .trackDidChange, object: currentTrack)
             updateMiniPlayer()
@@ -50,44 +50,62 @@ class MusicPlayerManager: NSObject {
     }
     
     private func updateMiniPlayer() {
-        guard let track = currentTrack else {
+        guard let queuedTrack = currentTrack else {
             MiniPlayerView.shared.hide()
             return
         }
-        MiniPlayerView.shared.configure(with: track)
+        MiniPlayerView.shared.configure(with: queuedTrack.track)
         MiniPlayerView.shared.show()
     }
     
     func startPlaying(track: TrackResponse) {
-        guard let index = trackQueue.firstIndex(of: track) else { return }
+        guard let index = trackQueue.map({ $0.track }).firstIndex(of: track) else { return }
         playTrack(at: index)
         MiniPlayerView.shared.show()
     }
     
-    func getCurrentTrack() -> TrackResponse? {
+    func getCurrentTrack() -> QueuedTrack? {
         return currentTrack
     }
     
     func setQueue(tracks: [TrackResponse], startIndex: Int) {
-        trackQueue = tracks
+        trackQueue = tracks.map { QueuedTrack(track: $0) }
+        originalQueue = tracks.map { QueuedTrack(track: $0) }
         currentTrackIndex = startIndex
         playTrack(at: currentTrackIndex!)
         NotificationCenter.default.post(name: .queueDidChange, object: nil)
     }
     
     func addTrackToQueue(track: TrackResponse) {
-        trackQueue.append(track)
-        originalQueue.append(track)
+        let queuedTrack = QueuedTrack(track: track)
+        trackQueue.append(queuedTrack)
+        originalQueue.append(queuedTrack)
+        if trackQueue.isEmpty {
+            currentTrackIndex = 0
+            playTrack(at: 0)
+        }
         NotificationCenter.default.post(name: .queueDidChange, object: nil)
-        print("Track [\(track.title)] added to queue")
     }
     
-    func getQueue() -> [TrackResponse] {
+    func deleteTrackFromQueue(withInstanceId instanceId: UUID) {
+        trackQueue.removeAll { $0.instanceId == instanceId }
+        originalQueue.removeAll { $0.instanceId == instanceId }
+        NotificationCenter.default.post(name: .queueDidChange, object: nil)
+    }
+    
+    func getQueue() -> [QueuedTrack] {
         return trackQueue
     }
     
+    func updateQueueForOffline() {
+        let userId = UserDefaults.standard.integer(forKey: "currentUserId")
+        let cachedQueue = getAllCachedTracks().map { $0.track }.filter { $0.uploadedBy == userId }
+        trackQueue = trackQueue.filter { cachedQueue.contains($0.track) }
+        originalQueue = originalQueue.filter { cachedQueue.contains($0.track) }
+    }
+    
     func playOrPauseTrack(_ track: TrackResponse) {
-        if currentTrack == track {
+        if currentTrack!.track == track {
             togglePlayPause()
         } else {
             startPlaying(track: track)
@@ -110,7 +128,7 @@ class MusicPlayerManager: NSObject {
             return
         }
         
-        let track = trackQueue[index]
+        let track = trackQueue[index].track
         
         if let cachedTrack = trackCache.object(forKey: NSNumber(value: track.id)),
            let cachedFileURL = cachedTrack.fileURL {
@@ -160,7 +178,7 @@ class MusicPlayerManager: NSObject {
                     self.avPlayer?.addObserver(self, forKeyPath: "timeControlStatus", options: [.old, .new], context: nil)
                     
                     self.avPlayer?.play()
-                    self.currentTrack = track
+                    self.currentTrack = self.trackQueue[index]
                     self.currentTrackIndex = index
                     
                     NotificationCenter.default.post(name: .trackDidChange, object: track)
@@ -192,7 +210,7 @@ class MusicPlayerManager: NSObject {
         self.avPlayer?.addObserver(self, forKeyPath: "timeControlStatus", options: [.old, .new], context: nil)
         self.avPlayer?.play()
 
-        self.currentTrack = track
+        self.currentTrack = trackQueue[index]
         self.currentTrackIndex = index
 
         NotificationCenter.default.post(name: .trackDidChange, object: track)
@@ -334,17 +352,17 @@ class MusicPlayerManager: NSObject {
     }
     
     func deleteTrack(_ track: TrackResponse) {
-        trackQueue.removeAll { $0 == track }
+        trackQueue.removeAll { $0.track == track }
         trackCache.removeObject(forKey: NSNumber(value: track.id))
         NotificationCenter.default.post(name: .trackDidDelete, object: nil)
     }
     
     func shuffleQueue() {
         guard !trackQueue.isEmpty else { return }
+
+        guard !isShuffled else { return }
         
-        if !isShuffled {
-            originalQueue = trackQueue
-        }
+        originalQueue = trackQueue
         
         if let currentIndex = currentTrackIndex {
             let currentTrack = trackQueue.remove(at: currentIndex)
@@ -365,7 +383,7 @@ class MusicPlayerManager: NSObject {
         trackQueue = originalQueue
         
         if let currentTrack = currentTrack {
-            currentTrackIndex = trackQueue.firstIndex(where: { $0.id == currentTrack.id })
+            currentTrackIndex = trackQueue.firstIndex(where: { $0.instanceId == currentTrack.instanceId })
         }
         
         isShuffled = false

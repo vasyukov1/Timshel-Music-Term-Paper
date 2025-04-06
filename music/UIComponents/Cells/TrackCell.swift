@@ -5,6 +5,11 @@ protocol TrackContextMenuDelegate: AnyObject {
     func didSelectGoToArtist(track: TrackResponse)
     func didSelectAddToPlaylist(track: TrackResponse)
     func didSelectDeleteTrack(track: TrackResponse)
+    
+    func didSelectAddToQueue(queuedTrack: QueuedTrack)
+    func didSelectGoToArtist(queuedTrack: QueuedTrack)
+    func didSelectAddToPlaylist(queuedTrack: QueuedTrack)
+    func didSelectDeleteTrack(queuedTrack: QueuedTrack)
 }
 
 class TrackCell: UITableViewCell {
@@ -15,6 +20,8 @@ class TrackCell: UITableViewCell {
     
     weak var delegate: TrackContextMenuDelegate?
     private var track: TrackResponse?
+    private var queuedTrack: QueuedTrack?
+    private var currentTrackId: Int?
     
     override init(style: UITableViewCell.CellStyle, reuseIdentifier: String?) {
         super.init(style: style, reuseIdentifier: reuseIdentifier)
@@ -28,29 +35,65 @@ class TrackCell: UITableViewCell {
     
     func configure(with track: TrackResponse) {
         self.track = track
+        self.queuedTrack = nil
+        currentTrackId = track.id
+        setupUIFor(track: track)
         
+//        self.track = track
+//        currentTrackId = track.id
+//        
+//        titleLabel.text = track.title
+//        artistLabel.text = track.artist
+//        trackImageView.image = track.image
+//        
+//        if let cachedTrack = MusicPlayerManager.shared.getCachedTrack(trackId: track.id) {
+//            trackImageView.image = cachedTrack.image
+//        } else {
+//            NetworkManager.shared.fetchTrackImage(trackId: track.id) { [weak self] result in
+//                DispatchQueue.main.async {
+//                    guard let self = self, self.currentTrackId == track.id else { return }
+//                    
+//                    switch result {
+//                    case .success(let image):
+//                        self.trackImageView.image = image
+//                    case .failure:
+//                        self.trackImageView.image = UIImage(systemName: "music.note")
+//                    }
+//                }
+//            }
+//        }
+    }
+    
+    func configure(with queuedTrack: QueuedTrack) {
+        self.track = queuedTrack.track
+        self.queuedTrack = queuedTrack
+        currentTrackId = queuedTrack.track.id
+        setupUIFor(track: queuedTrack.track)
+    }
+    
+    private func setupUIFor(track: TrackResponse) {
         titleLabel.text = track.title
         artistLabel.text = track.artist
         trackImageView.image = track.image
-        
+
         if let cachedTrack = MusicPlayerManager.shared.getCachedTrack(trackId: track.id) {
             trackImageView.image = cachedTrack.image
         } else {
             NetworkManager.shared.fetchTrackImage(trackId: track.id) { [weak self] result in
-                switch result {
-                case .success(let image):
-                    DispatchQueue.main.async {
-                        self?.trackImageView.image = image
-                    }
-                case .failure(let error):
-                    print("Error loading image: \(error.localizedDescription)")
-                    DispatchQueue.main.async {
-                        self?.trackImageView.image = UIImage(systemName: "music.note")
+                DispatchQueue.main.async {
+                    guard let self = self, self.currentTrackId == track.id else { return }
+
+                    switch result {
+                    case .success(let image):
+                        self.trackImageView.image = image
+                    case .failure:
+                        self.trackImageView.image = UIImage(systemName: "music.note")
                     }
                 }
             }
         }
     }
+
     
     private func setupUI() {
         trackImageView.contentMode = .scaleAspectFill
@@ -107,7 +150,11 @@ class TrackCell: UITableViewCell {
               let parentVC = findParentViewController(),
               let delegate = parentVC as? TrackContextMenuDelegate else { return }
         
-        parentVC.presentTrackContextMenu(for: track, delegate: delegate)
+        if let queued = queuedTrack {
+            parentVC.presentTrackContextMenu(for: queued, delegate: delegate)
+        } else {
+            parentVC.presentTrackContextMenu(for: track, delegate: delegate)
+        }
     }
 }
 
@@ -150,6 +197,33 @@ extension UIViewController {
         self.present(alert, animated: true)
     }
 }
+
+extension UIViewController {
+    func presentTrackContextMenu(for queuedTrack: QueuedTrack, delegate: TrackContextMenuDelegate) {
+        let menu = UIAlertController(title: nil, message: nil, preferredStyle: .actionSheet)
+
+        menu.addAction(UIAlertAction(title: "Add to queue", style: .default) { _ in
+            delegate.didSelectAddToQueue(queuedTrack: queuedTrack)
+        })
+
+        menu.addAction(UIAlertAction(title: "Go to artist", style: .default) { _ in
+            delegate.didSelectGoToArtist(queuedTrack: queuedTrack)
+        })
+
+        menu.addAction(UIAlertAction(title: "Add to playlist", style: .default) { _ in
+            delegate.didSelectAddToPlaylist(queuedTrack: queuedTrack)
+        })
+
+        menu.addAction(UIAlertAction(title: "Delete track", style: .destructive) { _ in
+            delegate.didSelectDeleteTrack(queuedTrack: queuedTrack)
+        })
+
+        menu.addAction(UIAlertAction(title: "Cancel", style: .cancel))
+
+        self.present(menu, animated: true)
+    }
+}
+
 
 extension UIView {
     func findParentViewController() -> UIViewController? {

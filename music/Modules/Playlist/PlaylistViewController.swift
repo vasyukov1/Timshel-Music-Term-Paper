@@ -133,7 +133,7 @@ extension PlaylistViewController: UITableViewDataSource, UITableViewDelegate {
         cell.delegate = self
         
         if let currentTrack = MusicPlayerManager.shared.getCurrentTrack(),
-           currentTrack.idString == String(trackResponse.id) {
+           currentTrack.track.id == trackResponse.id {
             cell.backgroundColor = .systemGray5
         } else {
             cell.backgroundColor = .clear
@@ -146,8 +146,8 @@ extension PlaylistViewController: UITableViewDataSource, UITableViewDelegate {
         let trackResponse = viewModel.tracks[indexPath.row]
         
         if let currentTrack = MusicPlayerManager.shared.getCurrentTrack(),
-           currentTrack.idString == String(trackResponse.id) {
-            MusicPlayerManager.shared.playOrPauseTrack(currentTrack)
+           currentTrack.track.id == trackResponse.id {
+            MusicPlayerManager.shared.playOrPauseTrack(currentTrack.track)
         } else {
             let queue = viewModel.tracks.map { $0 }
             MusicPlayerManager.shared.setQueue(tracks: queue, startIndex: indexPath.row)
@@ -158,6 +158,11 @@ extension PlaylistViewController: UITableViewDataSource, UITableViewDelegate {
 }
 
 extension PlaylistViewController: TrackContextMenuDelegate {
+    func didSelectAddToQueue(queuedTrack: QueuedTrack) {}
+    func didSelectGoToArtist(queuedTrack: QueuedTrack) {}
+    func didSelectAddToPlaylist(queuedTrack: QueuedTrack) {}
+    func didSelectDeleteTrack(queuedTrack: QueuedTrack) {}
+    
     func didSelectAddToQueue(track: TrackResponse) {
         MusicPlayerManager.shared.addTrackToQueue(track: track)
     }
@@ -228,7 +233,7 @@ extension PlaylistViewController: TrackContextMenuDelegate {
         MusicPlayerManager.shared.deleteTrack(track)
         MusicManager.shared.deleteTrack(track)
         
-        if let index = viewModel.tracks.firstIndex(where: { String($0.id) == track.idString }) {
+        if let index = viewModel.tracks.firstIndex(where: { $0.id == track.id }) {
             viewModel.tracks.remove(at: index)
             tableView.performBatchUpdates({
                 tableView.deleteRows(at: [IndexPath(row: index, section: 0)], with: .automatic)
