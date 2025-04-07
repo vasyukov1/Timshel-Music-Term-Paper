@@ -6,7 +6,7 @@ class MusicManager {
     
     static var shared: MusicManager = MusicManager()
     
-    private var tracksByUser: [(String, TrackResponse)] = []
+    var tracksByUser: [(String, TrackResponse)] = []
     
     private let fileManager = FileManager.default
     private let userDefaultsKey = "savedTracks"
@@ -101,52 +101,60 @@ class MusicManager {
             return
         }
         
-        NetworkManager.shared.deleteTrack(trackID: track.id) { result in
-            DispatchQueue.main.async {
-                switch result {
-                case .success:
-                    let trackPath = track.toTrack().url.path
-                    do {
-                        if self.fileManager.fileExists(atPath: trackPath) {
-                            try self.fileManager.removeItem(atPath: trackPath)
-                            print("Local track file deleted: \(track.title)")
+        let shouldDeleteLocally = PlaybackSettings.shared.mode == .offline || !NetworkMonitor.shared.isConnected
+        let trackPath = track.toTrack().url.path
+        
+        if shouldDeleteLocally {
+            // Добавляем в очередь удалений
+            let deletion = PendingDeletion(
+                trackID: track.id,
+                trackPath: trackPath,
+                userLogin: login
+            )
+            DeletionQueueManager.shared.addToQueue(deletion)
+            removeTrackFromLocalStorage(track: track, login: login, trackPath: trackPath)
+        } else {
+            NetworkManager.shared.deleteTrack(trackID: track.id) { result in
+                DispatchQueue.main.async {
+                    switch result {
+                    case .success:
+                        self.removeTrackFromLocalStorage(track: track, login: login, trackPath: trackPath)
+                    case .failure(let error):
+                        print("Failed to delete track from server: \(error.localizedDescription)")
+                        // Добавляем в очередь при ошибке сети
+                        if let networkError = error as? URLError, networkError.networkUnavailableReason != nil {
+                            let deletion = PendingDeletion(
+                                trackID: track.id,
+                                trackPath: trackPath,
+                                userLogin: login
+                            )
+                            DeletionQueueManager.shared.addToQueue(deletion)
                         }
-                    } catch {
-                        print("Failed to delete local track file: \(error)")
                     }
-                    
-                    if let index = self.tracksByUser.firstIndex(where: { $0.0 == login && $0.1 == track }) {
-                        self.tracksByUser.remove(at: index)
-                        self.saveTracks()
-                        print("Track [\(track.title)] deleted from music")
-                    }
-                    
-                case .failure(let error):
-                    print("Failed to delete track from server: \(error.localizedDescription)")
                 }
             }
         }
-        
-        guard let index = tracksByUser.firstIndex(where: { $0.0 == login && $0.1 == track }) else {
-            return
-        }
-        
-        let trackPath = track.toTrack().url.path
-        
-        do {
-            try fileManager.removeItem(atPath: trackPath)
-            print("Track file deleted: \(track.title)")
-        } catch {
-            print("Failed to delete track file: \(error)")
-        }
-        
-        tracksByUser.remove(at: index)
-        saveTracks()
-        
-        print("Track [\(track.title)] deleted from music")
     }
     
-    private func saveTracks() {
+    private func removeTrackFromLocalStorage(track: TrackResponse, login: String, trackPath: String) {
+        MusicPlayerManager.shared.removeCachedTrack(id: track.id)
+        
+        do {
+            if FileManager.default.fileExists(atPath: trackPath) {
+                try FileManager.default.removeItem(atPath: trackPath)
+            }
+        } catch {
+            print("Error deleting local file: \(error)")
+        }
+        
+        if let index = tracksByUser.firstIndex(where: { $0.0 == login && $0.1 == track }) {
+            tracksByUser.remove(at: index)
+            saveTracks()
+            print("Track [\(track.title)] deleted locally")
+        }
+    }
+    
+    func saveTracks() {
         let encodableTracks = tracksByUser.map { SavedTrack(login: $0.0, track: $0.1) }
         
         do {

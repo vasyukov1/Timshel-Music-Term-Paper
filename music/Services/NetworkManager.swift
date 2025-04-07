@@ -336,13 +336,11 @@ class NetworkManager {
         var request = URLRequest(url: url)
         request.httpMethod = "GET"
         
-        // Добавляем JWT токен если есть
         if let token = UserDefaults.standard.string(forKey: "jwtToken") {
             request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         }
         
         URLSession.shared.dataTask(with: request) { data, response, error in
-            // Обработка ошибок сети
             if let error = error {
                 DispatchQueue.main.async {
                     completion(.failure(error))
@@ -350,7 +348,6 @@ class NetworkManager {
                 return
             }
             
-            // Проверка HTTP статуса
             guard let httpResponse = response as? HTTPURLResponse else {
                 DispatchQueue.main.async {
                     completion(.failure(NSError(domain: "Invalid response", code: 0)))
@@ -380,7 +377,7 @@ class NetworkManager {
         }.resume()
     }
 
-    // MARK: Delete Track
+    // MARK: - Delete Track
     
     func deleteTrack(trackID: Int, completion: @escaping (Result<Void, Error>) -> Void) {
         guard let url = URL(string: "\(baseURL)/api/tracks/\(trackID)") else {
@@ -407,8 +404,10 @@ class NetworkManager {
             }
             
             switch httpResponse.statusCode {
-            case 200:
+            case 200, 204:
                 completion(.success(()))
+            case 404:
+                completion(.failure(NSError(domain: "Track not found", code: 404)))
             default:
                 let errorMessage = String(data: data ?? Data(), encoding: .utf8) ?? "Unknown error"
                 completion(.failure(NSError(domain: errorMessage, code: httpResponse.statusCode)))
@@ -416,7 +415,7 @@ class NetworkManager {
         }.resume()
     }
     
-    // MARK: Playlist Creation
+    // MARK: - Playlist Creation
     func createPlaylist(title: String, description: String? = nil, completion: @escaping (Result<PlaylistResponse, Error>) -> Void) {
         let url = URL(string: "\(baseURL)/api/playlists")!
         var request = URLRequest(url: url)
