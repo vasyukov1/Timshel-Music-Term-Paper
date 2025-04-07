@@ -126,24 +126,53 @@ class MainViewController: BaseViewController, UIDocumentPickerDelegate {
         Task {
             for url in urls {
                 let (title, artist, image) = await loadMetadata(url: url)
+                let tempId = Int(Date().timeIntervalSince1970)
                 
-                NetworkManager.shared.uploadTrack(fileURL: url,
-                                                  title: title,
-                                                  artist: artist,
-                                                  album: nil,
-                                                  genre: nil,
-                                                  image: image) { result in
-                    DispatchQueue.main.async {
+                let shouldCacheLocally = PlaybackSettings.shared.mode == .offline || !NetworkMonitor.shared.isConnected
+                
+                if shouldCacheLocally {
+                    let pending = PendingUpload(id: tempId, fileURL: url, title: title, artist: artist, image: image)
+                    UploadQueueManager.shared.addToQueue(pending)
+                    uploadTrackToCacheWithoutServer(id: tempId, title: title, artist: artist, image: image, url: url)
+                } else {
+                    NetworkManager.shared.uploadTrack(fileURL: url,
+                                                      title: title,
+                                                      artist: artist,
+                                                      album: nil,
+                                                      genre: nil,
+                                                      image: image) { result in
                         switch result {
-                        case .success(let trackResponse):
-                            print("Track uploaded: \(trackResponse)")
+                        case .success(let response):
+                            print("Uploaded successfully: \(response.id)")
                         case .failure(let error):
-                            print("Upload failed: \(error.localizedDescription)")
+                            let pending = PendingUpload(id: tempId, fileURL: url, title: title, artist: artist, image: image)
+                            UploadQueueManager.shared.addToQueue(pending)
+                            self.uploadTrackToCacheWithoutServer(id: tempId, title: title, artist: artist, image: image, url: url)
                         }
                     }
                 }
             }
-        }        
+        }
+    }
+    
+    private func uploadTrackToCacheWithoutServer(id: Int, title: String, artist: String, image: UIImage, url: URL) {
+        let userId = UserDefaults.standard.integer(forKey: "currentUserId")
+        let track = TrackResponse(
+            id: id,
+            title: title,
+            artist: artist,
+            album: "",
+            genre: "",
+            duration: 180,
+            createdAt: "",
+            image_url: "",
+            uploadedBy: userId)
+        
+        let cachedTrack = CachedTrack(track: track, image: image, fileURL: url)
+        MusicPlayerManager.shared.trackCache.setObject(cachedTrack, forKey: NSNumber(value: id))
+        MusicPlayerManager.shared.cachedKeys.insert(NSNumber(value: id))
+
+        print("Трек '\(title)' закеширован локально")
     }
     
     private func loadMetadata(url: URL) async -> (String, String, UIImage) {

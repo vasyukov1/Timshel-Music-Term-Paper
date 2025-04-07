@@ -6,7 +6,7 @@ class MusicPlayerManager: NSObject {
     private var avPlayer: AVPlayer?
     
     let trackCache = NSCache<NSNumber, CachedTrack>()
-    private var cachedKeys = Set<NSNumber>()
+    var cachedKeys = Set<NSNumber>()
     
     private var originalQueue: [QueuedTrack] = []
     private var trackQueue: [QueuedTrack] = []
@@ -226,7 +226,7 @@ class MusicPlayerManager: NSObject {
         print("Начато воспроизведение из кэша: \(track.title)")
     }
     
-    private func cacheTrack(_ track: TrackResponse, url: URL?) {
+    func cacheTrack(_ track: TrackResponse, url: URL?) {
         NetworkManager.shared.fetchTrackImage(trackId: track.id) { [weak self] result in
             guard let self = self else { return }
             
@@ -248,6 +248,13 @@ class MusicPlayerManager: NSObject {
                 }
             }
         }
+    }
+    
+    func removeCachedTrack(id: Int) {
+        let key = NSNumber(value: id)
+        trackCache.removeObject(forKey: key)
+        cachedKeys.remove(key)
+        print("Removed cached track with id: \(id)")
     }
     
     func getCachedTrack(trackId: Int) -> CachedTrack? {

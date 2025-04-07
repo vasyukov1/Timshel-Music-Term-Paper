@@ -9,7 +9,6 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         
         copyFileToDocumentsIfNeeded(filename: "testdb")
         copyFileToDocumentsIfNeeded(filename: "testdb_info")
-//        copyFolderToDocumentsIfNeeded(folderName: "testdb_music")
         
         var navigationController: UINavigationController
         

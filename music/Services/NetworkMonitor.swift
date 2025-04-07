@@ -1,4 +1,5 @@
 import Network
+import UIKit
 
 class NetworkMonitor {
     static let shared = NetworkMonitor()
@@ -6,7 +7,15 @@ class NetworkMonitor {
     private let monitor = NWPathMonitor()
     private let queue = DispatchQueue(label: "NetworkMonitor")
     
-    private(set) var isConnected: Bool = true
+    private(set) var isConnected: Bool = true {
+        didSet {
+            if oldValue != isConnected {
+                DispatchQueue.main.async {
+                    NotificationCenter.default.post(name: .networkStatusChanged, object: nil)
+                }
+            }
+        }
+    }
     
     init() {
         monitor.pathUpdateHandler = { [weak self] path in
@@ -15,6 +24,10 @@ class NetworkMonitor {
         }
         monitor.start(queue: queue)
     }
+}
+
+extension Notification.Name {
+    static let networkStatusChanged = Notification.Name("networkStatusChanged")
 }
 
 enum PlaybackMode {
