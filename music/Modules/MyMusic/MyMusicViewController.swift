@@ -32,6 +32,19 @@ class MyMusicViewController: BaseViewController, UITableViewDelegate, UITableVie
         NotificationCenter.default.removeObserver(self)
     }
     
+    
+    @objc private func trackDidChange(_ notification: Notification) {
+        guard let visibleIndexPaths = tableView.indexPathsForVisibleRows else { return }
+        
+        tableView.beginUpdates()
+        tableView.reloadRows(at: visibleIndexPaths, with: .none)
+        tableView.endUpdates()
+    }
+    
+    @objc private func trackDidDelete() {
+        tableView.reloadData()
+    }
+    
     private func bindViewModel() {
         viewModel.loadUserTracks()
         
@@ -43,34 +56,47 @@ class MyMusicViewController: BaseViewController, UITableViewDelegate, UITableVie
             .store(in: &cancellables)
     }
     
+    // MARK: - Setup UI
+    
     private func setupUI() {
         title = "My Music"
-        view.backgroundColor = .systemBackground
         
         tableView.delegate = self
         tableView.dataSource = self
         tableView.register(TrackCell.self, forCellReuseIdentifier: "TrackCell")
-        tableView.frame = view.bounds
+        tableView.rowHeight = UITableView.automaticDimension
+        tableView.estimatedRowHeight = 80
+        tableView.separatorStyle = .none
+        tableView.backgroundColor = .clear
+        tableView.separatorColor = UIColor(white: 0.2, alpha: 1)
+        tableView.separatorInset = UIEdgeInsets(top: 0, left: 70, bottom: 0, right: 0)
+        tableView.contentInset = UIEdgeInsets(top: 10, left: 0, bottom: 0, right: 0)
         
         for subview in [tableView] {
             view.addSubview(subview)
+            subview.translatesAutoresizingMaskIntoConstraints = false
         }
         
         setupConstraints()
     }
     
+    // MARK: - Constraints
+    
     private func setupConstraints() {
-        for subview in view.subviews {
-            subview.translatesAutoresizingMaskIntoConstraints = false
+        var height = -80
+        if MusicPlayerManager.shared.isPlaying {
+            height = -150
         }
         
         NSLayoutConstraint.activate([
             tableView.topAnchor.constraint(equalTo: view.topAnchor),
             tableView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             tableView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            tableView.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -50)
+            tableView.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: CGFloat(height))
         ])
     }
+    
+    // MARK: - Table View
     
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
         return viewModel.tracks.count
@@ -87,13 +113,6 @@ class MyMusicViewController: BaseViewController, UITableViewDelegate, UITableVie
         cell.configure(with: trackResponse)
         cell.delegate = self
         
-        if let currentTrack = MusicPlayerManager.shared.getCurrentTrack(),
-           currentTrack.track.id == trackResponse.id {
-            cell.backgroundColor = .systemGray5
-        } else {
-            cell.backgroundColor = .clear
-        }
-        
         return cell
     }
     
@@ -109,18 +128,6 @@ class MyMusicViewController: BaseViewController, UITableViewDelegate, UITableVie
         }
         
         tableView.deselectRow(at: indexPath, animated: true)
-    }
-    
-    @objc private func trackDidChange(_ notification: Notification) {
-        guard let visibleIndexPaths = tableView.indexPathsForVisibleRows else { return }
-        
-        tableView.beginUpdates()
-        tableView.reloadRows(at: visibleIndexPaths, with: .none)
-        tableView.endUpdates()
-    }
-    
-    @objc private func trackDidDelete() {
-        tableView.reloadData()
     }
 }
 

@@ -45,6 +45,7 @@ class SearchViewModel {
                         self?.handleSearchResults(response)
                     case .failure(let error):
                         print("Network search failed: \(error.localizedDescription)")
+                        self?.searchResults = []
                     }
                 }
             }

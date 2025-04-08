@@ -51,6 +51,19 @@ class TrackCell: UITableViewCell {
         titleLabel.text = track.title
         artistLabel.text = track.artist
         trackImageView.image = track.image
+        
+        let indicatorView = UIView()
+        indicatorView.backgroundColor = UIColor.systemTeal
+        indicatorView.layer.cornerRadius = 2
+        indicatorView.isHidden = true
+        
+        if let currentTrack = MusicPlayerManager.shared.getCurrentTrack(),
+           currentTrack.track.id == track.id {
+            backgroundColor = UIColor(white: 0.1, alpha: 1)
+            indicatorView.isHidden = false
+        } else {
+            backgroundColor = .clear
+        }
 
         if let cachedTrack = MusicPlayerManager.shared.getCachedTrack(trackId: track.id) {
             trackImageView.image = cachedTrack.image
@@ -70,20 +83,43 @@ class TrackCell: UITableViewCell {
         }
     }
 
+    // MARK: - Setup UI
     
     private func setupUI() {
+        let titleFont = UIFont(name: "SFProDisplay-Medium", size: 16) ?? .systemFont(ofSize: 16)
+        let artistFont = UIFont(name: "SFProDisplay-Regular", size: 14) ?? .systemFont(ofSize: 14)
+        
         trackImageView.contentMode = .scaleAspectFill
-        trackImageView.layer.cornerRadius = 8
+        trackImageView.layer.cornerRadius = 12
         trackImageView.clipsToBounds = true
+        trackImageView.layer.borderWidth = 0.5
+        trackImageView.layer.borderColor = UIColor(white: 0.3, alpha: 1).cgColor
         
-        titleLabel.font = UIFont.boldSystemFont(ofSize: 16)
+        titleLabel.font = titleFont
+        titleLabel.textColor = .white
         
-        artistLabel.font = UIFont.systemFont(ofSize: 14)
-        artistLabel.textColor = .gray
+        artistLabel.font = artistFont
+        artistLabel.textColor = UIColor(white: 0.7, alpha: 1)
         
+        let gradient = CAGradientLayer()
+        gradient.colors = [
+            UIColor(red: 0.95, green: 0.95, blue: 1.0, alpha: 1.0).cgColor,
+            UIColor.systemTeal.withAlphaComponent(0.8).cgColor
+        ]
+        gradient.locations = [0, 1]
+        gradient.startPoint = CGPoint(x: 0, y: 0)
+        gradient.endPoint = CGPoint(x: 1, y: 1)
+        gradient.cornerRadius = 15
+        menuButton.layer.insertSublayer(gradient, at: 0)
+        menuButton.layer.cornerRadius = 15
+        menuButton.tintColor = .white
         menuButton.setImage(UIImage(systemName: "ellipsis"), for: .normal)
-        menuButton.tintColor = .gray
+        menuButton.imageView?.contentMode = .scaleAspectFit
         menuButton.addTarget(self, action: #selector(showMenu), for: .touchUpInside)
+        
+        let selectionView = UIView()
+        selectionView.backgroundColor = UIColor(white: 0.15, alpha: 1)
+        selectedBackgroundView = selectionView
 
         for subview in [
             trackImageView,
@@ -98,27 +134,36 @@ class TrackCell: UITableViewCell {
         setupConstraints()
     }
     
+    // MARK: - Constraints
+    
     private func setupConstraints() {
         NSLayoutConstraint.activate([
-            trackImageView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 10),
+            trackImageView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 15),
             trackImageView.centerYAnchor.constraint(equalTo: contentView.centerYAnchor),
-            trackImageView.widthAnchor.constraint(equalToConstant: 50),
-            trackImageView.heightAnchor.constraint(equalToConstant: 50),
+            trackImageView.widthAnchor.constraint(equalToConstant: 56),
+            trackImageView.heightAnchor.constraint(equalToConstant: 56),
             
-            titleLabel.leadingAnchor.constraint(equalTo: trackImageView.trailingAnchor, constant: 10),
-            titleLabel.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -10),
-            titleLabel.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 10),
+            titleLabel.leadingAnchor.constraint(equalTo: trackImageView.trailingAnchor, constant: 15),
+            titleLabel.trailingAnchor.constraint(lessThanOrEqualTo: menuButton.leadingAnchor, constant: -15),
+            titleLabel.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 12),
             
-            artistLabel.leadingAnchor.constraint(equalTo: trackImageView.trailingAnchor, constant: 10),
-            artistLabel.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -10),
-            artistLabel.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: 5),
-            artistLabel.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -10),
+            artistLabel.leadingAnchor.constraint(equalTo: trackImageView.trailingAnchor, constant: 15),
+            artistLabel.trailingAnchor.constraint(lessThanOrEqualTo: menuButton.leadingAnchor, constant: -15),
+            artistLabel.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: 4),
+            artistLabel.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -12),
             
-            menuButton.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -10),
+            menuButton.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -15),
             menuButton.centerYAnchor.constraint(equalTo: contentView.centerYAnchor),
             menuButton.widthAnchor.constraint(equalToConstant: 30),
             menuButton.heightAnchor.constraint(equalToConstant: 30),
         ])
+    }
+    
+    override func layoutSubviews() {
+        super.layoutSubviews()
+        if let gradient = menuButton.layer.sublayers?.first as? CAGradientLayer {
+            gradient.frame = menuButton.bounds
+        }
     }
     
     @objc private func showMenu() {
@@ -137,6 +182,14 @@ class TrackCell: UITableViewCell {
 extension UIViewController {
     func presentTrackContextMenu(for track: TrackResponse, delegate: TrackContextMenuDelegate) {
         let menu = UIAlertController(title: nil, message: nil, preferredStyle: .actionSheet)
+        
+        if let popover = menu.popoverPresentationController {
+            popover.backgroundColor = UIColor(white: 0.15, alpha: 1)
+        }
+        
+        menu.view.tintColor = .white
+        menu.view.backgroundColor = UIColor(white: 0.15, alpha: 1)
+        menu.view.layer.cornerRadius = 15
         
         menu.addAction(UIAlertAction(title: "Add to queue", style: .default) { _ in
             delegate.didSelectAddToQueue(track: track)
@@ -189,7 +242,11 @@ extension UIViewController {
         
         menu.addAction(UIAlertAction(title: "Cancel", style: .cancel))
         
-        self.present(menu, animated: true)
+        self.present(menu, animated: true) {
+            menu.view.subviews.forEach { subview in
+                subview.backgroundColor = UIColor(white: 0.15, alpha: 1)
+            }
+        }
     }
         
     func presentArtistSelection(for track: TrackResponse, completion: @escaping (String) -> Void) {

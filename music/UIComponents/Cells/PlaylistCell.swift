@@ -20,6 +20,13 @@ class PlaylistCell: UICollectionViewCell {
     }
     
     private func setupUI() {
+        backgroundColor = .clear
+        
+        let container = UIView()
+        container.backgroundColor = UIColor(white: 0.1, alpha: 1)
+        container.layer.cornerRadius = 15
+        container.layer.masksToBounds = true
+        
         playlistImage.contentMode = .scaleAspectFill
         playlistImage.clipsToBounds = true
         playlistImage.layer.cornerRadius = 12

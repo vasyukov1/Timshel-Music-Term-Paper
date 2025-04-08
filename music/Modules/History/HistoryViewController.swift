@@ -7,7 +7,6 @@ class HistoryViewController: BaseViewController, UITableViewDelegate, UITableVie
     private var cancellable = Set<AnyCancellable>()
     
     private var tableView = UITableView()
-    private let returnButton = UIButton()
     
     override func viewDidLoad() {
         setupUI()
@@ -28,16 +27,19 @@ class HistoryViewController: BaseViewController, UITableViewDelegate, UITableVie
     
     private func setupUI() {
         title = "History"
-        view.backgroundColor = .systemBackground
         
         tableView.delegate = self
         tableView.dataSource = self
         tableView.register(TrackCell.self, forCellReuseIdentifier: "TrackCell")
+        tableView.backgroundColor = .clear
+        tableView.separatorColor = UIColor(white: 0.2, alpha: 1)
+        tableView.separatorInset = UIEdgeInsets(top: 0, left: 70, bottom: 0, right: 0)
+        tableView.contentInset = UIEdgeInsets(top: 10, left: 0, bottom: 0, right: 0)
+        tableView.rowHeight = UITableView.automaticDimension
+        tableView.estimatedRowHeight = 80
+        tableView.separatorStyle = .none
         
-        returnButton.setImage(UIImage(systemName: "arrow.left"), for: .normal)
-        returnButton.addTarget(self, action: #selector(returnButtonTapped), for: .touchUpInside)
-        
-        for subview in [tableView, returnButton] {
+        for subview in [tableView] {
             view.addSubview(subview)
             subview.translatesAutoresizingMaskIntoConstraints = false
         }
@@ -45,15 +47,17 @@ class HistoryViewController: BaseViewController, UITableViewDelegate, UITableVie
         setupConstraints()
     }
     
-    private func setupConstraints() {        
+    private func setupConstraints() {
+        var height = -80
+        if MusicPlayerManager.shared.isPlaying {
+            height = -150
+        }
+        
         NSLayoutConstraint.activate([
-            returnButton.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 20),
-            returnButton.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 20),
-            
-            tableView.topAnchor.constraint(equalTo: returnButton.bottomAnchor, constant: 20),
+            tableView.topAnchor.constraint(equalTo: view.topAnchor),
             tableView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             tableView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            tableView.bottomAnchor.constraint(equalTo: view.bottomAnchor)
+            tableView.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: CGFloat(height))
         ])
     }
     
@@ -67,13 +71,6 @@ class HistoryViewController: BaseViewController, UITableViewDelegate, UITableVie
         
         cell.configure(with: trackResponse)
         cell.delegate = self
-        
-        if let currentTrack = MusicPlayerManager.shared.getCurrentTrack(),
-           currentTrack.track.id == trackResponse.id {
-            cell.backgroundColor = .systemGray5
-        } else {
-            cell.backgroundColor = .clear
-        }
         
         return cell
     }

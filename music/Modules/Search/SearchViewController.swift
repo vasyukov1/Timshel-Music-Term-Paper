@@ -10,6 +10,7 @@ class SearchViewController: BaseViewController {
     private let searchDebounceInterval: DispatchQueue.SchedulerTimeType.Stride = 0.5
     private let searchSubject = PassthroughSubject<String, Never>()
     
+    private let searchContainer = UIView()
     private let searchBar = UISearchBar()
     private let searchButton = UIButton()
     private let initialEmptyLabel = UILabel()
@@ -20,7 +21,7 @@ class SearchViewController: BaseViewController {
         label.text = "Ничего не найдено"
         label.textAlignment = .center
         label.font = UIFont.systemFont(ofSize: 16, weight: .medium)
-        label.textColor = .secondaryLabel
+        label.textColor = .systemRed
         label.isHidden = true
         return label
     }()
@@ -72,35 +73,73 @@ class SearchViewController: BaseViewController {
     
     private func setupUI() {
         title = "Search"
-        view.backgroundColor = .systemBackground
         
-        searchBar.placeholder = "Search..."
+        searchContainer.layer.cornerRadius = 20
+        searchContainer.clipsToBounds = true
+        
+        let gradient = CAGradientLayer()
+        gradient.colors = [
+            UIColor(red: 0.95, green: 0.95, blue: 1.0, alpha: 1.0).cgColor,
+            UIColor.systemTeal.withAlphaComponent(0.8).cgColor
+        ]
+        gradient.locations = [0, 1]
+        gradient.startPoint = CGPoint(x: 0, y: 0)
+        gradient.endPoint = CGPoint(x: 1, y: 1)
+        searchContainer.layer.insertSublayer(gradient, at: 0)
+        
+        searchBar.placeholder = "Искать треки или авторов..."
         searchBar.delegate = self
         searchBar.searchBarStyle = .minimal
+        searchBar.tintColor = .white
+        searchBar.barTintColor = .clear
+        searchBar.backgroundColor = .clear
+        searchBar.searchTextField.backgroundColor = .clear
+        searchBar.searchTextField.textColor = .white
+        searchBar.searchTextField.attributedPlaceholder = NSAttributedString(
+            string: "Искать треки...",
+            attributes: [.foregroundColor: UIColor(white: 0, alpha: 0.7)]
+        )
         
         searchButton.setTitle("Найти", for: .normal)
-        searchButton.setTitleColor(.systemBlue, for: .normal)
+        searchButton.titleLabel?.font = UIFont(name: "SFProDisplay-Medium", size: 16)
+        searchButton.layer.cornerRadius = 15
+        searchButton.layer.masksToBounds = true
+        searchButton.backgroundColor = UIColor.systemTeal.withAlphaComponent(0.9)
+        searchButton.layer.shadowColor = UIColor.systemTeal.cgColor
+        searchButton.layer.shadowRadius = 6
+        searchButton.layer.shadowOpacity = 0.3
+        searchButton.layer.shadowOffset = CGSize(width: 0, height: 3)
         searchButton.addTarget(self, action: #selector(searchButtonTapped), for: .touchUpInside)
         
-        initialEmptyLabel.text = "Найти трек или автора"
-        initialEmptyLabel.textAlignment = .center
-        initialEmptyLabel.font = UIFont.systemFont(ofSize: 16, weight: .medium)
-        initialEmptyLabel.textColor = .secondaryLabel
-        
+        tableView.backgroundColor = .clear
+        tableView.separatorStyle = .none
         tableView.register(TrackCell.self, forCellReuseIdentifier: "TrackCell")
         tableView.delegate = self
         tableView.dataSource = self
-        tableView.separatorStyle = .none
         
+        initialEmptyLabel.text = "Найти трек или автора"
+        initialEmptyLabel.textAlignment = .center
+        initialEmptyLabel.font = UIFont(name: "SFProDisplay-Medium", size: 16)
+        initialEmptyLabel.textColor = UIColor(white: 0.7, alpha: 1)
+        
+        emptyStateLabel.font = UIFont(name: "SFProDisplay-Medium", size: 16)
+
         for subview in [
-            searchBar,
             tableView,
             emptyStateLabel,
-            searchButton,
+            searchContainer,
             initialEmptyLabel
         ] {
             view.addSubview(subview)
             subview.translatesAutoresizingMaskIntoConstraints = false
+        }
+        
+        for searchItem in [
+            searchBar,
+            searchButton
+        ] {
+            searchContainer.addSubview(searchItem)
+            searchItem.translatesAutoresizingMaskIntoConstraints = false
         }
         
         setupConstraints()
@@ -110,21 +149,28 @@ class SearchViewController: BaseViewController {
     
     private func setupConstraints() {
         NSLayoutConstraint.activate([
-            searchBar.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 8),
-            searchBar.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
+            searchContainer.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 8),
+            searchContainer.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
+            searchContainer.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
+            searchContainer.heightAnchor.constraint(equalToConstant: 50),
+            
+            searchBar.topAnchor.constraint(equalTo: searchContainer.topAnchor),
+            searchBar.leadingAnchor.constraint(equalTo: searchContainer.leadingAnchor, constant: 12),
             searchBar.trailingAnchor.constraint(equalTo: searchButton.leadingAnchor, constant: -8),
+            searchBar.bottomAnchor.constraint(equalTo: searchContainer.bottomAnchor),
             
-            searchButton.centerYAnchor.constraint(equalTo: searchBar.centerYAnchor),
-            searchButton.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
-            searchButton.widthAnchor.constraint(equalToConstant: 60),
+            searchButton.centerYAnchor.constraint(equalTo: searchContainer.centerYAnchor),
+            searchButton.trailingAnchor.constraint(equalTo: searchContainer.trailingAnchor, constant: -12),
+            searchButton.widthAnchor.constraint(equalToConstant: 80),
+            searchButton.heightAnchor.constraint(equalToConstant: 36),
             
-            tableView.topAnchor.constraint(equalTo: searchBar.bottomAnchor, constant: 16),
+            tableView.topAnchor.constraint(equalTo: searchContainer.bottomAnchor, constant: 16),
             tableView.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
             tableView.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
-            tableView.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -16),
+            tableView.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor),
             
-            emptyStateLabel.centerXAnchor.constraint(equalTo: tableView.centerXAnchor),
-            emptyStateLabel.centerYAnchor.constraint(equalTo: tableView.centerYAnchor),
+            emptyStateLabel.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+            emptyStateLabel.centerYAnchor.constraint(equalTo: view.centerYAnchor),
             emptyStateLabel.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 20),
             emptyStateLabel.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -20),
             
@@ -135,6 +181,14 @@ class SearchViewController: BaseViewController {
         ])
     }
     
+    override func viewDidLayoutSubviews() {
+        super.viewDidLayoutSubviews()
+        
+        if let gradient = searchContainer.layer.sublayers?.first as? CAGradientLayer {
+            gradient.frame = searchContainer.bounds
+        }
+    }
+    
     @objc private func searchButtonTapped() {
         guard let query = searchBar.text else { return }
         searchSubject.send(query)
@@ -143,10 +197,11 @@ class SearchViewController: BaseViewController {
     
     private func updateEmptyState(for results: [TrackResponse]) {
         let hasResults = !results.isEmpty
-        let isInitialState = results.isEmpty && (searchBar.text?.isEmpty ?? true)
+        let isSearchQueryEmpty = searchBar.text?.isEmpty ?? true
+        let isInitialState = results.isEmpty && isSearchQueryEmpty
         
         initialEmptyLabel.isHidden = !isInitialState
-        emptyStateLabel.isHidden = hasResults || isInitialState
+        emptyStateLabel.isHidden = !(results.isEmpty && !isSearchQueryEmpty)
         tableView.isHidden = !hasResults
 
         print("Search state updated: \(hasResults ? "results" : isInitialState ? "initial" : "empty")")
@@ -173,13 +228,6 @@ extension SearchViewController: UITableViewDataSource, UITableViewDelegate {
         let cell = tableView.dequeueReusableCell(withIdentifier: "TrackCell", for: indexPath) as! TrackCell
         let track = viewModel.searchResults[indexPath.row]
         cell.configure(with: track)
-        
-        if let currentTrack = MusicPlayerManager.shared.getCurrentTrack(),
-           currentTrack.track.id == track.id {
-            cell.backgroundColor = .systemGray5
-        } else {
-            cell.backgroundColor = .clear
-        }
         
         return cell
     }

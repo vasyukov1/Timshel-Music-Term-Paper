@@ -138,6 +138,20 @@ class MiniPlayerView: UIView {
         }
     }
     
+    override func layoutSubviews() {
+        super.layoutSubviews()
+        
+        if let gradient = layer.sublayers?.first as? CAGradientLayer {
+            gradient.frame = bounds
+        }
+        
+        if let buttonGradient = playPauseButton.layer.sublayers?.first as? CAGradientLayer {
+            buttonGradient.frame = playPauseButton.bounds
+        }
+        
+        layer.shadowPath = UIBezierPath(roundedRect: bounds, cornerRadius: 12).cgPath
+    }
+    
     private func swipeTrack(_ translation: CGFloat) {
         let afterTrack = viewModel.hasAfterTrack(translation)
         if afterTrack == 0 {
@@ -175,30 +189,58 @@ class MiniPlayerView: UIView {
     }
     
     private func setupUI() {
-        backgroundColor = .systemGray6
-        layer.cornerRadius = 8
+        let gradient = CAGradientLayer()
+        gradient.colors = [
+            UIColor(red: 0.95, green: 0.95, blue: 1.0, alpha: 1.0).cgColor,
+            UIColor.systemTeal.withAlphaComponent(0.9).cgColor
+        ]
+        gradient.locations = [0, 1]
+        gradient.startPoint = CGPoint(x: 0, y: 0)
+        gradient.endPoint = CGPoint(x: 1, y: 1)
+        gradient.cornerRadius = 12
+        layer.insertSublayer(gradient, at: 0)
+        
         layer.shadowColor = UIColor.black.cgColor
-        layer.shadowOpacity = 0.1
-        layer.shadowRadius = 5
+        layer.shadowOpacity = 0.2
+        layer.shadowOffset = CGSize(width: 0, height: 2)
+        layer.shadowRadius = 6
         
-        trackImageView.contentMode = .scaleAspectFit
+        trackImageView.contentMode = .scaleAspectFill
         trackImageView.clipsToBounds = true
-        trackImageView.layer.cornerRadius = 5
-        addSubview(trackImageView)
+        trackImageView.layer.cornerRadius = 12
+        trackImageView.layer.borderWidth = 0.5
+        trackImageView.layer.borderColor = UIColor(white: 1, alpha: 0.3).cgColor
         
-        titleLabel.font = UIFont.boldSystemFont(ofSize: 14)
-        addSubview(titleLabel)
+        let titleFont = UIFont(name: "SFProDisplay-Medium", size: 15) ?? .systemFont(ofSize: 15, weight: .medium)
+        let artistFont = UIFont(name: "SFProDisplay-Regular", size: 13) ?? .systemFont(ofSize: 13)
         
-        artistLabel.font = UIFont.systemFont(ofSize: 12)
-        artistLabel.textColor = .darkGray
-        addSubview(artistLabel)
+        titleLabel.font = titleFont
+        titleLabel.textColor = .black
+        artistLabel.font = artistFont
+        artistLabel.textColor = UIColor(white: 0, alpha: 0.5)
         
+        let buttonGradient = CAGradientLayer()
+        buttonGradient.colors = [
+            UIColor.systemBlue.cgColor,
+            UIColor.systemTeal.cgColor
+        ]
+        buttonGradient.locations = [0, 1]
+        buttonGradient.startPoint = CGPoint(x: 0, y: 0)
+        buttonGradient.endPoint = CGPoint(x: 1, y: 1)
+        buttonGradient.cornerRadius = 20
+        playPauseButton.layer.insertSublayer(buttonGradient, at: 0)
+        playPauseButton.layer.cornerRadius = 20
+        playPauseButton.tintColor = .white
+        playPauseButton.layer.shadowColor = UIColor.systemTeal.cgColor
+        playPauseButton.layer.shadowRadius = 6
+        playPauseButton.layer.shadowOpacity = 0.3
+        playPauseButton.layer.shadowOffset = CGSize(width: 0, height: 3)
         playPauseButton.addTarget(self, action: #selector(playPauseTapped), for: .touchUpInside)
-        addSubview(playPauseButton)
         
-        progressBar.progressTintColor = .blue
-        progressBar.tintColor = .lightGray
-        addSubview(progressBar)
+        progressBar.progressTintColor = .white
+        progressBar.trackTintColor = UIColor(white: 0.2, alpha: 1)
+        progressBar.layer.cornerRadius = 1
+        progressBar.clipsToBounds = true
         
         for subview in [
             trackImageView,
@@ -218,18 +260,18 @@ class MiniPlayerView: UIView {
         NSLayoutConstraint.activate([
             trackImageView.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 10),
             trackImageView.centerYAnchor.constraint(equalTo: centerYAnchor),
-            trackImageView.widthAnchor.constraint(equalToConstant: 50),
-            trackImageView.heightAnchor.constraint(equalToConstant: 50),
+            trackImageView.widthAnchor.constraint(equalToConstant: 56),
+            trackImageView.heightAnchor.constraint(equalToConstant: 56),
             
-            titleLabel.leadingAnchor.constraint(equalTo: trackImageView.trailingAnchor, constant: 10),
-            titleLabel.trailingAnchor.constraint(equalTo: playPauseButton.leadingAnchor, constant: -10),
-            titleLabel.topAnchor.constraint(equalTo: topAnchor, constant: 10),
+            titleLabel.leadingAnchor.constraint(equalTo: trackImageView.trailingAnchor, constant: 15),
+            titleLabel.trailingAnchor.constraint(lessThanOrEqualTo: playPauseButton.leadingAnchor, constant: -15),
+            titleLabel.topAnchor.constraint(equalTo: topAnchor, constant: 14),
             
-            artistLabel.leadingAnchor.constraint(equalTo: trackImageView.trailingAnchor, constant: 10),
-            artistLabel.trailingAnchor.constraint(equalTo: playPauseButton.leadingAnchor, constant: -10),
-            artistLabel.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: 5),
+            artistLabel.leadingAnchor.constraint(equalTo: trackImageView.trailingAnchor, constant: 15),
+            artistLabel.trailingAnchor.constraint(lessThanOrEqualTo: playPauseButton.leadingAnchor, constant: -15),
+            artistLabel.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: 4),
             
-            playPauseButton.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -10),
+            playPauseButton.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -15),
             playPauseButton.centerYAnchor.constraint(equalTo: centerYAnchor),
             playPauseButton.widthAnchor.constraint(equalToConstant: 40),
             playPauseButton.heightAnchor.constraint(equalToConstant: 40),

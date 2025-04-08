@@ -46,14 +46,36 @@ class QueueViewController: UIViewController, UITableViewDataSource, UITableViewD
 
     private func setupUI() {
         title = "Queue"
-        view.backgroundColor = .systemBackground
         
         tableView.delegate = self
         tableView.dataSource = self
         tableView.register(TrackCell.self, forCellReuseIdentifier: "TrackCell")
-        tableView.frame = view.bounds
+        tableView.backgroundColor = .clear
+        tableView.separatorColor = UIColor(white: 0.2, alpha: 1)
+        tableView.separatorInset = UIEdgeInsets(top: 0, left: 70, bottom: 0, right: 0)
+        tableView.contentInset = UIEdgeInsets(top: 10, left: 0, bottom: 0, right: 0)
+        tableView.rowHeight = UITableView.automaticDimension
+        tableView.estimatedRowHeight = 80
+        tableView.separatorStyle = .none
         
+        let gradient = CAGradientLayer()
+        gradient.colors = [
+            UIColor.systemBlue.cgColor,
+            UIColor.systemTeal.cgColor
+        ]
+        gradient.locations = [0, 1]
+        gradient.startPoint = CGPoint(x: 0, y: 0)
+        gradient.endPoint = CGPoint(x: 1, y: 1)
+        gradient.cornerRadius = 15
+        returnButton.layer.insertSublayer(gradient, at: 0)
+        returnButton.layer.cornerRadius = 15
+        returnButton.tintColor = .white
         returnButton.setImage(UIImage(systemName: "arrow.left"), for: .normal)
+        returnButton.imageView?.contentMode = .scaleAspectFit
+        returnButton.layer.shadowColor = UIColor.systemTeal.cgColor
+        returnButton.layer.shadowRadius = 6
+        returnButton.layer.shadowOpacity = 0.3
+        returnButton.layer.shadowOffset = CGSize(width: 0, height: 3)
         returnButton.addTarget(self, action: #selector(returnButtonTapped), for: .touchUpInside)
         
         for subview in [
@@ -69,15 +91,15 @@ class QueueViewController: UIViewController, UITableViewDataSource, UITableViewD
     
     private func setupConstraints() {
         NSLayoutConstraint.activate([
-            returnButton.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
-            returnButton.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 20),
-            returnButton.widthAnchor.constraint(equalToConstant: 30),
-            returnButton.heightAnchor.constraint(equalToConstant: 30),
+            returnButton.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 15),
+            returnButton.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 15),
+            returnButton.widthAnchor.constraint(equalToConstant: 40),
+            returnButton.heightAnchor.constraint(equalToConstant: 40),
             
-            tableView.topAnchor.constraint(equalTo: returnButton.bottomAnchor, constant: 10),
+            tableView.topAnchor.constraint(equalTo: returnButton.bottomAnchor, constant: 15),
             tableView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             tableView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            tableView.bottomAnchor.constraint(equalTo: view.bottomAnchor)
+            tableView.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor)
         ])
     }
     
@@ -95,13 +117,6 @@ class QueueViewController: UIViewController, UITableViewDataSource, UITableViewD
         
         cell.configure(with: queuedTrack)
         cell.delegate = self
-        
-        if let currentTrack = MusicPlayerManager.shared.getCurrentTrack(),
-           currentTrack.instanceId == queuedTrack.instanceId {
-            cell.backgroundColor = .systemGray5
-        } else {
-            cell.backgroundColor = .clear
-        }
         
         return cell
     }

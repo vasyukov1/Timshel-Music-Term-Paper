@@ -43,35 +43,26 @@ class MainViewController: BaseViewController, UIDocumentPickerDelegate {
     
     private func setupUI() {
         title = "Main"
-        view.backgroundColor = .systemBackground
+ 
+        configureButton(myMusicButton, title: "My Music", font: buttonFont)
+        configureButton(historyButton, title: "History", font: buttonFont)
+        configureButton(addTrackButton, title: "Add Tracks", font: buttonFont)
+        configureButton(addPlaylitsButton, title: "Add Playlist", font: buttonFont)
         
-        myMusicButton.setTitle("My Music", for: .normal)
-        myMusicButton.backgroundColor = .systemBlue
-        myMusicButton.layer.cornerRadius = 15
         myMusicButton.addTarget(self, action: #selector(myMusicButtonTapped), for: .touchUpInside)
-        
-        historyButton.setTitle("History", for: .normal)
-        historyButton.backgroundColor = .systemBlue
-        historyButton.layer.cornerRadius = 15
         historyButton.addTarget(self, action: #selector(historyButtonTapped), for: .touchUpInside)
-        
-        addTrackButton.setTitle("Add Tracks", for: .normal)
-        addTrackButton.backgroundColor = .systemBlue
-        addTrackButton.layer.cornerRadius = 15
         addTrackButton.addTarget(self, action: #selector(addTrackButtonTapped), for: .touchUpInside)
-        
-        addPlaylitsButton.setTitle("Add Playlist", for: .normal)
-        addPlaylitsButton.backgroundColor = .systemBlue
-        addPlaylitsButton.layer.cornerRadius = 15
         addPlaylitsButton.addTarget(self, action: #selector(addPlaylistButtonTapped), for: .touchUpInside)
         
         myPlaylistLabel.text = "My Playlists"
-        myPlaylistLabel.font = .boldSystemFont(ofSize: 20)
+        myPlaylistLabel.font = labelFont
+        myPlaylistLabel.textColor = .white
         
         collectionView.register(PlaylistCell.self, forCellWithReuseIdentifier: "PlaylistCell")
         collectionView.delegate = self
         collectionView.dataSource = self
         collectionView.backgroundColor = .clear
+        collectionView.showsVerticalScrollIndicator = false
         
         for subview in [
             myMusicButton,
@@ -85,6 +76,16 @@ class MainViewController: BaseViewController, UIDocumentPickerDelegate {
         }
         
         setupConstraints()
+    }
+    
+    override func viewDidLayoutSubviews() {
+        super.viewDidLayoutSubviews()
+        
+        for button in [myMusicButton, historyButton, addTrackButton, addPlaylitsButton] {
+            if let gradient = button.layer.sublayers?.first as? CAGradientLayer {
+                gradient.frame = button.bounds
+            }
+        }
     }
     
     private func setupConstraints() {
