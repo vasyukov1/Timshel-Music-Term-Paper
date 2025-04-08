@@ -7,6 +7,7 @@ class BaseViewController: UIViewController {
     private let viewModel = BaseViewModel()
     private var cancellables = Set<AnyCancellable>()
     
+    private var loader: UIActivityIndicatorView?
     let toolbar = Toolbar()
     private let miniPlayer = MiniPlayerView.shared
     
@@ -67,5 +68,37 @@ class BaseViewController: UIViewController {
             miniPlayer.bottomAnchor.constraint(equalTo: window.safeAreaLayoutGuide.bottomAnchor, constant: -70),
             miniPlayer.heightAnchor.constraint(equalToConstant: 60)
         ])
+    }
+    
+    // MARK: - Loader Methods
+    func showLoader() {
+        DispatchQueue.main.async { [weak self] in
+            guard let self = self else { return }
+            
+            if self.loader == nil {
+                let indicator = UIActivityIndicatorView(style: .large)
+                indicator.color = .systemGray
+                indicator.translatesAutoresizingMaskIntoConstraints = false
+                self.view.addSubview(indicator)
+                
+                NSLayoutConstraint.activate([
+                    indicator.centerXAnchor.constraint(equalTo: self.view.centerXAnchor),
+                    indicator.centerYAnchor.constraint(equalTo: self.view.centerYAnchor)
+                ])
+                
+                self.loader = indicator
+            }
+            
+            self.loader?.startAnimating()
+            self.view.bringSubviewToFront(self.loader!)
+        }
+    }
+    
+    func hideLoader() {
+        DispatchQueue.main.async { [weak self] in
+            self?.loader?.stopAnimating()
+            self?.loader?.removeFromSuperview()
+            self?.loader = nil
+        }
     }
 }

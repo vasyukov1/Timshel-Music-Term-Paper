@@ -11,17 +11,34 @@ class MainViewController: BaseViewController, UIDocumentPickerDelegate {
     private let addTrackButton = UIButton()
     private let addPlaylitsButton = UIButton()
     private let historyButton = UIButton()
-    private let myTracksLabel = UILabel()
+    private let myPlaylistLabel = UILabel()
+    private let collectionView: UICollectionView
+    
+    override init(nibName nibNameOrNil: String?, bundle nibBundleOrNil: Bundle?) {
+        let layout = UICollectionViewFlowLayout()
+        layout.scrollDirection = .vertical
+        layout.minimumInteritemSpacing = 10
+        layout.minimumLineSpacing = 10
+        
+        collectionView = UICollectionView(frame: .zero, collectionViewLayout: layout)
+        super.init(nibName: nibNameOrNil, bundle: nibBundleOrNil)
+    }
+    
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
 
     override func viewDidLoad() {
         setupUI()
         super.viewDidLoad()
         bindViewModel()
-        viewModel.loadMyTracksAndPlaylists()
+        viewModel.loadData()
     }
     
     private func bindViewModel() {
-        
+        viewModel.$playlists.sink { [weak self] _ in
+            self?.collectionView.reloadData()
+        }.store(in: &cancellables)
     }
     
     private func setupUI() {
@@ -48,15 +65,21 @@ class MainViewController: BaseViewController, UIDocumentPickerDelegate {
         addPlaylitsButton.layer.cornerRadius = 15
         addPlaylitsButton.addTarget(self, action: #selector(addPlaylistButtonTapped), for: .touchUpInside)
         
-        myTracksLabel.text = "My Tracks"
-        myTracksLabel.font = .boldSystemFont(ofSize: 20)
+        myPlaylistLabel.text = "My Playlists"
+        myPlaylistLabel.font = .boldSystemFont(ofSize: 20)
+        
+        collectionView.register(PlaylistCell.self, forCellWithReuseIdentifier: "PlaylistCell")
+        collectionView.delegate = self
+        collectionView.dataSource = self
+        collectionView.backgroundColor = .clear
         
         for subview in [
             myMusicButton,
             historyButton,
             addTrackButton,
             addPlaylitsButton,
-            myTracksLabel,
+            myPlaylistLabel,
+            collectionView,
         ] {
             view.addSubview(subview)
         }
@@ -90,9 +113,13 @@ class MainViewController: BaseViewController, UIDocumentPickerDelegate {
             addPlaylitsButton.widthAnchor.constraint(equalToConstant: 150),
             addPlaylitsButton.heightAnchor.constraint(equalToConstant: 50),
             
-            myTracksLabel.topAnchor.constraint(equalTo: historyButton.bottomAnchor, constant: 20),
-            myTracksLabel.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 15),
+            myPlaylistLabel.topAnchor.constraint(equalTo: historyButton.bottomAnchor, constant: 20),
+            myPlaylistLabel.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 15),
 
+            collectionView.topAnchor.constraint(equalTo: myPlaylistLabel.bottomAnchor, constant: 16),
+            collectionView.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
+            collectionView.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
+            collectionView.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -16),
         ])
     }
     
@@ -144,7 +171,7 @@ class MainViewController: BaseViewController, UIDocumentPickerDelegate {
                         switch result {
                         case .success(let response):
                             print("Uploaded successfully: \(response.id)")
-                        case .failure(let error):
+                        case .failure:
                             let pending = PendingUpload(id: tempId, fileURL: url, title: title, artist: artist, image: image)
                             UploadQueueManager.shared.addToQueue(pending)
                             self.uploadTrackToCacheWithoutServer(id: tempId, title: title, artist: artist, image: image, url: url)
@@ -193,4 +220,28 @@ class MainViewController: BaseViewController, UIDocumentPickerDelegate {
         return ("Title", "Artist", UIImage(contentsOfFile: "music.note")!)
     }
     
+}
+
+extension MainViewController: UICollectionViewDataSource, UICollectionViewDelegateFlowLayout {
+    func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
+        return viewModel.playlists.count
+    }
+    
+    func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
+        let cell = collectionView.dequeueReusableCell(withReuseIdentifier: "PlaylistCell", for: indexPath) as! PlaylistCell
+        let playlist = viewModel.playlists[indexPath.item]
+        cell.configure(with: playlist)
+        return cell
+    }
+    
+    func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
+        let playlistResponse = viewModel.playlists[indexPath.item]
+        let playlistVC = PlaylistViewController(viewModel: PlaylistViewModel(playlistResponse: playlistResponse))
+        navigationController?.pushViewController(playlistVC, animated: false)
+    }
+    
+    func collectionView(_ collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, sizeForItemAt indexPath: IndexPath) -> CGSize {
+        let width = (collectionView.frame.width - 10) / 2
+        return CGSize(width: width, height: width * 1.2)
+    }
 }

@@ -5,6 +5,8 @@ class NetworkManager {
     static let shared = NetworkManager()
     let baseURL = "http://localhost:8080"
     
+    let cacheSearch = NSCache<NSString, NSArray>()
+    
     // MARK: - Registration
     
     func registerUser(login: String, password: String, completion: @escaping (Result<UserResponse, Error>) -> Void) {
@@ -411,6 +413,95 @@ class NetworkManager {
             default:
                 let errorMessage = String(data: data ?? Data(), encoding: .utf8) ?? "Unknown error"
                 completion(.failure(NSError(domain: errorMessage, code: httpResponse.statusCode)))
+            }
+        }.resume()
+    }
+    
+    // MARK: - Search
+    
+    func searchTracks(query: String,
+                     completion: @escaping (Result<[TrackResponse], Error>) -> Void) {
+        guard var urlComponents = URLComponents(string: "\(baseURL)/api/tracks/search") else {
+            completion(.failure(NSError(domain: "Invalid URL", code: 0)))
+            return
+        }
+        
+        urlComponents.queryItems = [
+            URLQueryItem(name: "q", value: query)
+        ]
+        
+        guard let url = urlComponents.url else {
+            completion(.failure(NSError(domain: "Invalid URL components", code: 0)))
+            return
+        }
+        
+        var request = URLRequest(url: url)
+        request.httpMethod = "GET"
+        request.setValue("application/json", forHTTPHeaderField: "Accept")
+        
+        if let token = UserDefaults.standard.string(forKey: "jwtToken") {
+            request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        }
+        
+        URLSession.shared.dataTask(with: request) { data, response, error in
+            if let error = error {
+                DispatchQueue.main.async {
+                    completion(.failure(error))
+                }
+                return
+            }
+            
+            guard let httpResponse = response as? HTTPURLResponse else {
+                DispatchQueue.main.async {
+                    completion(.failure(NSError(domain: "Invalid response", code: 0)))
+                }
+                return
+            }
+            
+            switch httpResponse.statusCode {
+            case 200:
+                guard let data = data else {
+                    DispatchQueue.main.async {
+                        completion(.failure(NSError(domain: "No data received", code: 0)))
+                    }
+                    return
+                }
+                
+                do {
+                    let decoder = JSONDecoder()
+
+                    let response = try decoder.decode(ResponseWrapper<[TrackResponse]>.self, from: data)
+                    
+                    if let tracks = response.data {
+                        DispatchQueue.main.async {
+                            completion(.success(tracks))
+                        }
+                    } else if let errorMessage = response.error {
+                        DispatchQueue.main.async {
+                            completion(.failure(NSError(domain: errorMessage, code: httpResponse.statusCode)))
+                        }
+                    } else {
+                        DispatchQueue.main.async {
+                            completion(.failure(NSError(domain: "Unknown error", code: httpResponse.statusCode)))
+                        }
+                    }
+                } catch {
+                    DispatchQueue.main.async {
+                        completion(.failure(error))
+                    }
+                }
+                
+            case 400, 500:
+                let errorMessage = String(data: data ?? Data(), encoding: .utf8) ?? "Unknown error"
+                DispatchQueue.main.async {
+                    completion(.failure(NSError(domain: errorMessage, code: httpResponse.statusCode)))
+                }
+                
+            default:
+                let errorMessage = "Unexpected status code: \(httpResponse.statusCode)"
+                DispatchQueue.main.async {
+                    completion(.failure(NSError(domain: errorMessage, code: httpResponse.statusCode)))
+                }
             }
         }.resume()
     }

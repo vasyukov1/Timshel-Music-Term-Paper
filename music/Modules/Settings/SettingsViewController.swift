@@ -149,37 +149,37 @@ class SettingsViewController: BaseViewController {
     @objc private func saveTapped() {
         guard let savedLogin = UserDefaults.standard.string(forKey: "savedLogin"),
               let savedPassword = UserDefaults.standard.string(forKey: "savedPassword") else {
-            showError(message: "Error: User data is not found")
+            showUpdateError(message: "Error: User data is not found")
             return
         }
         
         if let newPassword = newPasswordTextField.text, !newPassword.isEmpty {
             guard let currentPassword = currentPasswordTextField.text, currentPassword == savedPassword else {
-                showError(message: "Wrong current password")
+                showUpdateError(message: "Wrong current password")
                 return
             }
 
             guard newPassword == confirmPasswordTextField.text else {
-                showError(message: "Passwords don't match")
+                showUpdateError(message: "Passwords don't match")
                 return
             }
             
             guard newPassword.count >= 6 else {
-                showError(message: "Password must have al least 6 symbols")
+                showUpdateError(message: "Password must have al least 6 symbols")
                 return
             }
         }
 
         guard let newFirstName = firstNameTextField.text, !newFirstName.isEmpty,
               let newLastName = lastNameTextField.text, !newLastName.isEmpty else {
-            showError(message: "Fill all fields")
+            showUpdateError(message: "Fill all fields")
             return
         }
 
         if updateUserInfo(login: savedLogin, newFirstName: newFirstName, newLastName: newLastName) {
             if let newPassword = newPasswordTextField.text, !newPassword.isEmpty {
                 if !updatePassword(login: savedLogin, newPassword: newPassword) {
-                    showError(message: "Some error: Password wasn't updated")
+                    showUpdateError(message: "Some error: Password wasn't updated")
                     return
                 }
             }
@@ -192,11 +192,11 @@ class SettingsViewController: BaseViewController {
             navigationItem.hidesBackButton = true
             navigationController?.pushViewController(profileVC, animated: false)
         } else {
-            showError(message: "Ошибка при обновлении данных")
+            showUpdateError(message: "Ошибка при обновлении данных")
         }
     }
     
-    private func showError(message: String) {
+    private func showUpdateError(message: String) {
         let alert = UIAlertController(title: "Error", message: message, preferredStyle: .alert)
         alert.addAction(UIAlertAction(title: "Ok", style: .default))
         present(alert, animated: true)

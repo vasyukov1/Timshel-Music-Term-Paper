@@ -2,17 +2,25 @@ import Combine
 import AVFoundation
 
 class MainViewModel {
-    @Published var myTracks: [TrackResponse] = []
-    @Published var myPlaylists: [Playlist] = []
+    @Published var tracks: [TrackResponse] = []
+    @Published var playlists: [PlaylistResponse] = []
     
     private var cancellables = Set<AnyCancellable>()
-    private var tracks = [TrackResponse]()
     
-    init() {
-        loadMyTracksAndPlaylists()
+    func loadData() {
+        loadMyTracks()
+        loadPlaylists()
     }
     
-    func loadMyTracksAndPlaylists() {
+    func getMyTracks() -> [TrackResponse] {
+        return tracks
+    }
+    
+    func getMyPlaylists() -> [PlaylistResponse] {
+        return playlists
+    }
+    
+    private func loadMyTracks() {
         guard let login = UserDefaults.standard.string(forKey: "savedLogin") else {
             print("Error: User is not logged in")
             return
@@ -20,16 +28,20 @@ class MainViewModel {
         
         Task {
             tracks = await MusicManager.shared.getTracksByLogin(login)
-            self.myTracks = Array(tracks.prefix(9))
+            self.tracks = Array(tracks.prefix(9))
         }
-        myPlaylists = PlaylistManager.shared.getPlaylists()
     }
     
-    func getMyTracks() -> [TrackResponse] {
-        return myTracks
+    func loadPlaylists() {
+        NetworkManager.shared.fetchPlaylists { [weak self] result in
+            DispatchQueue.main.async {
+                switch result {
+                case .success(let playlists):
+                    self?.playlists = playlists
+                case .failure(let error):
+                    print("Error loading playlists: \(error.localizedDescription)")
+                }
+            }
+        }
     }
-    
-    func getMyPlaylists() -> [Playlist] {
-        return myPlaylists
-    }    
 }
