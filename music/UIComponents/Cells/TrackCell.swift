@@ -38,30 +38,6 @@ class TrackCell: UITableViewCell {
         self.queuedTrack = nil
         currentTrackId = track.id
         setupUIFor(track: track)
-        
-//        self.track = track
-//        currentTrackId = track.id
-//        
-//        titleLabel.text = track.title
-//        artistLabel.text = track.artist
-//        trackImageView.image = track.image
-//        
-//        if let cachedTrack = MusicPlayerManager.shared.getCachedTrack(trackId: track.id) {
-//            trackImageView.image = cachedTrack.image
-//        } else {
-//            NetworkManager.shared.fetchTrackImage(trackId: track.id) { [weak self] result in
-//                DispatchQueue.main.async {
-//                    guard let self = self, self.currentTrackId == track.id else { return }
-//                    
-//                    switch result {
-//                    case .success(let image):
-//                        self.trackImageView.image = image
-//                    case .failure:
-//                        self.trackImageView.image = UIImage(systemName: "music.note")
-//                    }
-//                }
-//            }
-//        }
     }
     
     func configure(with queuedTrack: QueuedTrack) {
@@ -174,9 +150,42 @@ extension UIViewController {
             delegate.didSelectAddToPlaylist(track: track)
         })
         
-        menu.addAction(UIAlertAction(title: "Delete track", style: .destructive) { _ in
-            delegate.didSelectDeleteTrack(track: track)
-        })
+        let userId = UserDefaults.standard.integer(forKey: "currentUserId")
+        
+        let isOfflineMode = PlaybackSettings.shared.mode == .offline
+        let isOfflineNetwork = !NetworkMonitor.shared.isConnected
+
+        if !isOfflineMode && !isOfflineNetwork {
+            NetworkManager.shared.fetchUserTracks(userId: userId) { result in
+                DispatchQueue.main.async {
+                    switch result {
+                    case .success(let tracks):
+                        if tracks.contains(where: { $0 == track }) {
+                            menu.addAction(UIAlertAction(title: "Delete track", style: .destructive) { _ in
+                                delegate.didSelectDeleteTrack(track: track)
+                            })
+                        }
+                    case .failure:
+                        let cachedTracks = MusicPlayerManager.shared.getAllCachedTracks()
+                        let tracks = cachedTracks.map { $0.track }.filter { $0.uploadedBy == userId }
+                        if tracks.contains(where: { $0 == track }) {
+                            menu.addAction(UIAlertAction(title: "Delete track", style: .destructive) { _ in
+                                delegate.didSelectDeleteTrack(track: track)
+                            })
+                        }
+                        print("Error server loading user tracks.")
+                    }
+                }
+            }
+        } else {
+            let cachedTracks = MusicPlayerManager.shared.getAllCachedTracks()
+            let tracks = cachedTracks.map { $0.track }.filter { $0.uploadedBy == userId }
+            if tracks.contains(where: { $0 == track }) {
+                menu.addAction(UIAlertAction(title: "Delete track", style: .destructive) { _ in
+                    delegate.didSelectDeleteTrack(track: track)
+                })
+            }
+        }
         
         menu.addAction(UIAlertAction(title: "Cancel", style: .cancel))
         
