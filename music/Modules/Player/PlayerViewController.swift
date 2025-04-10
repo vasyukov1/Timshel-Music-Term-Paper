@@ -22,14 +22,38 @@ class PlayerViewController: UIViewController {
     private let currentTimeLabel = UILabel()
     private let durationLabel = UILabel()
     
+    private var backgroundGradientLayer: CAGradientLayer?
+    
     override func viewDidLoad() {
         super.viewDidLoad()
+        setupGradientBackground()
         setupUI()
         bindViewModel()
         
         updatePlayPauseButton()
         updateRepeatButton()
         updateShuffleState()
+    }
+    
+    // MARK: - Gradient Background Setup
+    private func setupGradientBackground() {
+        let gradientColors: [CGColor] = [
+            UIColor(white: 1.0, alpha: 1.0).cgColor,
+            UIColor.systemTeal.withAlphaComponent(0.8).cgColor
+        ]
+        let gradient = CAGradientLayer()
+        gradient.colors = gradientColors
+        gradient.locations = [0, 1]
+        gradient.startPoint = CGPoint(x: 0.5, y: 0)
+        gradient.endPoint = CGPoint(x: 0.5, y: 1)
+        gradient.frame = view.bounds
+        view.layer.insertSublayer(gradient, at: 0)
+        backgroundGradientLayer = gradient
+    }
+    
+    override func viewDidLayoutSubviews() {
+        super.viewDidLayoutSubviews()
+        backgroundGradientLayer?.frame = view.bounds
     }
     
     private func bindViewModel() {
@@ -96,11 +120,6 @@ class PlayerViewController: UIViewController {
                 case .success(let image):
                     DispatchQueue.main.async {
                         self?.trackImageView.image = image
-                        if let dominantColor = image.dominantColor() {
-                            UIView.animate(withDuration: 0.3) {
-                                self?.view.backgroundColor = dominantColor
-                            }
-                        }
                     }
                 case .failure(let error):
                     print("Error loading image: \(error.localizedDescription)")
@@ -115,6 +134,7 @@ class PlayerViewController: UIViewController {
     func updatePlayPauseButton() {
         let buttonImage = UIImage(systemName: MusicPlayerManager.shared.isPlaying ? "pause.fill" : "play.fill")
         playPauseButton.setImage(buttonImage, for: .normal)
+        playPauseButton.tintColor = .black
     }
     
     @objc private func playOrStopTapped() {
@@ -205,28 +225,25 @@ class PlayerViewController: UIViewController {
     private func updateRepeatButton() {
         let mode = MusicPlayerManager.shared.getRepeatMode()
         var imageName: String
-        var tintColor: UIColor
         
         switch mode {
         case .off:
             imageName = "repeat"
-            tintColor = .systemGray
         case .one:
             imageName = "repeat.1"
-            tintColor = .systemPurple
-        case .all:
-            imageName = "repeat"
-            tintColor = .systemPurple
         }
         
         repeatButton.setImage(UIImage(systemName: imageName), for: .normal)
-        repeatButton.tintColor = tintColor
+        repeatButton.tintColor = .black
     }
     
     private func updateShuffleState() {
         let isShuffled = MusicPlayerManager.shared.getIsShuffled()
         shuffleButton.isHidden = isShuffled
         restoreButton.isHidden = !isShuffled
+        
+        shuffleButton.tintColor = isShuffled ? .gray : .black
+        restoreButton.tintColor = isShuffled ? .black : .gray
     }
     
     private func formatTime(_ time: TimeInterval) -> String {
@@ -242,7 +259,7 @@ class PlayerViewController: UIViewController {
         
         titleLabel.font = UIFont.systemFont(ofSize: 24)
         artistButton.titleLabel?.font = UIFont.systemFont(ofSize: 18)
-        artistButton.titleLabel?.textColor = .gray
+        artistButton.titleLabel?.textColor = .black
         artistButton.addTarget(self, action: #selector(openArtist), for: .touchUpInside)
         
         trackImageView.contentMode = .scaleAspectFill
@@ -253,19 +270,24 @@ class PlayerViewController: UIViewController {
         
         previousTrackButton.setImage(UIImage(systemName: "backward.end.fill"), for: .normal)
         previousTrackButton.addTarget(self, action: #selector(playPreviousTrackTapped), for: .touchUpInside)
+        previousTrackButton.tintColor = .black
         
         nextTrackButton.setImage(UIImage(systemName: "forward.end.fill"), for: .normal)
         nextTrackButton.addTarget(self, action: #selector(playNextTrackTapped), for: .touchUpInside)
+        nextTrackButton.tintColor = .black
         
         minimizeScreenButton.setImage(UIImage(systemName: "chevron.down"), for: .normal)
         minimizeScreenButton.addTarget(self, action: #selector(minimizeScreenTapped), for: .touchUpInside)
+        minimizeScreenButton.tintColor = .black
         
         progressSlider.minimumValue = 0
         progressSlider.maximumValue = 1
         progressSlider.addTarget(self, action: #selector(progressSliderValueChanged(_:)), for: .valueChanged)
+        progressSlider.tintColor = .black
         
         queueButton.setImage(UIImage(systemName: "line.3.horizontal"), for: .normal)
         queueButton.addTarget(self, action: #selector(queueButtonTapped), for: .touchUpInside)
+        queueButton.tintColor = .black
         
         shuffleButton.setImage(UIImage(systemName: "shuffle"), for: .normal)
         shuffleButton.addTarget(self, action: #selector(shuffleTapped), for: .touchUpInside)
@@ -347,23 +369,23 @@ class PlayerViewController: UIViewController {
             nextTrackButton.heightAnchor.constraint(equalToConstant: 50),
             nextTrackButton.widthAnchor.constraint(equalToConstant: 50),
             
-            queueButton.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -20),
-            queueButton.topAnchor.constraint(equalTo: playPauseButton.topAnchor),
+            queueButton.centerXAnchor.constraint(equalTo: nextTrackButton.centerXAnchor),
+            queueButton.topAnchor.constraint(equalTo: nextTrackButton.bottomAnchor, constant: 20),
             queueButton.heightAnchor.constraint(equalToConstant: 50),
             queueButton.widthAnchor.constraint(equalToConstant: 50),
             
-            shuffleButton.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 20),
-            shuffleButton.topAnchor.constraint(equalTo: playPauseButton.topAnchor),
+            shuffleButton.centerXAnchor.constraint(equalTo: previousTrackButton.centerXAnchor),
+            shuffleButton.topAnchor.constraint(equalTo: previousTrackButton.bottomAnchor, constant: 20),
             shuffleButton.heightAnchor.constraint(equalToConstant: 50),
             shuffleButton.widthAnchor.constraint(equalToConstant: 50),
             
-            restoreButton.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 20),
-            restoreButton.topAnchor.constraint(equalTo: playPauseButton.topAnchor),
+            restoreButton.centerXAnchor.constraint(equalTo: previousTrackButton.centerXAnchor),
+            restoreButton.topAnchor.constraint(equalTo: previousTrackButton.bottomAnchor, constant: 20),
             restoreButton.heightAnchor.constraint(equalToConstant: 50),
             restoreButton.widthAnchor.constraint(equalToConstant: 50),
             
-            repeatButton.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 20),
-            repeatButton.topAnchor.constraint(equalTo: restoreButton.bottomAnchor, constant: 20),
+            repeatButton.centerXAnchor.constraint(equalTo: playPauseButton.centerXAnchor),
+            repeatButton.topAnchor.constraint(equalTo: playPauseButton.bottomAnchor, constant: 20),
             repeatButton.widthAnchor.constraint(equalToConstant: 50),
             repeatButton.heightAnchor.constraint(equalToConstant: 50),
             

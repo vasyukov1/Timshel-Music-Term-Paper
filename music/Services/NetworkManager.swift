@@ -143,6 +143,79 @@ class NetworkManager {
         }.resume()
     }
     
+//    func getUserProfile(completion: @escaping (Result<UserResponse, Error>) -> Void) {
+//        guard let token = AuthManager.shared.token else {
+//            completion(.failure(NSError(domain: "Требуется авторизация", code: 401)))
+//            return
+//        }
+//        
+//        let url = URL(string: "\(baseURL)/api/user/profile")!
+//        var request = URLRequest(url: url)
+//        request.httpMethod = "GET"
+//        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+//        
+//        URLSession.shared.dataTask(with: request) { data, response, error in
+//            self.handleResponse(data: data, response: response, error: error, completion: completion)
+//        }.resume()
+//    }
+//    
+//    func updateUserProfile(request: UserUpdateRequest, completion: @escaping (Result<UserResponse, Error>) -> Void) {
+//        let url = URL(string: "\(baseURL)/api/user/profile")!
+//        var request = URLRequest(url: url)
+//        
+//        if let token = UserDefaults.standard.string(forKey: "jwtToken") {
+//            request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+//        }
+//        
+//        request.httpMethod = "PUT"
+//        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+//        
+//        do {
+//            let jsonData = try JSONEncoder().encode(request)
+//            request.httpBody = jsonData
+//        } catch {
+//            completion(.failure(error))
+//            return
+//        }
+//        
+//        URLSession.shared.dataTask(with: request) { data, response, error in
+//            self.handleResponse(data: data, response: response, error: error, completion: completion)
+//        }.resume()
+//    }
+//    
+//    private func handleResponse<T: Decodable>(data: Data?,
+//                                            response: URLResponse?,
+//                                            error: Error?,
+//                                            completion: @escaping (Result<T, Error>) -> Void) {
+//        if let error = error {
+//            completion(.failure(error))
+//            return
+//        }
+//        
+//        guard let httpResponse = response as? HTTPURLResponse else {
+//            completion(.failure(NSError(domain: "Invalid response", code: 0)))
+//            return
+//        }
+//        
+//        guard let data = data else {
+//            completion(.failure(NSError(domain: "No data", code: httpResponse.statusCode)))
+//            return
+//        }
+//        
+//        do {
+//            let wrapper = try JSONDecoder().decode(ResponseWrapper<T>.self, from: data)
+//            
+//            if wrapper.success, let data = wrapper.data {
+//                completion(.success(data))
+//            } else {
+//                let errorMessage = wrapper.error ?? "Unknown error"
+//                completion(.failure(NSError(domain: errorMessage, code: httpResponse.statusCode)))
+//            }
+//        } catch {
+//            completion(.failure(error))
+//        }
+//    }
+    
     // MARK: - Upload Track
 
     func uploadTrack(fileURL: URL,

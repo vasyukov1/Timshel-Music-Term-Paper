@@ -19,6 +19,12 @@ struct LoginResponse: Codable {
     let user: UserResponse
 }
 
+struct UserUpdateRequest: Encodable {
+    let username: String
+    let newPassword: String?
+    let currentPassword: String?
+}
+
 // MARK: Track
 
 struct TrackResponse: Codable, Equatable {

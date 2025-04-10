@@ -27,7 +27,6 @@ class MusicPlayerManager: NSObject {
     enum RepeatMode {
         case off
         case one
-        case all
     }
     
     private var repeatMode: RepeatMode = .off
@@ -315,11 +314,7 @@ class MusicPlayerManager: NSObject {
         if index + 1 < trackQueue.count {
             playTrack(at: index + 1)
         } else {
-            if repeatMode == .all {
-                playTrack(at: 0)
-            } else {
-                stopPlayback()
-            }
+            stopPlayback()
         }
     }
     
@@ -406,8 +401,6 @@ class MusicPlayerManager: NSObject {
         case .off:
             repeatMode = .one
         case .one:
-            repeatMode = .all
-        case .all:
             repeatMode = .off
         }
         NotificationCenter.default.post(name: .repeatModeDidChange, object: nil)
@@ -454,7 +447,7 @@ extension MusicPlayerManager: AVAudioPlayerDelegate {
             if let currentIndex = currentTrackIndex {
                 playTrack(at: currentIndex)
             }
-        case .all, .off:
+        case .off:
             playNextTrack()
         }
     }

@@ -7,34 +7,53 @@ class AddPlaylistViewController: BaseViewController, UITableViewDelegate, UITabl
     private let viewModel = AddPlaylistViewModel()
     private var cancellables = Set<AnyCancellable>()
     
-    private let saveButton = UIButton()
-    private let tableView = UITableView()
+    private let saveButton: UIButton = {
+        let button = UIButton()
+        button.setTitle("Сохранить", for: .normal)
+        button.setTitleColor(.black, for: .normal)
+        button.layer.cornerRadius = 15
+        button.layer.masksToBounds = true
+        button.translatesAutoresizingMaskIntoConstraints = false
+        return button
+    }()
+    private let tableView: UITableView = {
+        let tv = UITableView()
+        tv.backgroundColor = .clear
+        tv.translatesAutoresizingMaskIntoConstraints = false
+        return tv
+    }()
     
     private let playlistImageView: UIImageView = {
-        let imageView = UIImageView()
-        imageView.contentMode = .scaleAspectFill
-        imageView.layer.cornerRadius = 8
-        imageView.layer.masksToBounds = true
-        imageView.backgroundColor = .lightGray
-        imageView.translatesAutoresizingMaskIntoConstraints = false
-        return imageView
+        let iv = UIImageView()
+        iv.contentMode = .scaleAspectFill
+        iv.layer.cornerRadius = 8
+        iv.layer.masksToBounds = true
+        iv.backgroundColor = .clear
+        iv.translatesAutoresizingMaskIntoConstraints = false
+        return iv
     }()
     
     private let plusIcon: UIImageView = {
-        let imageView = UIImageView()
-        imageView.image = UIImage(systemName: "plus.circle.fill")
-        imageView.tintColor = .white
-        imageView.translatesAutoresizingMaskIntoConstraints = false
-        return imageView
+        let iv = UIImageView()
+        iv.image = UIImage(systemName: "plus.circle.fill")
+        iv.tintColor = .white
+        iv.translatesAutoresizingMaskIntoConstraints = false
+        return iv
     }()
     
     private let titleTextField: UITextField = {
-        let textField = UITextField()
-        textField.placeholder = "Title"
-        textField.borderStyle = .roundedRect
-        textField.autocapitalizationType = .none
-        textField.translatesAutoresizingMaskIntoConstraints = false
-        return textField
+        let tf = UITextField()
+        tf.placeholder = "Title"
+        tf.borderStyle = .none
+        tf.backgroundColor = .clear
+        tf.textColor = .black
+        tf.autocapitalizationType = .none
+        tf.layer.cornerRadius = 25
+        tf.layer.masksToBounds = true
+        tf.leftView = UIView(frame: CGRect(x: 0, y: 0, width: 16, height: 0))
+        tf.leftViewMode = .always
+        tf.translatesAutoresizingMaskIntoConstraints = false
+        return tf
     }()
     
     private let errorLabel: UILabel = {
@@ -49,6 +68,7 @@ class AddPlaylistViewController: BaseViewController, UITableViewDelegate, UITabl
     
     override func viewDidLoad() {
         setupUI()
+        setupGradients()
         super.viewDidLoad()
         bindViewModel()
         viewModel.loadMyTracks()
@@ -72,16 +92,12 @@ class AddPlaylistViewController: BaseViewController, UITableViewDelegate, UITabl
     
     private func setupUI() {
         title = "New Playlist"
-        view.backgroundColor = .systemBackground
         
         let tapGesture = UITapGestureRecognizer(target: self, action: #selector(imageTapped))
         playlistImageView.addSubview(plusIcon)
         playlistImageView.addGestureRecognizer(tapGesture)
         playlistImageView.isUserInteractionEnabled = true
         
-        saveButton.setTitle("Save", for: .normal)
-        saveButton.backgroundColor = .systemBlue
-        saveButton.layer.cornerRadius = 15
         saveButton.addTarget(self, action: #selector(saveButtonTapped), for: .touchUpInside)
         
         tableView.delegate = self
@@ -133,6 +149,22 @@ class AddPlaylistViewController: BaseViewController, UITableViewDelegate, UITabl
             tableView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             tableView.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -50),
         ])
+    }
+    
+    private func setupGradients() {
+        let gradientColors = [
+            UIColor(red: 0.95, green: 0.95, blue: 1.0, alpha: 1.0),
+            UIColor.systemTeal.withAlphaComponent(0.8)
+        ]
+        
+        titleTextField.addGradientBackground(colors: gradientColors, cornerRadius: 25)
+        saveButton.addGradientBackground(colors: gradientColors, cornerRadius: 15)
+    }
+    
+    override func viewDidLayoutSubviews() {
+        super.viewDidLayoutSubviews()
+        titleTextField.updateGradientFrame()
+        saveButton.updateGradientFrame()
     }
     
     @objc private func imageTapped() {

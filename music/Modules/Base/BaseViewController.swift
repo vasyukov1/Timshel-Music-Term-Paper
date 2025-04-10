@@ -46,6 +46,10 @@ class BaseViewController: UIViewController {
     }
     
     private func setupToolbar() {
+        toolbar.backgroundColor = .black
+        toolbar.barTintColor = .black
+        toolbar.isTranslucent = false
+        
         toolbar.setNavigationHandler(NavigationHandler(navigationController: navigationController))
         toolbar.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(toolbar)
@@ -120,6 +124,8 @@ class BaseViewController: UIViewController {
         button.layer.cornerRadius = 25
         button.layer.masksToBounds = true
         
+        button.layer.sublayers?.filter { $0 is CAGradientLayer }.forEach { $0.removeFromSuperlayer() }
+        
         let gradient = CAGradientLayer()
         gradient.colors = [
             UIColor(red: 0.95, green: 0.95, blue: 1.0, alpha: 1.0).cgColor,
@@ -152,5 +158,24 @@ class BaseViewController: UIViewController {
             sender.transform = .identity
             sender.layer.shadowOpacity = 0.3
         }
+    }
+}
+
+extension UIView {
+    func addGradientBackground(colors: [UIColor], cornerRadius: CGFloat) {
+        let gradientLayer = CAGradientLayer()
+        gradientLayer.colors = colors.map(\.cgColor)
+        gradientLayer.startPoint = CGPoint(x: 0, y: 0)
+        gradientLayer.endPoint = CGPoint(x: 1, y: 1)
+        gradientLayer.cornerRadius = cornerRadius
+        gradientLayer.frame = bounds
+        gradientLayer.name = "GradientLayer"
+        layer.insertSublayer(gradientLayer, at: 0)
+    }
+    
+    func updateGradientFrame() {
+        layer.sublayers?
+            .filter { $0.name == "GradientLayer" }
+            .forEach { $0.frame = bounds }
     }
 }

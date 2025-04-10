@@ -58,10 +58,10 @@ class MainViewController: BaseViewController, UIDocumentPickerDelegate {
         myPlaylistLabel.font = labelFont
         myPlaylistLabel.textColor = .white
         
+        collectionView.backgroundColor = .clear
         collectionView.register(PlaylistCell.self, forCellWithReuseIdentifier: "PlaylistCell")
         collectionView.delegate = self
         collectionView.dataSource = self
-        collectionView.backgroundColor = .clear
         collectionView.showsVerticalScrollIndicator = false
         
         for subview in [
@@ -127,13 +127,13 @@ class MainViewController: BaseViewController, UIDocumentPickerDelegate {
     @objc private func myMusicButtonTapped() {
         let myMusicVC = MyMusicViewController()
         myMusicVC.navigationItem.hidesBackButton = true
-        navigationController?.pushViewController(myMusicVC, animated: false)
+        navigationController?.setViewControllers([myMusicVC], animated: false)
     }
     
     @objc private func historyButtonTapped() {
         let historyVC = HistoryViewController()
         historyVC.navigationItem.hidesBackButton = true
-        navigationController?.pushViewController(historyVC, animated: false)
+        navigationController?.setViewControllers([historyVC], animated: false)
     }
     
     @objc private func addTrackButtonTapped() {
@@ -146,7 +146,7 @@ class MainViewController: BaseViewController, UIDocumentPickerDelegate {
     @objc private func addPlaylistButtonTapped() {
         let addPlaylistVC = AddPlaylistViewController()
         addPlaylistVC.navigationItem.hidesBackButton = true
-        navigationController?.pushViewController(addPlaylistVC, animated: false)
+        navigationController?.setViewControllers([addPlaylistVC], animated: false)
     }
     
     func documentPicker(_ controller: UIDocumentPickerViewController, didPickDocumentsAt urls: [URL]) {
@@ -238,7 +238,7 @@ extension MainViewController: UICollectionViewDataSource, UICollectionViewDelega
     func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
         let playlistResponse = viewModel.playlists[indexPath.item]
         let playlistVC = PlaylistViewController(viewModel: PlaylistViewModel(playlistResponse: playlistResponse))
-        navigationController?.pushViewController(playlistVC, animated: false)
+        navigationController?.setViewControllers([playlistVC], animated: false)
     }
     
     func collectionView(_ collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, sizeForItemAt indexPath: IndexPath) -> CGSize {

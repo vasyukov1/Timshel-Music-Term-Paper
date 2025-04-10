@@ -148,6 +148,11 @@ class SearchViewController: BaseViewController {
     // MARK: - Setup Constraints
     
     private func setupConstraints() {
+        var height = -80
+        if MusicPlayerManager.shared.isPlaying {
+            height = -150
+        }
+        
         NSLayoutConstraint.activate([
             searchContainer.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 8),
             searchContainer.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
@@ -167,7 +172,7 @@ class SearchViewController: BaseViewController {
             tableView.topAnchor.constraint(equalTo: searchContainer.bottomAnchor, constant: 16),
             tableView.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
             tableView.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
-            tableView.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor),
+            tableView.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: CGFloat(height)),
             
             emptyStateLabel.centerXAnchor.constraint(equalTo: view.centerXAnchor),
             emptyStateLabel.centerYAnchor.constraint(equalTo: view.centerYAnchor),

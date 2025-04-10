@@ -145,6 +145,7 @@ class ArtistViewController: BaseViewController, UITableViewDelegate, UITableView
         
         tracksTableView.delegate = self
         tracksTableView.dataSource = self
+        tracksTableView.backgroundColor = .clear
         tracksTableView.register(TrackCell.self, forCellReuseIdentifier: "TrackCell")
         
         for subview in [
@@ -202,12 +203,6 @@ class ArtistViewController: BaseViewController, UITableViewDelegate, UITableView
         let track = viewModel.tracks[indexPath.row]
         cell.configure(with: track)
         cell.delegate = self
-        
-        if let currentTrack = MusicPlayerManager.shared.getCurrentTrack(), track == currentTrack.track {
-            cell.backgroundColor = .systemGray2
-        } else {
-            cell.backgroundColor = .clear
-        }
         
         return cell
     }

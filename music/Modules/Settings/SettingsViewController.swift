@@ -1,96 +1,285 @@
 import UIKit
+import PhotosUI
 import Foundation
 
-class SettingsViewController: BaseViewController {
+class SettingsViewController: BaseViewController, UITextFieldDelegate {
     
-    let firstNameTextField = UITextField()
-    let lastNameTextField = UITextField()
-    let currentPasswordTextField = UITextField()
-    let newPasswordTextField = UITextField()
-    let confirmPasswordTextField = UITextField()
-
-    // MARK: Lifecycle
+    private let profileImageButton = UIButton()
+    private let usernameTextField = makeTextField(placeholder: "Имя пользователя")
+    private lazy var currentPasswordTextField = makeSecureTextField(placeholder: "Текущий пароль", toggleButton: true)
+    private lazy var newPasswordTextField = makeSecureTextField(placeholder: "Новый пароль", toggleButton: true)
+    private lazy var confirmPasswordTextField = makeSecureTextField(placeholder: "Подтвердите пароль", toggleButton: true)
+    
+    private var selectedImage: UIImage?
+    private let saveButton = UIButton()
+    
+    private let statusLabel: UILabel = {
+        let label = UILabel()
+        label.textColor = .systemRed
+        label.font = UIFont.systemFont(ofSize: 14)
+        label.textAlignment = .center
+        label.numberOfLines = 0
+        label.isHidden = true
+        return label
+    }()
+    
+    // MARK: - Lifecycle
     override func viewDidLoad() {
         super.viewDidLoad()
         setupUI()
-        loadCurrentUserData()
+        loadProfile()
+        setupGradients()
+    }
+    
+    private func setupGradients() {
+        let gradientColors = [
+            UIColor(red: 0.95, green: 0.95, blue: 1.0, alpha: 1.0),
+            UIColor.systemTeal.withAlphaComponent(0.8)
+        ]
+        
+        [profileImageButton,
+         usernameTextField,
+         currentPasswordTextField,
+         newPasswordTextField,
+         confirmPasswordTextField,
+         saveButton
+        ].forEach {
+            $0.addGradientBackground(colors: gradientColors, cornerRadius: 25)
+        }
     }
 
-    // MARK: Setup UI
-    private func setupUI() {
-        title = "Settings"
-        view.backgroundColor = .systemBackground
-
-        firstNameTextField.placeholder = "First Name"
-        firstNameTextField.borderStyle = .roundedRect
-        view.addSubview(firstNameTextField)
-
-        lastNameTextField.placeholder = "Last Name"
-        lastNameTextField.borderStyle = .roundedRect
-        view.addSubview(lastNameTextField)
-
-        currentPasswordTextField.placeholder = "Current Password"
-        currentPasswordTextField.borderStyle = .roundedRect
-        currentPasswordTextField.isSecureTextEntry = true
-        view.addSubview(currentPasswordTextField)
-
-        newPasswordTextField.placeholder = "New Password"
-        newPasswordTextField.borderStyle = .roundedRect
-        newPasswordTextField.isSecureTextEntry = true
-        view.addSubview(newPasswordTextField)
-
-        confirmPasswordTextField.placeholder = "Confirm New Password"
-        confirmPasswordTextField.borderStyle = .roundedRect
-        confirmPasswordTextField.isSecureTextEntry = true
-        view.addSubview(confirmPasswordTextField)
-
-        let saveButton = UIBarButtonItem(title: "Save", style: .plain, target: self, action: #selector(saveTapped))
-        navigationItem.rightBarButtonItem = saveButton
-
-        let backButton = UIBarButtonItem(title: "Back", style: .plain, target: self, action: #selector(backTapped))
-        navigationItem.leftBarButtonItem = backButton
+    override func viewDidLayoutSubviews() {
+        super.viewDidLayoutSubviews()
         
-        configurePasswordField(currentPasswordTextField)
-        configurePasswordField(newPasswordTextField)
-        configurePasswordField(confirmPasswordTextField)
-
+        [profileImageButton,
+         usernameTextField,
+         currentPasswordTextField,
+         newPasswordTextField,
+         confirmPasswordTextField,
+         saveButton
+        ].forEach {
+            $0.updateGradientFrame()
+        }
+    }
+    
+    // MARK: - UI Setup
+    private func setupUI() {
+        title = "Настройки"
+        view.backgroundColor = .black
+        
+        setupProfileImage()
+        setupTextFields()
+        setupSaveButton()
         setupConstraints()
     }
-
-    // MARK: Setup Constraints
-    private func setupConstraints() {
-        firstNameTextField.translatesAutoresizingMaskIntoConstraints = false
-        lastNameTextField.translatesAutoresizingMaskIntoConstraints = false
-        currentPasswordTextField.translatesAutoresizingMaskIntoConstraints = false
-        newPasswordTextField.translatesAutoresizingMaskIntoConstraints = false
-        confirmPasswordTextField.translatesAutoresizingMaskIntoConstraints = false
-
+    
+    private func setupProfileImage() {
+        profileImageButton.layer.cornerRadius = 50
+        profileImageButton.clipsToBounds = true
+        profileImageButton.contentMode = .scaleAspectFill
+        profileImageButton.addTarget(self, action: #selector(addPhotoTapped), for: .touchUpInside)
+        
+        addGradient(to: profileImageButton)
+        
+        let plusIcon = UIImageView(image: UIImage(systemName: "plus.circle.fill"))
+        plusIcon.tintColor = .white
+        plusIcon.translatesAutoresizingMaskIntoConstraints = false
+        profileImageButton.addSubview(plusIcon)
+        
         NSLayoutConstraint.activate([
-            firstNameTextField.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 20),
-            firstNameTextField.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 20),
-            firstNameTextField.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -20),
-            firstNameTextField.heightAnchor.constraint(equalToConstant: 40),
+            plusIcon.centerXAnchor.constraint(equalTo: profileImageButton.centerXAnchor),
+            plusIcon.centerYAnchor.constraint(equalTo: profileImageButton.centerYAnchor),
+            plusIcon.widthAnchor.constraint(equalToConstant: 40),
+            plusIcon.heightAnchor.constraint(equalToConstant: 40)
+        ])
+    }
+    
+    private func setupTextFields() {
+        [usernameTextField,
+         currentPasswordTextField,
+         newPasswordTextField,
+         confirmPasswordTextField
+        ].forEach {
+            $0.delegate = self
+            view.addSubview($0)
+        }
 
-            lastNameTextField.topAnchor.constraint(equalTo: firstNameTextField.bottomAnchor, constant: 20),
-            lastNameTextField.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 20),
-            lastNameTextField.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -20),
-            lastNameTextField.heightAnchor.constraint(equalToConstant: 40),
-
-            currentPasswordTextField.topAnchor.constraint(equalTo: lastNameTextField.bottomAnchor, constant: 20),
+        view.addSubview(statusLabel)
+    }
+    
+    private func addGradient(to view: UIView) {
+        let gradient = CAGradientLayer()
+        gradient.colors = [
+            UIColor(red: 0.95, green: 0.95, blue: 1.0, alpha: 1.0).cgColor,
+            UIColor.systemTeal.withAlphaComponent(0.8).cgColor
+        ]
+        gradient.locations = [0, 1]
+        gradient.startPoint = CGPoint(x: 0, y: 0)
+        gradient.endPoint = CGPoint(x: 1, y: 1)
+        gradient.cornerRadius = 25
+        gradient.name = "GradientLayer"
+        gradient.frame = view.bounds
+        view.layer.insertSublayer(gradient, at: 0)
+    }
+    
+    private func setupSaveButton() {
+        configureButton(saveButton, title: "Сохранить", font: buttonFont)
+        saveButton.addTarget(self, action: #selector(saveTapped), for: .touchUpInside)
+    }
+    
+    private func setupConstraints() {
+        for subview in [
+            profileImageButton,
+            usernameTextField,
+            currentPasswordTextField,
+            newPasswordTextField,
+            confirmPasswordTextField,
+            saveButton,
+            statusLabel
+        ] {
+            subview.translatesAutoresizingMaskIntoConstraints = false
+            view.addSubview(subview)
+        }
+        
+        
+        NSLayoutConstraint.activate([
+            profileImageButton.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 20),
+            profileImageButton.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+            profileImageButton.widthAnchor.constraint(equalToConstant: 100),
+            profileImageButton.heightAnchor.constraint(equalToConstant: 100),
+            
+            usernameTextField.topAnchor.constraint(equalTo: profileImageButton.bottomAnchor, constant: 30),
+            usernameTextField.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 20),
+            usernameTextField.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -20),
+            usernameTextField.heightAnchor.constraint(equalToConstant: 50),
+            
+            currentPasswordTextField.topAnchor.constraint(equalTo: usernameTextField.bottomAnchor, constant: 20),
             currentPasswordTextField.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 20),
             currentPasswordTextField.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -20),
-            currentPasswordTextField.heightAnchor.constraint(equalToConstant: 40),
-
-            newPasswordTextField.topAnchor.constraint(equalTo: currentPasswordTextField.bottomAnchor, constant: 20),
+            currentPasswordTextField.heightAnchor.constraint(equalToConstant: 50),
+            
+            newPasswordTextField.topAnchor.constraint(equalTo: currentPasswordTextField.bottomAnchor, constant: 15),
             newPasswordTextField.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 20),
             newPasswordTextField.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -20),
-            newPasswordTextField.heightAnchor.constraint(equalToConstant: 40),
-
-            confirmPasswordTextField.topAnchor.constraint(equalTo: newPasswordTextField.bottomAnchor, constant: 20),
+            newPasswordTextField.heightAnchor.constraint(equalToConstant: 50),
+            
+            confirmPasswordTextField.topAnchor.constraint(equalTo: newPasswordTextField.bottomAnchor, constant: 15),
             confirmPasswordTextField.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 20),
             confirmPasswordTextField.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -20),
-            confirmPasswordTextField.heightAnchor.constraint(equalToConstant: 40),
+            confirmPasswordTextField.heightAnchor.constraint(equalToConstant: 50),
+            
+            saveButton.topAnchor.constraint(equalTo: confirmPasswordTextField.bottomAnchor, constant: 30),
+            saveButton.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+            saveButton.widthAnchor.constraint(equalToConstant: 150),
+            saveButton.heightAnchor.constraint(equalToConstant: 50),
+            
+            statusLabel.bottomAnchor.constraint(equalTo: profileImageButton.topAnchor, constant: -10),
+            statusLabel.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 20),
+            statusLabel.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -20),
         ])
+    }
+    
+    // MARK: - Network Operations
+    private func loadProfile() {
+        guard NetworkMonitor.shared.isConnected else {
+            showStatusMessage("Нет соединения с интернетом", isError: true)
+            return
+        }
+        
+//        NetworkManager.shared.getUserProfile { [weak self] result in
+//            DispatchQueue.main.async {
+//                switch result {
+//                case .success(let user):
+//                    self?.updateUI(with: user)
+//                case .failure(let error):
+//                    self?.showStatusMessage("Ошибка загрузки профиля: \(error.localizedDescription)", isError: true)
+//                }
+//            }
+//        }
+    }
+    
+    private func updateUI(with user: UserResponse) {
+        usernameTextField.text = user.username
+    }
+    
+    // MARK: - Save Handling
+    @objc private func saveTapped() {
+        guard validateInput() else { return }
+        
+//        let isPasswordChanging = !newPasswordTextField.text!.isEmpty
+//        let updateRequest = UserUpdateRequest(
+//            username: usernameTextField.text ?? "",
+//            newPassword: isPasswordChanging ? newPasswordTextField.text : nil,
+//            currentPassword: isPasswordChanging ? currentPasswordTextField.text : nil
+//        )
+        
+//        NetworkManager.shared.updateUserProfile(request: updateRequest) { [weak self] result in
+//            DispatchQueue.main.async {
+//                switch result {
+//                case .success(let user):
+//                    self?.handleUpdateSuccess(user)
+//                case .failure(let error):
+//                    self?.handleUpdateError(error)
+//                }
+//            }
+//        }
+    }
+    
+    private func handleUpdateSuccess(_ user: UserResponse) {
+        showStatusMessage("Профиль успешно обновлен", isError: false)
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+            self.navigationController?.popViewController(animated: true)
+        }
+    }
+    
+    // MARK: - Validation
+    private func validateInput() -> Bool {
+        let isPasswordChanging = !newPasswordTextField.text!.isEmpty
+        
+        if isPasswordChanging {
+            guard !currentPasswordTextField.text!.isEmpty else {
+                showStatusMessage("Введите текущий пароль", isError: true)
+                return false
+            }
+            
+            guard newPasswordTextField.text == confirmPasswordTextField.text else {
+                showStatusMessage("Пароли не совпадают", isError: true)
+                return false
+            }
+            
+            guard newPasswordTextField.text!.count >= 6 else {
+                showStatusMessage("Пароль должен содержать минимум 6 символов", isError: true)
+                return false
+            }
+        }
+        
+        guard !usernameTextField.text!.isEmpty else {
+            showStatusMessage("Введите имя пользователя", isError: true)
+            return false
+        }
+        
+        return true
+    }
+    
+    // MARK: - Helpers
+    private func showStatusMessage(_ message: String, isError: Bool) {
+        statusLabel.text = message
+        statusLabel.textColor = isError ? .systemRed : .systemGreen
+        statusLabel.isHidden = false
+        
+        DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
+            self.statusLabel.isHidden = true
+        }
+    }
+    
+    @objc private func addPhotoTapped() {
+        var config = PHPickerConfiguration()
+        config.filter = .images
+        config.selectionLimit = 1
+        
+        let picker = PHPickerViewController(configuration: config)
+        picker.delegate = self
+        present(picker, animated: true)
     }
     
     private func configurePasswordField(_ textField: UITextField) {
@@ -108,162 +297,72 @@ class SettingsViewController: BaseViewController {
     }
     
     @objc private func togglePasswordVisibility(_ sender: UIButton) {
-        sender.isSelected.toggle()
-        
-        // Находим соответствующее поле ввода
-        if let textField = sender.superview as? UITextField {
-            textField.isSecureTextEntry = !sender.isSelected
-        } else if let textField = sender.superview?.superview as? UITextField {
-            textField.isSecureTextEntry = !sender.isSelected
-        }
+        guard let textField = sender.superview as? UITextField else { return }
+        textField.isSecureTextEntry.toggle()
+        sender.isSelected = !textField.isSecureTextEntry
     }
 
-    private func loadCurrentUserData() {
-        guard let savedLogin = UserDefaults.standard.string(forKey: "savedLogin") else { return }
-
-        if let userInfo = readUserInfo(login: savedLogin) {
-            firstNameTextField.text = userInfo.firstName
-            lastNameTextField.text = userInfo.lastName
-        }
-    }
-
-    private func readUserInfo(login: String) -> (firstName: String, lastName: String)? {
-        let infoPath = getDocumentsFilePath(filename: "testdb_info")
+    private func makeSecureTextField(placeholder: String, toggleButton: Bool = false) -> UITextField {
+        let tf = makeTextField(placeholder: placeholder)
+        tf.isSecureTextEntry = true
         
-        do {
-            let infoContent = try String(contentsOfFile: infoPath, encoding: .utf8)
-            let infoLines = infoContent.components(separatedBy: .newlines)
-
-            for line in infoLines {
-                let components = line.components(separatedBy: ",")
-                if components.count == 3, components[0] == login {
-                    return (firstName: components[1], lastName: components[2])
-                }
-            }
-        } catch {
-            print("Ошибка чтения файла: \(error)")
-        }
-        return nil
-    }
-
-    @objc private func saveTapped() {
-        guard let savedLogin = UserDefaults.standard.string(forKey: "savedLogin"),
-              let savedPassword = UserDefaults.standard.string(forKey: "savedPassword") else {
-            showUpdateError(message: "Error: User data is not found")
-            return
-        }
-        
-        if let newPassword = newPasswordTextField.text, !newPassword.isEmpty {
-            guard let currentPassword = currentPasswordTextField.text, currentPassword == savedPassword else {
-                showUpdateError(message: "Wrong current password")
-                return
-            }
-
-            guard newPassword == confirmPasswordTextField.text else {
-                showUpdateError(message: "Passwords don't match")
-                return
-            }
+        if toggleButton {
+            let button = UIButton(type: .system)
+            let config = UIImage.SymbolConfiguration(pointSize: 18, weight: .regular)
+            button.setImage(UIImage(systemName: "eye", withConfiguration: config), for: .normal)
+            button.setImage(UIImage(systemName: "eye.slash", withConfiguration: config), for: .selected)
+            button.tintColor = .black
+            button.frame = CGRect(x: 0, y: 0, width: 40, height: 30)
+            button.addTarget(self, action: #selector(togglePasswordVisibility(_:)), for: .touchUpInside)
             
-            guard newPassword.count >= 6 else {
-                showUpdateError(message: "Password must have al least 6 symbols")
-                return
-            }
+            tf.rightView = button
+            tf.rightViewMode = .always
         }
+        
+        return tf
+    }
 
-        guard let newFirstName = firstNameTextField.text, !newFirstName.isEmpty,
-              let newLastName = lastNameTextField.text, !newLastName.isEmpty else {
-            showUpdateError(message: "Fill all fields")
-            return
-        }
+    private func makePasswordToggleButton() -> UIButton {
+        let button = UIButton(type: .system)
+        let config = UIImage.SymbolConfiguration(pointSize: 18, weight: .regular)
+        button.setImage(UIImage(systemName: "eye", withConfiguration: config), for: .normal)
+        button.tintColor = .black
+        return button
+    }
 
-        if updateUserInfo(login: savedLogin, newFirstName: newFirstName, newLastName: newLastName) {
-            if let newPassword = newPasswordTextField.text, !newPassword.isEmpty {
-                if !updatePassword(login: savedLogin, newPassword: newPassword) {
-                    showUpdateError(message: "Some error: Password wasn't updated")
-                    return
+}
+
+// MARK: - PHPickerViewControllerDelegate
+extension SettingsViewController: PHPickerViewControllerDelegate {
+    func picker(_ picker: PHPickerViewController, didFinishPicking results: [PHPickerResult]) {
+        picker.dismiss(animated: true)
+        
+        guard let result = results.first else { return }
+        result.itemProvider.loadObject(ofClass: UIImage.self) { [weak self] image, error in
+            if let image = image as? UIImage {
+                DispatchQueue.main.async {
+                    self?.selectedImage = image
+                    self?.profileImageButton.setImage(image, for: .normal)
                 }
             }
-
-            if newPasswordTextField.text?.isEmpty == false {
-                UserDefaults.standard.set(newPasswordTextField.text, forKey: "savedPassword")
-            }
-
-            let profileVC = ProfileViewController()
-            navigationItem.hidesBackButton = true
-            navigationController?.pushViewController(profileVC, animated: false)
-        } else {
-            showUpdateError(message: "Ошибка при обновлении данных")
         }
     }
-    
-    private func showUpdateError(message: String) {
-        let alert = UIAlertController(title: "Error", message: message, preferredStyle: .alert)
-        alert.addAction(UIAlertAction(title: "Ok", style: .default))
-        present(alert, animated: true)
-    }
-    
-    private func updateUserInfo(login: String, newFirstName: String, newLastName: String) -> Bool {
-        let infoPath = getDocumentsFilePath(filename: "testdb_info")
-        do {
-            var infoContent = try String(contentsOfFile: infoPath, encoding: .utf8)
-            var infoLines = infoContent.components(separatedBy: .newlines)
+}
 
-            for (index, line) in infoLines.enumerated() {
-                let components = line.components(separatedBy: ",")
-                if components.count == 3, components[0] == login {
-                    infoLines[index] = "\(login),\(newFirstName),\(newLastName)"
-                    break
-                }
-            }
-
-            infoContent = infoLines.joined(separator: "\n")
-            try infoContent.write(toFile: infoPath, atomically: true, encoding: .utf8)
-            return true
-        } catch {
-            print("Ошибка обновления testdb_info.txt: \(error)")
-            return false
-        }
-    }
-    
-    private func updatePassword(login: String, newPassword: String) -> Bool {
-        let dbPath = getDocumentsFilePath(filename: "testdb")
-         
-        do {
-            var dbContent = try String(contentsOfFile: dbPath, encoding: .utf8)
-            var dbLines = dbContent.components(separatedBy: .newlines)
-            var updated = false
-
-            for (index, line) in dbLines.enumerated() {
-                let trimmedLine = line.trimmingCharacters(in: .whitespacesAndNewlines)
-                if trimmedLine.isEmpty {
-                    continue
-                }
-                
-                let components = trimmedLine.components(separatedBy: ":")
-                if components.count == 2 {
-                    let storedLogin = components[0]
-                    if storedLogin == login {
-                        dbLines[index] = "\(storedLogin):\(newPassword)"
-                        updated = true
-                        break
-                    }
-                }
-            }
-
-            if updated {
-                dbContent = dbLines.joined(separator: "\n")
-                try dbContent.write(toFile: dbPath, atomically: true, encoding: .utf8)
-                return true
-            }
-            return false
-        } catch {
-            print("Ошибка обновления testdb.txt: \(error)")
-            return false
-        }
-    }
-
-    @objc private func backTapped() {
-        navigationItem.hidesBackButton = true
-        navigationController?.popViewController(animated: true)
-    }
+private func makeTextField(placeholder: String) -> UITextField {
+    let textField = UITextField()
+    textField.placeholder = placeholder
+    textField.attributedPlaceholder = NSAttributedString(
+        string: placeholder,
+        attributes: [.foregroundColor: UIColor.black.withAlphaComponent(0.7)]
+    )
+    textField.textColor = .black
+    textField.autocapitalizationType = .none
+    textField.backgroundColor = .clear
+    textField.layer.cornerRadius = 25
+    textField.layer.masksToBounds = true
+    textField.leftView = UIView(frame: CGRect(x: 0, y: 0, width: 20, height: 0))
+    textField.leftViewMode = .always
+    textField.tintColor = .black
+    return textField
 }

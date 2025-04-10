@@ -3,11 +3,23 @@ import UIKit
 class ProfileViewController: BaseViewController {
     
     private let nameLabel = UILabel()
+    private let imageContainer = UIView()
     private let imageView = UIImageView()
     private let settingsButton = UIButton()
     private let modeToggleButton = UIButton()
+    private let segmentedControl = UISegmentedControl(items: ["Топ", "Артисты"])
     
     private let tableView = UITableView()
+    private let emptyStateLabel: UILabel = {
+        let label = UILabel()
+        label.text = "Данные отсутствуют"
+        label.textAlignment = .center
+        label.font = UIFont(name: "SFProDisplay-Medium", size: 16)
+        label.textColor = .systemGray
+        label.isHidden = true
+        return label
+    }()
+    
     private var topTracks: [Track] = []
     private var recentlyPlayed: [Track] = []
     private var topArtists: [ArtistStats] = []
@@ -27,94 +39,181 @@ class ProfileViewController: BaseViewController {
     
     private func setupUI() {
         title = "Profile"
-        view.backgroundColor = .systemBackground
         
-        imageView.image = UIImage(systemName: "person.crop.circle")
+        setupImageContainer()
+        setupNameLabel()
+        setupButtons()
+        setupTableView()
+        setupSegmentedControl()
+        setupConstraints()
+    }
+    
+    private func setupImageContainer() {
+        imageContainer.layer.cornerRadius = 75
+        imageContainer.clipsToBounds = true
+        
+        let gradient = CAGradientLayer()
+        gradient.colors = [
+            UIColor(red: 0.95, green: 0.95, blue: 1.0, alpha: 1.0).cgColor,
+            UIColor.systemTeal.withAlphaComponent(0.8).cgColor
+        ]
+        gradient.locations = [0, 1]
+        gradient.startPoint = CGPoint(x: 0, y: 0)
+        gradient.endPoint = CGPoint(x: 1, y: 1)
+        imageContainer.layer.insertSublayer(gradient, at: 0)
+        
+        imageView.image = UIImage(systemName: "person.fill")
+        imageView.tintColor = .white
         imageView.contentMode = .scaleAspectFill
-        imageView.tintColor = .systemGray
         imageView.clipsToBounds = true
-        
-        nameLabel.font = UIFont.systemFont(ofSize: 20, weight: .bold)
+        imageView.layer.cornerRadius = 70
+        imageView.backgroundColor = .black
+    }
+    
+    private func setupNameLabel() {
+        nameLabel.font = UIFont(name: "SFProDisplay-Medium", size: 20)
+        nameLabel.textColor = .white
         nameLabel.textAlignment = .center
-        
-        settingsButton.setTitle("Настройки", for: .normal)
-        settingsButton.setTitleColor(.systemBlue, for: .normal)
+    }
+    
+    private func setupButtons() {
+        configureButton(settingsButton, title: "Настройки", font: buttonFont)
         settingsButton.addTarget(self, action: #selector(settingsTapped), for: .touchUpInside)
-        
+
         switch PlaybackSettings.shared.mode {
         case .online:
-            modeToggleButton.setTitle("Online", for: .normal)
+            configureButton(modeToggleButton, title: "Режим: Online", font: buttonFont)
         case .offline:
-            modeToggleButton.setTitle("Offline", for: .normal)
+            configureButton(modeToggleButton, title: "Режим: Offline", font: buttonFont)
         }
-        
-        modeToggleButton.setTitleColor(.systemBlue, for: .normal)
         modeToggleButton.addTarget(self, action: #selector(modeToggleTapped), for: .touchUpInside)
         
         let logoutButton = UIBarButtonItem(title: "Выйти", style: .plain, target: self, action: #selector(logoutTapped))
+        logoutButton.tintColor = .systemRed
         navigationItem.rightBarButtonItem = logoutButton
-        
-        let segmentedControl = UISegmentedControl(items: ["Топ треков", "Недавние", "Топ артистов", "Артисты"])
+    }
+    
+    private func setupSegmentedControl() {
         segmentedControl.selectedSegmentIndex = 0
-        segmentedControl.addTarget(self, action: #selector(segmentChanged(_:)), for: .valueChanged)
-        navigationItem.titleView = segmentedControl
+        segmentedControl.selectedSegmentTintColor = .systemTeal.withAlphaComponent(0.8)
         
+        let font = UIFont(name: "SFProDisplay-Medium", size: 14) ?? UIFont.systemFont(ofSize: 14, weight: .medium)
+        
+        segmentedControl.setTitleTextAttributes([
+            .foregroundColor: UIColor.white,
+            .font: font
+        ], for: .normal)
+        
+        segmentedControl.addTarget(
+            self,
+            action: #selector(segmentChanged(_:)),
+            for: .valueChanged
+        )
+        
+        segmentedControl.backgroundColor = .darkGray
+        segmentedControl.layer.cornerRadius = 8
+        segmentedControl.clipsToBounds = true
+    }
+    
+    private func setupTableView() {
+        tableView.backgroundColor = .clear
+        tableView.separatorStyle = .none
         tableView.delegate = self
         tableView.dataSource = self
-        tableView.separatorStyle = .none
-        tableView.register(TrackStatsCell.self, forCellReuseIdentifier: TrackStatsCell.reuseIdentifier)
-        tableView.register(ArtistCell.self, forCellReuseIdentifier: ArtistCell.reuseIdentifier)
-
-        let UIElements = [
+        tableView.register(TrackCell.self, forCellReuseIdentifier: "TrackCell")
+        tableView.register(ArtistCell.self, forCellReuseIdentifier: "ArtistCell")
+    }
+    
+    // MARK: - Constraints
+    private func setupConstraints() {
+        for subview in [
+            segmentedControl,
+            imageContainer,
             imageView,
             nameLabel,
             settingsButton,
             modeToggleButton,
-            tableView
-        ]
-        
-        for subview in UIElements {
+            tableView,
+            emptyStateLabel
+        ] {
             view.addSubview(subview)
             subview.translatesAutoresizingMaskIntoConstraints = false
         }
         
-        setupConstraints()
-    }
-    
-    // MARK: Setup Constraints
-    private func setupConstraints() {        
+        var height = -80
+        if MusicPlayerManager.shared.isPlaying {
+            height = -150
+        }
+        
         NSLayoutConstraint.activate([
-            imageView.centerXAnchor.constraint(equalTo: view.centerXAnchor),
-            imageView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 20),
-            imageView.widthAnchor.constraint(equalToConstant: 150),
-            imageView.heightAnchor.constraint(equalToConstant: 150),
-
-            nameLabel.centerXAnchor.constraint(equalTo: view.centerXAnchor),
-            nameLabel.topAnchor.constraint(equalTo: imageView.bottomAnchor, constant: 20),
+            imageContainer.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 20),
+            imageContainer.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+            imageContainer.widthAnchor.constraint(equalToConstant: 150),
+            imageContainer.heightAnchor.constraint(equalToConstant: 150),
             
-            modeToggleButton.centerXAnchor.constraint(equalTo: view.centerXAnchor),
-            modeToggleButton.topAnchor.constraint(equalTo: nameLabel.bottomAnchor, constant: 20),
+            imageView.centerXAnchor.constraint(equalTo: imageContainer.centerXAnchor),
+            imageView.centerYAnchor.constraint(equalTo: imageContainer.centerYAnchor),
+            imageView.widthAnchor.constraint(equalToConstant: 140),
+            imageView.heightAnchor.constraint(equalToConstant: 140),
+            
+            nameLabel.topAnchor.constraint(equalTo: imageContainer.bottomAnchor, constant: 15),
+            nameLabel.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 20),
+            nameLabel.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -20),
             
             settingsButton.topAnchor.constraint(equalTo: nameLabel.bottomAnchor, constant: 20),
-            settingsButton.trailingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.trailingAnchor, constant: -10),
+            settingsButton.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 20),
+            settingsButton.widthAnchor.constraint(equalToConstant: 150),
+            settingsButton.heightAnchor.constraint(equalToConstant: 50),
             
-            tableView.topAnchor.constraint(equalTo: settingsButton.bottomAnchor, constant: 10),
+            modeToggleButton.topAnchor.constraint(equalTo: nameLabel.bottomAnchor, constant: 20),
+            modeToggleButton.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -20),
+            modeToggleButton.widthAnchor.constraint(equalToConstant: 150),
+            modeToggleButton.heightAnchor.constraint(equalToConstant: 50),
+            
+            segmentedControl.topAnchor.constraint(equalTo: settingsButton.bottomAnchor, constant: 20),
+            segmentedControl.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 20),
+            segmentedControl.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -20),
+            segmentedControl.heightAnchor.constraint(equalToConstant: 40),
+            
+            tableView.topAnchor.constraint(equalTo: segmentedControl.bottomAnchor, constant: 25),
             tableView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             tableView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            tableView.bottomAnchor.constraint(equalTo: view.bottomAnchor, constant: -150)
+            tableView.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: CGFloat(height)),
+            
+            emptyStateLabel.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+            emptyStateLabel.centerYAnchor.constraint(equalTo: view.centerYAnchor),
         ])
     }
     
-    private func loadUserData() {
-        guard let savedLogin = UserDefaults.standard.string(forKey: "savedLogin") else {
-            nameLabel.text = "User is not found"
-            return
+    override func viewDidLayoutSubviews() {
+        super.viewDidLayoutSubviews()
+        
+        if let gradient = imageContainer.layer.sublayers?.first as? CAGradientLayer {
+            gradient.frame = imageContainer.bounds
         }
         
-        nameLabel.text = savedLogin
+        updateButtonGradients()
+    }
+    
+    private func updateButtonGradients() {
+        [settingsButton, modeToggleButton].forEach { button in
+            if let gradient = button.layer.sublayers?.first as? CAGradientLayer {
+                gradient.frame = button.bounds
+            }
+        }
+    }
+    
+    private func loadUserData() {
+        nameLabel.text = UserDefaults.standard.string(forKey: "savedLogin") ?? "Гость"
     }
     
     private func loadStatsData() {
+        showLoader()
+        
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1) { [weak self] in
+            self?.hideLoader()
+            self?.updateEmptyState()
+        }
 //        guard let login = UserDefaults.standard.string(forKey: "savedLogin") else {
 //            print("Error: User is not logged in")
 //            return
@@ -131,10 +230,22 @@ class ProfileViewController: BaseViewController {
 //        }
     }
     
+    private func updateEmptyState() {
+        let isEmpty: Bool
+        switch currentSegment {
+        case 0: isEmpty = topTracks.isEmpty
+        case 1: isEmpty = topArtists.isEmpty
+        default: isEmpty = true
+        }
+        
+        emptyStateLabel.isHidden = !isEmpty
+        tableView.isHidden = isEmpty
+    }
+    
     @objc private func settingsTapped() {
         let settingsVC = SettingsViewController()
         navigationItem.hidesBackButton = true
-        navigationController?.pushViewController(settingsVC, animated: true)
+        navigationController?.setViewControllers([settingsVC], animated: false)
     }
     
     @objc private func logoutTapped() {
@@ -152,12 +263,12 @@ class ProfileViewController: BaseViewController {
         switch PlaybackSettings.shared.mode {
         case .online:
             PlaybackSettings.shared.mode = .offline
-            modeToggleButton.setTitle("Offline", for: .normal)
+            modeToggleButton.setTitle("Режим: Offline", for: .normal)
             MusicPlayerManager.shared.updateQueueForOffline()
         case .offline:
             if NetworkMonitor.shared.isConnected {
                 PlaybackSettings.shared.mode = .online
-                modeToggleButton.setTitle("Online", for: .normal)
+                modeToggleButton.setTitle("Режим: Online", for: .normal)
             } else {
                 let alert = UIAlertController(title: "Нет подключения", message: "Для перехода в онлайн-режим нужно интернет-соединение", preferredStyle: .alert)
                 alert.addAction(UIAlertAction(title: "Ок", style: .default))
@@ -181,22 +292,20 @@ extension ProfileViewController: UITableViewDataSource, UITableViewDelegate {
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
         switch currentSegment {
         case 0: return topTracks.count
-        case 1: return recentlyPlayed.count
-        case 2: return topArtists.count
-        case 3: return recentlyPlayedArtists.count
+        case 1: return topArtists.count
         default: return 0
         }
     }
     
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         switch currentSegment {
-        case 0, 1:
+        case 0:
             let cell = tableView.dequeueReusableCell(withIdentifier: TrackStatsCell.reuseIdentifier, for: indexPath) as! TrackStatsCell
             let track = currentSegment == 0 ? topTracks[indexPath.row] : recentlyPlayed[indexPath.row]
             cell.configure(with: track)
             return cell
             
-        case 2, 3:
+        case 1:
             let cell = tableView.dequeueReusableCell(withIdentifier: ArtistCell.reuseIdentifier, for: indexPath) as! ArtistCell
             let artist = currentSegment == 2 ? topArtists[indexPath.row] : recentlyPlayedArtists[indexPath.row]
             cell.configure(with: artist)
@@ -228,9 +337,7 @@ extension ProfileViewController: UITableViewDataSource, UITableViewDelegate {
     func tableView(_ tableView: UITableView, titleForHeaderInSection section: Int) -> String? {
         switch currentSegment {
         case 0: return "Популярные треки"
-        case 1: return "Недавние треки"
-        case 2: return "Популярные артисты"
-        case 3: return "Недавние артисты"
+        case 1: return "Популярные артисты"
         default: return nil
         }
     }
