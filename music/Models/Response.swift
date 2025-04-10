@@ -1,6 +1,6 @@
 import UIKit
 
-struct ResponseWrapper<T: Codable>: Codable {
+struct ResponseWrapper<T: Decodable>: Decodable {
     let success: Bool
     let data: T?
     let error: String?
@@ -19,10 +19,10 @@ struct LoginResponse: Codable {
     let user: UserResponse
 }
 
-struct UserUpdateRequest: Encodable {
+struct UserUpdateRequest: Codable {
     let username: String
-    let newPassword: String?
     let currentPassword: String?
+    let newPassword: String?
 }
 
 // MARK: Track

@@ -35,7 +35,7 @@ class LoginViewController: UIViewController {
                 case .success:
                     let mainVC = MainViewController()
                     self?.navigationItem.hidesBackButton = true
-                    self?.navigationController?.pushViewController(mainVC, animated: true)
+                    self?.navigationController?.setViewControllers([mainVC], animated: true)
                 case .failure(let error):
                     self?.errorLabel.text = error.localizedDescription
                     self?.errorLabel.isHidden = false

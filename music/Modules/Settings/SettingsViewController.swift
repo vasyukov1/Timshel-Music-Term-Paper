@@ -204,11 +204,6 @@ class SettingsViewController: BaseViewController, UITextFieldDelegate {
         guard validateInput() else { return }
         
         let isPasswordChanging = !newPasswordTextField.text!.isEmpty
-        let updateRequest = UserUpdateRequest(
-            username: usernameTextField.text ?? "",
-            newPassword: isPasswordChanging ? newPasswordTextField.text : nil,
-            currentPassword: isPasswordChanging ? currentPasswordTextField.text : nil
-        )
         
         viewModel.updateProfile(username: usernameTextField.text ?? "",
                                 currentPassword: isPasswordChanging ? currentPasswordTextField.text : nil,

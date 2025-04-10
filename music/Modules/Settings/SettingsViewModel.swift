@@ -30,20 +30,22 @@ class SettingsViewModel {
                        currentPassword: String?,
                        newPassword: String?,
                        completion: @escaping (Result<UserResponse, Error>) -> Void) {
-        //        NetworkManager.shared.updateUserProfile(request: updateRequest) { [weak self] result in
-        //            DispatchQueue.main.async {
-        //                switch result {
-        //                case .success(let user):
-        //                    self?.handleUpdateSuccess(user)
-        //                case .failure(let error):
-        //                    self?.handleUpdateError(error)
-        //                }
-        //            }
-        //        }
-        
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
-            let updatedUser = UserResponse(id: 123, username: username, email: "Email")
-            completion(.success(updatedUser))
+        guard NetworkMonitor.shared.isConnected else {
+            let error = NSError(domain: "Network", code: -1, userInfo: [NSLocalizedDescriptionKey: "Нет соединения с интернетом"])
+            completion(.failure(error))
+            return
+        }
+
+        let updateRequest = UserUpdateRequest(
+            username: username,
+            currentPassword: currentPassword,
+            newPassword: newPassword
+        )
+
+        NetworkManager.shared.updateUserProfile(request: updateRequest) { result in
+            DispatchQueue.main.async {
+                completion(result)
+            }
         }
     }
 }
