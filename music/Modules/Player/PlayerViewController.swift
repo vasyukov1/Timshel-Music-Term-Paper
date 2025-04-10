@@ -63,6 +63,7 @@ class PlayerViewController: UIViewController {
                 guard let track = track else { return }
                 self?.configure(with: track.track.toTrack())
                 self?.updatePlayPauseButton()
+                MiniPlayerView.shared.hide()
             }
             .store(in: &cancellables)
         
