@@ -2,6 +2,8 @@ import UIKit
 
 class RegistrationViewController: UIViewController {
     
+    private let viewModel = RegistrationViewModel()
+    
     override func viewDidLoad() {
         super.viewDidLoad()
         setupUI()
@@ -35,19 +37,14 @@ class RegistrationViewController: UIViewController {
             return
         }
 
-        NetworkManager.shared.registerUser(login: login, password: password) { [weak self] result in
+        viewModel.registerUser(withLogin: login, password: password) { [weak self] result in
             DispatchQueue.main.async {
                 self?.activityIndicator.stopAnimating()
-                
                 switch result {
-                case .success(let userResponse):
-                    UserDefaults.standard.set(login, forKey: "savedLogin")
-                    UserDefaults.standard.set(userResponse.id, forKey: "userId")
-                    
+                case .success:
                     let mainVC = MainViewController()
                     self?.navigationItem.hidesBackButton = true
                     self?.navigationController?.setViewControllers([mainVC], animated: true)
-                    
                 case .failure(let error):
                     let errorMessage: String
                     if (error as NSError).code == 409 {

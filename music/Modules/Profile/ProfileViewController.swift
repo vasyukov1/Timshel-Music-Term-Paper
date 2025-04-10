@@ -2,6 +2,8 @@ import UIKit
 
 class ProfileViewController: BaseViewController {
     
+    private let viewModel = ProfileViewModel()
+    
     private let nameLabel = UILabel()
     private let imageContainer = UIView()
     private let imageView = UIImageView()
@@ -20,10 +22,6 @@ class ProfileViewController: BaseViewController {
         return label
     }()
     
-    private var topTracks: [Track] = []
-    private var recentlyPlayed: [Track] = []
-    private var topArtists: [ArtistStats] = []
-    private var recentlyPlayedArtists: [ArtistStats] = []
     private var currentSegment = 0
     
     // MARK: - Lifecycle
@@ -204,37 +202,24 @@ class ProfileViewController: BaseViewController {
     }
     
     private func loadUserData() {
-        nameLabel.text = UserDefaults.standard.string(forKey: "savedLogin") ?? "Гость"
+        nameLabel.text = viewModel.getUserName()
     }
     
     private func loadStatsData() {
         showLoader()
         
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1) { [weak self] in
+        viewModel.loadStatsData { [weak self] in
             self?.hideLoader()
             self?.updateEmptyState()
+            self?.tableView.reloadData()
         }
-//        guard let login = UserDefaults.standard.string(forKey: "savedLogin") else {
-//            print("Error: User is not logged in")
-//            return
-//        }
-        
-//        Task {
-//            topTracks = await MusicManager.shared.getTopTracks(by: login)
-//            recentlyPlayed = await MusicManager.shared.getRecentlyPlayed(by: login)
-//            
-//            topArtists = MusicManager.shared.getTopArtists(by: login)
-//            recentlyPlayedArtists = MusicManager.shared.getRecentlyPlayedArtists(by: login)
-//            
-//            tableView.reloadData()
-//        }
     }
     
     private func updateEmptyState() {
         let isEmpty: Bool
         switch currentSegment {
-        case 0: isEmpty = topTracks.isEmpty
-        case 1: isEmpty = topArtists.isEmpty
+        case 0: isEmpty = viewModel.topTracks.isEmpty
+        case 1: isEmpty = viewModel.topArtists.isEmpty
         default: isEmpty = true
         }
         
@@ -291,8 +276,8 @@ class ProfileViewController: BaseViewController {
 extension ProfileViewController: UITableViewDataSource, UITableViewDelegate {
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
         switch currentSegment {
-        case 0: return topTracks.count
-        case 1: return topArtists.count
+        case 0: return viewModel.topTracks.count
+        case 1: return viewModel.topArtists.count
         default: return 0
         }
     }
@@ -300,14 +285,18 @@ extension ProfileViewController: UITableViewDataSource, UITableViewDelegate {
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         switch currentSegment {
         case 0:
-            let cell = tableView.dequeueReusableCell(withIdentifier: TrackStatsCell.reuseIdentifier, for: indexPath) as! TrackStatsCell
-            let track = currentSegment == 0 ? topTracks[indexPath.row] : recentlyPlayed[indexPath.row]
+            guard let cell = tableView.dequeueReusableCell(withIdentifier: TrackStatsCell.reuseIdentifier, for: indexPath) as? TrackStatsCell else {
+                return UITableViewCell()
+            }
+            let track = viewModel.topTracks[indexPath.row]
             cell.configure(with: track)
             return cell
             
         case 1:
-            let cell = tableView.dequeueReusableCell(withIdentifier: ArtistCell.reuseIdentifier, for: indexPath) as! ArtistCell
-            let artist = currentSegment == 2 ? topArtists[indexPath.row] : recentlyPlayedArtists[indexPath.row]
+            guard let cell = tableView.dequeueReusableCell(withIdentifier: ArtistCell.reuseIdentifier, for: indexPath) as? ArtistCell else {
+                return UITableViewCell()
+            }
+            let artist = viewModel.topArtists[indexPath.row]
             cell.configure(with: artist)
             return cell
             
@@ -318,20 +307,6 @@ extension ProfileViewController: UITableViewDataSource, UITableViewDelegate {
     
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         tableView.deselectRow(at: indexPath, animated: true)
-        
-//        switch currentSegment {
-//        case 0, 1:
-            
-//            let track = currentSegment == 0 ? topTracks[indexPath.row] : recentlyPlayed[indexPath.row]
-//            MusicPlayerManager.shared.startPlaying(track: track)
-            
-//        case 2, 3:
-//            let artist = currentSegment == 2 ? topArtists[indexPath.row] : recentlyPlayedArtists[indexPath.row]
-//            showArtistTracks(artistName: artist.name)
-//            
-//        default:
-//            break
-//        }
     }
     
     func tableView(_ tableView: UITableView, titleForHeaderInSection section: Int) -> String? {
@@ -343,15 +318,8 @@ extension ProfileViewController: UITableViewDataSource, UITableViewDelegate {
     }
     
     private func showArtistTracks(artistName: String) {
-//        guard let login = UserDefaults.standard.string(forKey: "savedLogin") else { return }
-        
-        Task {
-//            let allTracks = await MusicManager.shared.getTracksByLogin(login)
-//            let artistTracks = allTracks.filter { $0.artist == artistName }
-            
-            let artistVC = ArtistViewController(viewModel: ArtistViewModel(artistName: artistName))
-            artistVC.navigationItem.hidesBackButton = true
-            navigationController?.pushViewController(artistVC, animated: false)
-        }
+        let artistVC = ArtistViewController(viewModel: ArtistViewModel(artistName: artistName))
+        artistVC.navigationItem.hidesBackButton = true
+        navigationController?.pushViewController(artistVC, animated: false)
     }
 }

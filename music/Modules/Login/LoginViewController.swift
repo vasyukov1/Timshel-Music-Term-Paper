@@ -2,6 +2,8 @@ import UIKit
 
 class LoginViewController: UIViewController {
     
+    private let viewModel = LoginViewModel()
+    
     override func viewDidLoad() {
         super.viewDidLoad()
         setupUI()
@@ -26,19 +28,14 @@ class LoginViewController: UIViewController {
         
         activityIndicator.startAnimating()
         
-        NetworkManager.shared.loginUser(login: login, password: password) { [weak self] result in
+        viewModel.loginUser(login: login, password: password) { [weak self] result in
             DispatchQueue.main.async {
                 self?.activityIndicator.stopAnimating()
-                
                 switch result {
-                case .success(let loginResponse):
-                    UserDefaults.standard.set(login, forKey: "savedLogin")
-                    UserDefaults.standard.set(loginResponse.token, forKey: "jwtToken")
-                    
+                case .success:
                     let mainVC = MainViewController()
                     self?.navigationItem.hidesBackButton = true
                     self?.navigationController?.pushViewController(mainVC, animated: true)
-                    
                 case .failure(let error):
                     self?.errorLabel.text = error.localizedDescription
                     self?.errorLabel.isHidden = false

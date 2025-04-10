@@ -4,6 +4,8 @@ import Foundation
 
 class SettingsViewController: BaseViewController, UITextFieldDelegate {
     
+    private let viewModel = SettingsViewModel()
+    
     private let profileImageButton = UIButton()
     private let usernameTextField = makeTextField(placeholder: "Имя пользователя")
     private lazy var currentPasswordTextField = makeSecureTextField(placeholder: "Текущий пароль", toggleButton: true)
@@ -181,21 +183,16 @@ class SettingsViewController: BaseViewController, UITextFieldDelegate {
     
     // MARK: - Network Operations
     private func loadProfile() {
-        guard NetworkMonitor.shared.isConnected else {
-            showStatusMessage("Нет соединения с интернетом", isError: true)
-            return
+        viewModel.loadProfile { [weak self] result in
+            DispatchQueue.main.async {
+                switch result {
+                case .success(let user):
+                    self?.updateUI(with: user)
+                case .failure(let error):
+                    self?.showStatusMessage(error.localizedDescription, isError: true)
+                }
+            }
         }
-        
-//        NetworkManager.shared.getUserProfile { [weak self] result in
-//            DispatchQueue.main.async {
-//                switch result {
-//                case .success(let user):
-//                    self?.updateUI(with: user)
-//                case .failure(let error):
-//                    self?.showStatusMessage("Ошибка загрузки профиля: \(error.localizedDescription)", isError: true)
-//                }
-//            }
-//        }
     }
     
     private func updateUI(with user: UserResponse) {
@@ -206,23 +203,25 @@ class SettingsViewController: BaseViewController, UITextFieldDelegate {
     @objc private func saveTapped() {
         guard validateInput() else { return }
         
-//        let isPasswordChanging = !newPasswordTextField.text!.isEmpty
-//        let updateRequest = UserUpdateRequest(
-//            username: usernameTextField.text ?? "",
-//            newPassword: isPasswordChanging ? newPasswordTextField.text : nil,
-//            currentPassword: isPasswordChanging ? currentPasswordTextField.text : nil
-//        )
+        let isPasswordChanging = !newPasswordTextField.text!.isEmpty
+        let updateRequest = UserUpdateRequest(
+            username: usernameTextField.text ?? "",
+            newPassword: isPasswordChanging ? newPasswordTextField.text : nil,
+            currentPassword: isPasswordChanging ? currentPasswordTextField.text : nil
+        )
         
-//        NetworkManager.shared.updateUserProfile(request: updateRequest) { [weak self] result in
-//            DispatchQueue.main.async {
-//                switch result {
-//                case .success(let user):
-//                    self?.handleUpdateSuccess(user)
-//                case .failure(let error):
-//                    self?.handleUpdateError(error)
-//                }
-//            }
-//        }
+        viewModel.updateProfile(username: usernameTextField.text ?? "",
+                                currentPassword: isPasswordChanging ? currentPasswordTextField.text : nil,
+                                newPassword: isPasswordChanging ? newPasswordTextField.text : nil) { [weak self] result in
+            DispatchQueue.main.async {
+                switch result {
+                case .success(let user):
+                    self?.handleUpdateSuccess(user)
+                case .failure(let error):
+                    print(error)
+                }
+            }
+        }
     }
     
     private func handleUpdateSuccess(_ user: UserResponse) {
