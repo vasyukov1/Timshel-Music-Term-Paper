@@ -263,10 +263,23 @@ extension SearchViewController: UITableViewDataSource, UITableViewDelegate {
 // MARK: - Track Context Menu Delegate
 
 extension SearchViewController: TrackContextMenuDelegate {
+    func didSelectCacheTrack(queuedTrack: QueuedTrack) {}
     func didSelectAddToQueue(queuedTrack: QueuedTrack) {}
     func didSelectGoToArtist(queuedTrack: QueuedTrack) {}
     func didSelectAddToPlaylist(queuedTrack: QueuedTrack) {}
     func didSelectDeleteTrack(queuedTrack: QueuedTrack) {}
+    
+    func didSelectCacheTrack(track: TrackResponse) {
+        MusicManager.shared.addTrackToMyMusic(track) { success in
+            DispatchQueue.main.async {
+                if success {
+                    print("Трек успешно добавлен в Мою музыку")
+                } else {
+                    print("Не удалось добавить трек")
+                }
+            }
+        }
+    }
     
     func didSelectAddToQueue(track: TrackResponse) {
         MusicPlayerManager.shared.addTrackToQueue(track: track)

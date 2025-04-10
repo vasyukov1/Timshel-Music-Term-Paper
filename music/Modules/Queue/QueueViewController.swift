@@ -160,10 +160,23 @@ class QueueViewController: UIViewController, UITableViewDataSource, UITableViewD
 }
 
 extension QueueViewController: TrackContextMenuDelegate {
+    func didSelectCacheTrack(track: TrackResponse) {}
     func didSelectAddToQueue(track: TrackResponse) {}
     func didSelectGoToArtist(track: TrackResponse) {}
     func didSelectAddToPlaylist(track: TrackResponse) {}
     func didSelectDeleteTrack(track: TrackResponse) {}
+    
+    func didSelectCacheTrack(queuedTrack: QueuedTrack) {
+        MusicManager.shared.addTrackToMyMusic(queuedTrack.track) { success in
+            DispatchQueue.main.async {
+                if success {
+                    print("Трек успешно добавлен в Мою музыку")
+                } else {
+                    print("Не удалось добавить трек")
+                }
+            }
+        }
+    }
     
     func didSelectAddToQueue(queuedTrack: QueuedTrack) {
         MusicPlayerManager.shared.addTrackToQueue(track: queuedTrack.track)

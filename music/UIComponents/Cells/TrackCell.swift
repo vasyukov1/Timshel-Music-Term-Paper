@@ -1,11 +1,13 @@
 import UIKit
 
 protocol TrackContextMenuDelegate: AnyObject {
+    func didSelectCacheTrack(track: TrackResponse)
     func didSelectAddToQueue(track: TrackResponse)
     func didSelectGoToArtist(track: TrackResponse)
     func didSelectAddToPlaylist(track: TrackResponse)
     func didSelectDeleteTrack(track: TrackResponse)
     
+    func didSelectCacheTrack(queuedTrack: QueuedTrack)
     func didSelectAddToQueue(queuedTrack: QueuedTrack)
     func didSelectGoToArtist(queuedTrack: QueuedTrack)
     func didSelectAddToPlaylist(queuedTrack: QueuedTrack)
@@ -187,9 +189,13 @@ extension UIViewController {
             popover.backgroundColor = UIColor(white: 0.15, alpha: 1)
         }
         
-        menu.view.tintColor = .white
+        menu.view.tintColor = .black
         menu.view.backgroundColor = UIColor(white: 0.15, alpha: 1)
         menu.view.layer.cornerRadius = 15
+        
+        menu.addAction(UIAlertAction(title: "Сохранить в кеш", style: .default) { _ in
+            delegate.didSelectCacheTrack(track: track)
+        })
         
         menu.addAction(UIAlertAction(title: "Add to queue", style: .default) { _ in
             delegate.didSelectAddToQueue(track: track)
@@ -268,6 +274,10 @@ extension UIViewController {
     func presentTrackContextMenu(for queuedTrack: QueuedTrack, delegate: TrackContextMenuDelegate) {
         let menu = UIAlertController(title: nil, message: nil, preferredStyle: .actionSheet)
 
+        menu.addAction(UIAlertAction(title: "Сохранить в кеш", style: .default) { _ in
+            delegate.didSelectCacheTrack(queuedTrack: queuedTrack)
+        })
+        
         menu.addAction(UIAlertAction(title: "Add to queue", style: .default) { _ in
             delegate.didSelectAddToQueue(queuedTrack: queuedTrack)
         })

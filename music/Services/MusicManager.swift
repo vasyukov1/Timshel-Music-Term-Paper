@@ -179,6 +179,46 @@ class MusicManager {
         }
     }
     
+    func addTrackToMyMusic(_ track: TrackResponse, completion: @escaping (Bool) -> Void) {
+        guard !MyMusicViewModel.shared.tracks.contains(where: { $0.id == track.id }) else {
+            print("Трек уже добавлен")
+            completion(false)
+            return
+        }
+
+        var urlRequest = URLRequest(url: track.toTrack().url)
+        if let token = UserDefaults.standard.string(forKey: "jwtToken") {
+            urlRequest.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        }
+
+        URLSession.shared.dataTask(with: urlRequest) { data, response, error in
+            if let error = error {
+                print("Ошибка загрузки: \(error.localizedDescription)")
+                completion(false)
+                return
+            }
+
+            guard let data = data else {
+                print("Нет данных")
+                completion(false)
+                return
+            }
+
+            let tempURL = URL(fileURLWithPath: NSTemporaryDirectory())
+                .appendingPathComponent(UUID().uuidString)
+                .appendingPathExtension("mp3")
+
+            do {
+                try data.write(to: tempURL)
+                MusicPlayerManager.shared.cacheTrack(track, url: tempURL)
+                completion(true)
+            } catch {
+                print("Ошибка сохранения файла: \(error.localizedDescription)")
+                completion(false)
+            }
+        }.resume()
+    }
+    
 //    func updateTrackStats(track: Track) {
 //        guard let login = UserDefaults.standard.string(forKey: "savedLogin") else {
 //            print("Error: User is not logged in")
