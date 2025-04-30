@@ -3,7 +3,7 @@ import UIKit
 class PlaylistManager {
     static let shared = PlaylistManager()
     
-    var playlists: [(String, Playlist)] = []
+    var playlists: [(String, PlaylistResponse)] = []
     private var recentTracks: [Track] = []
     
     private let userDefaultsKey = "savedPlaylists"
@@ -13,7 +13,7 @@ class PlaylistManager {
         loadRecentTracks()
     }
     
-    func getPlaylists() -> [Playlist] {
+    func getPlaylists() -> [PlaylistResponse] {
         guard let login = UserDefaults.standard.string(forKey: "savedLogin") else {
             print("Error: User is not logged in")
             return []
@@ -28,7 +28,7 @@ class PlaylistManager {
         return recentTracks
     }
     
-    func addPlaylist(_ playlist: Playlist) {
+    func addPlaylist(_ playlist: PlaylistResponse) {
         guard let login = UserDefaults.standard.string(forKey: "savedLogin") else {
             print("Error: User is not logged in")
             return
@@ -36,7 +36,7 @@ class PlaylistManager {
         
         playlists.append((login, playlist))
         savePlaylists()
-        print("Playlist [\(playlist.title)] created with [\(playlist.tracks.count)] tracks")
+        print("Playlist [\(playlist.name)] created with [\(playlist.tracks.count)] tracks")
     }
     
     func addRecentTrack(_ track: Track) {
@@ -47,37 +47,37 @@ class PlaylistManager {
         saveRecentTracks()
     }
     
-    func addTrackToPlaylist(_ track: TrackResponse, _ playlist: Playlist) {
+    func addTrackToPlaylist(_ track: TrackResponse, _ playlist: PlaylistResponse) {
         guard let login = UserDefaults.standard.string(forKey: "savedLogin") else {
             print("Error: User is not logged in")
             return
         }
         
-        if let index = playlists.firstIndex(where: { $0.0 == login && $0.1.title == playlist.title }) {
-//            if !playlist.tracks.contains(track) {
+        if let index = playlists.firstIndex(where: { $0.0 == login && $0.1.name == playlist.name }) {
+            if !playlist.tracks.contains(track) {
 //                playlists[index].1.tracks.append(track)
-//                savePlaylists()
-//                print("Track [\(track.title)] added to [\(playlist.title)]")
-//            } else {
-//                print("Track [\(track.title)] already exists in [\(playlist.title)]")
-//            }
+                savePlaylists()
+                print("Track [\(track.title)] added to [\(playlist.name)]")
+            } else {
+                print("Track [\(track.title)] already exists in [\(playlist.name)]")
+            }
         } else {
-            print("Playlist [\(playlist.title)] didn't find")
+            print("Playlist [\(playlist.name)] didn't find")
         }
     }
     
-    func updatePlaylist(_ updatedPlaylist: Playlist, oldTitle: String) {
+    func updatePlaylist(_ updatedPlaylist: PlaylistResponse, oldTitle: String) {
         guard let login = UserDefaults.standard.string(forKey: "savedLogin") else {
             print("Error: User is not logged in")
             return
         }
 
-        if let index = playlists.firstIndex(where: { $0.0 == login && $0.1.title == oldTitle }) {
+        if let index = playlists.firstIndex(where: { $0.0 == login && $0.1.name == oldTitle }) {
             playlists[index].1 = updatedPlaylist
             savePlaylists()
-            print("Playlist [\(updatedPlaylist.title)] updated successfully")
+            print("Playlist [\(updatedPlaylist.name)] updated successfully")
         } else {
-            print("Playlist [\(updatedPlaylist.title)] not found")
+            print("Playlist [\(updatedPlaylist.name)] not found")
         }
     }
     
@@ -120,5 +120,15 @@ class PlaylistManager {
         } catch {
             print("Failed to load recent tracks: \(error)")
         }
+    }
+    
+    func deletePlaylist(_ playlist: PlaylistResponse) {
+        guard let login = UserDefaults.standard.string(forKey: "savedLogin") else {
+            print("Ошибка: пользователь не авторизован")
+            return
+        }
+        
+        playlists.removeAll { $0.0 == login && $0.1.id == playlist.id }
+        savePlaylists()
     }
 }

@@ -197,15 +197,15 @@ extension UIViewController {
             delegate.didSelectCacheTrack(track: track)
         })
         
-        menu.addAction(UIAlertAction(title: "Add to queue", style: .default) { _ in
+        menu.addAction(UIAlertAction(title: "Добавить в очередь", style: .default) { _ in
             delegate.didSelectAddToQueue(track: track)
         })
         
-        menu.addAction(UIAlertAction(title: "Go to artist", style: .default) { _ in
+        menu.addAction(UIAlertAction(title: "Перейти к артисту", style: .default) { _ in
             delegate.didSelectGoToArtist(track: track)
         })
         
-        menu.addAction(UIAlertAction(title: "Add to playlist", style: .default) { _ in
+        menu.addAction(UIAlertAction(title: "Добавить в плейлист", style: .default) { _ in
             delegate.didSelectAddToPlaylist(track: track)
         })
         
@@ -220,7 +220,7 @@ extension UIViewController {
                     switch result {
                     case .success(let tracks):
                         if tracks.contains(where: { $0 == track }) {
-                            menu.addAction(UIAlertAction(title: "Delete track", style: .destructive) { _ in
+                            menu.addAction(UIAlertAction(title: "Удалить трек", style: .destructive) { _ in
                                 delegate.didSelectDeleteTrack(track: track)
                             })
                         }
@@ -228,7 +228,7 @@ extension UIViewController {
                         let cachedTracks = MusicPlayerManager.shared.getAllCachedTracks()
                         let tracks = cachedTracks.map { $0.track }.filter { $0.uploadedBy == userId }
                         if tracks.contains(where: { $0 == track }) {
-                            menu.addAction(UIAlertAction(title: "Delete track", style: .destructive) { _ in
+                            menu.addAction(UIAlertAction(title: "Удалить трек", style: .destructive) { _ in
                                 delegate.didSelectDeleteTrack(track: track)
                             })
                         }
@@ -240,13 +240,13 @@ extension UIViewController {
             let cachedTracks = MusicPlayerManager.shared.getAllCachedTracks()
             let tracks = cachedTracks.map { $0.track }.filter { $0.uploadedBy == userId }
             if tracks.contains(where: { $0 == track }) {
-                menu.addAction(UIAlertAction(title: "Delete track", style: .destructive) { _ in
+                menu.addAction(UIAlertAction(title: "Удалить трек", style: .destructive) { _ in
                     delegate.didSelectDeleteTrack(track: track)
                 })
             }
         }
         
-        menu.addAction(UIAlertAction(title: "Cancel", style: .cancel))
+        menu.addAction(UIAlertAction(title: "Отмена", style: .cancel))
         
         self.present(menu, animated: true) {
             menu.view.subviews.forEach { subview in
@@ -256,7 +256,7 @@ extension UIViewController {
     }
         
     func presentArtistSelection(for track: TrackResponse, completion: @escaping (String) -> Void) {
-        let alert = UIAlertController(title: "Select Artist", message: nil, preferredStyle: .actionSheet)
+        let alert = UIAlertController(title: "Выбрать исполнителя", message: nil, preferredStyle: .actionSheet)
         
         for artist in track.getArtists() {
             alert.addAction(UIAlertAction(title: artist, style: .default) { _ in
@@ -264,7 +264,7 @@ extension UIViewController {
             })
         }
         
-        alert.addAction(UIAlertAction(title: "Cancel", style: .cancel))
+        alert.addAction(UIAlertAction(title: "Отмена", style: .cancel))
         
         self.present(alert, animated: true)
     }
@@ -278,23 +278,23 @@ extension UIViewController {
             delegate.didSelectCacheTrack(queuedTrack: queuedTrack)
         })
         
-        menu.addAction(UIAlertAction(title: "Add to queue", style: .default) { _ in
+        menu.addAction(UIAlertAction(title: "Добавить в очередь", style: .default) { _ in
             delegate.didSelectAddToQueue(queuedTrack: queuedTrack)
         })
 
-        menu.addAction(UIAlertAction(title: "Go to artist", style: .default) { _ in
+        menu.addAction(UIAlertAction(title: "Перейти к артисту", style: .default) { _ in
             delegate.didSelectGoToArtist(queuedTrack: queuedTrack)
         })
 
-        menu.addAction(UIAlertAction(title: "Add to playlist", style: .default) { _ in
+        menu.addAction(UIAlertAction(title: "Добавить в плейлист", style: .default) { _ in
             delegate.didSelectAddToPlaylist(queuedTrack: queuedTrack)
         })
 
-        menu.addAction(UIAlertAction(title: "Delete track", style: .destructive) { _ in
+        menu.addAction(UIAlertAction(title: "Удалить трек", style: .destructive) { _ in
             delegate.didSelectDeleteTrack(queuedTrack: queuedTrack)
         })
 
-        menu.addAction(UIAlertAction(title: "Cancel", style: .cancel))
+        menu.addAction(UIAlertAction(title: "Отмена", style: .cancel))
 
         self.present(menu, animated: true)
     }

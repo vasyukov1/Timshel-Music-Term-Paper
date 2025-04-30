@@ -3,13 +3,13 @@ import UIKit
 struct Playlist: Codable, Equatable {
     var title: String
     var image: UIImage
-    var tracks: [Track]
+    var tracks: [TrackResponse]
     
     enum CodingKeys: String, CodingKey {
         case title, imageData, tracks
     }
     
-    init(title: String, image: UIImage, tracks: [Track]) {
+    init(title: String, image: UIImage, tracks: [TrackResponse]) {
         self.title = title
         self.image = image
         self.tracks = tracks
@@ -18,7 +18,7 @@ struct Playlist: Codable, Equatable {
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         title = try container.decode(String.self, forKey: .title)
-        tracks = try container.decode([Track].self, forKey: .tracks)
+        tracks = try container.decode([TrackResponse].self, forKey: .tracks)
         
         let imageData = try container.decode(Data.self, forKey: .imageData)
         image = UIImage(data: imageData) ?? UIImage(systemName: "music.note")!
@@ -36,5 +36,5 @@ struct Playlist: Codable, Equatable {
 
 struct SavedPlaylist: Codable {
     let login: String
-    let playlist: Playlist
+    let playlist: PlaylistResponse
 }

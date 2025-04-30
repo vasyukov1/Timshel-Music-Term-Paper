@@ -194,7 +194,7 @@ extension MyMusicViewController: TrackContextMenuDelegate {
         }))
         
         for playlist in PlaylistManager.shared.getPlaylists() {
-           playlistMenu.addAction(UIAlertAction(title: playlist.title, style: .default, handler: { _ in
+           playlistMenu.addAction(UIAlertAction(title: playlist.name, style: .default, handler: { _ in
                PlaylistManager.shared.addTrackToPlaylist(track, playlist)
            }))
         }

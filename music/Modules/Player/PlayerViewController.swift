@@ -203,7 +203,7 @@ class PlayerViewController: UIViewController {
     private func navigateToArtist(_ artistName: String) {
         let artistVC = ArtistViewController(viewModel: ArtistViewModel(artistName: artistName))
         artistVC.navigationItem.hidesBackButton = true
-        navigationController?.pushViewController(artistVC, animated: false)
+        navigationController?.setViewControllers([artistVC], animated: false)
     }
     
     @objc private func shuffleTapped() {

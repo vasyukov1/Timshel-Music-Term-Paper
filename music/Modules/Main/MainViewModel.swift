@@ -33,6 +33,7 @@ class MainViewModel {
     }
     
     func loadPlaylists() {
+//        playlists = PlaylistManager.shared.getPlaylists()
         NetworkManager.shared.fetchPlaylists { [weak self] result in
             DispatchQueue.main.async {
                 switch result {

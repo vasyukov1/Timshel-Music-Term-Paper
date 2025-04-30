@@ -66,7 +66,7 @@ struct PlaylistRequest: Codable {
     let description: String?
 }
 
-struct PlaylistResponse: Codable {
+struct PlaylistResponse: Identifiable, Codable {
     let id: Int
     let name: String
     let description: String?

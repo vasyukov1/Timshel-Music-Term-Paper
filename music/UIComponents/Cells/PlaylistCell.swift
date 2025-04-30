@@ -10,7 +10,6 @@ class PlaylistCell: UICollectionViewCell {
     override init(frame: CGRect) {
         super.init(frame: frame)
         setupUI()
-        applyGradient()
     }
     
     required init?(coder: NSCoder) {
@@ -25,7 +24,9 @@ class PlaylistCell: UICollectionViewCell {
     
     override func layoutSubviews() {
         super.layoutSubviews()
+        container.layoutIfNeeded()
         gradientLayer?.frame = container.bounds
+        applyGradient()
     }
     
     private func setupUI() {
@@ -69,10 +70,13 @@ class PlaylistCell: UICollectionViewCell {
     }
     
     private func applyGradient() {
+        gradientLayer?.removeFromSuperlayer()
+        
         let gradientColors: [CGColor] = [
             UIColor(red: 0.95, green: 0.95, blue: 1.0, alpha: 1.0).cgColor,
             UIColor.systemTeal.withAlphaComponent(0.8).cgColor
         ]
+        
         let gradient = CAGradientLayer()
         gradient.colors = gradientColors
         gradient.locations = [0, 1]

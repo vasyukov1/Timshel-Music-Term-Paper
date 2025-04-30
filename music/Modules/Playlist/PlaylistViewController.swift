@@ -24,7 +24,17 @@ class PlaylistViewController: BaseViewController {
         setupUI()
         super.viewDidLoad()
         bindViewModel()
-        viewModel.loadPlaylistDetails()
+        
+        MyMusicViewModel.shared.$tracks
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] userTracks in
+                self?.viewModel.tracks = Array(userTracks.prefix(3))
+            }
+            .store(in: &cancellable)
+
+        MyMusicViewModel.shared.loadUserTracks()
+        
+//        viewModel.loadPlaylistDetails()
     }
     
     private func bindViewModel() {
@@ -60,6 +70,7 @@ class PlaylistViewController: BaseViewController {
         imageView.backgroundColor = .systemGray5
         
         titleLabel.font = .systemFont(ofSize: 18, weight: .medium)
+        titleLabel.textColor = .white
         titleLabel.textAlignment = .center
         titleLabel.numberOfLines = 2
         
@@ -97,8 +108,9 @@ class PlaylistViewController: BaseViewController {
             titleLabel.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 20),
             titleLabel.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -20),
             
-            editPlaylistButton.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 10),
-            editPlaylistButton.trailingAnchor.constraint(equalToSystemSpacingAfter: view.safeAreaLayoutGuide.trailingAnchor, multiplier: -10),
+            editPlaylistButton.centerYAnchor.constraint(equalTo: titleLabel.centerYAnchor),
+//            editPlaylistButton.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 10),
+            editPlaylistButton.trailingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.trailingAnchor, constant: -10),
             editPlaylistButton.widthAnchor.constraint(equalToConstant: 40),
             editPlaylistButton.heightAnchor.constraint(equalToConstant: 40),
 
@@ -131,13 +143,6 @@ extension PlaylistViewController: UITableViewDataSource, UITableViewDelegate {
         
         cell.configure(with: trackResponse)
         cell.delegate = self
-        
-        if let currentTrack = MusicPlayerManager.shared.getCurrentTrack(),
-           currentTrack.track.id == trackResponse.id {
-            cell.backgroundColor = .systemGray5
-        } else {
-            cell.backgroundColor = .clear
-        }
         
         return cell
     }
@@ -217,7 +222,7 @@ extension PlaylistViewController: TrackContextMenuDelegate {
         }))
         
         for playlist in PlaylistManager.shared.getPlaylists() {
-           playlistMenu.addAction(UIAlertAction(title: playlist.title, style: .default, handler: { _ in
+           playlistMenu.addAction(UIAlertAction(title: playlist.name, style: .default, handler: { _ in
                PlaylistManager.shared.addTrackToPlaylist(track, playlist)
            }))
         }
@@ -243,9 +248,6 @@ extension PlaylistViewController: TrackContextMenuDelegate {
     }
     
     private func deleteTrack(_ track: TrackResponse) {
-        MusicPlayerManager.shared.deleteTrack(track)
-        MusicManager.shared.deleteTrack(track)
-        
         if let index = viewModel.tracks.firstIndex(where: { $0.id == track.id }) {
             viewModel.tracks.remove(at: index)
             tableView.performBatchUpdates({

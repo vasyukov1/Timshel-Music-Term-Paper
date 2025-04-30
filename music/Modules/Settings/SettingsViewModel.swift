@@ -21,7 +21,7 @@ class SettingsViewModel {
         //        }
         
         DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
-            let testUser = UserResponse(id: 123, username: "User", email: "Email")
+            let testUser = UserResponse(id: 123, username: "vasyukov", email: "Email")
             completion(.success(testUser))
         }
     }

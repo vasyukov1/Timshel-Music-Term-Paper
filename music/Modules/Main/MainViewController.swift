@@ -33,6 +33,7 @@ class MainViewController: BaseViewController, UIDocumentPickerDelegate {
         super.viewDidLoad()
         bindViewModel()
         viewModel.loadData()
+        collectionView.reloadData()
     }
     
     private func bindViewModel() {
@@ -58,11 +59,14 @@ class MainViewController: BaseViewController, UIDocumentPickerDelegate {
         myPlaylistLabel.font = labelFont
         myPlaylistLabel.textColor = .white
         
+        let longPressGesture = UILongPressGestureRecognizer(target: self, action: #selector(handleLongPress(_:)))
+        
         collectionView.backgroundColor = .clear
         collectionView.register(PlaylistCell.self, forCellWithReuseIdentifier: "PlaylistCell")
         collectionView.delegate = self
         collectionView.dataSource = self
         collectionView.showsVerticalScrollIndicator = false
+        collectionView.addGestureRecognizer(longPressGesture)
         
         for subview in [
             myMusicButton,
@@ -76,6 +80,11 @@ class MainViewController: BaseViewController, UIDocumentPickerDelegate {
         }
         
         setupConstraints()
+    }
+    
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+        collectionView.reloadData()
     }
     
     override func viewDidLayoutSubviews() {
@@ -149,6 +158,15 @@ class MainViewController: BaseViewController, UIDocumentPickerDelegate {
         navigationController?.setViewControllers([addPlaylistVC], animated: false)
     }
     
+    @objc private func handleLongPress(_ gesture: UILongPressGestureRecognizer) {
+        guard gesture.state == .began else { return }
+        
+        let point = gesture.location(in: collectionView)
+        if let indexPath = collectionView.indexPathForItem(at: point) {
+            showDeleteAlert(for: indexPath)
+        }
+    }
+    
     func documentPicker(_ controller: UIDocumentPickerViewController, didPickDocumentsAt urls: [URL]) {
         guard !urls.isEmpty else { return }
         Task {
@@ -219,6 +237,29 @@ class MainViewController: BaseViewController, UIDocumentPickerDelegate {
             print("Failed to process track: \(error)")
         }
         return ("Title", "Artist", UIImage(contentsOfFile: "music.note")!)
+    }
+    
+    private func showDeleteAlert(for indexPath: IndexPath) {
+        let alert = UIAlertController(
+            title: "Удалить плейлист",
+            message: "Вы уверены, что хотите удалить этот плейлист?",
+            preferredStyle: .alert
+        )
+        
+        let deleteAction = UIAlertAction(title: "Удалить", style: .destructive) { [weak self] _ in
+            guard let self = self else { return }
+            let playlist = self.viewModel.playlists[indexPath.item]
+            PlaylistManager.shared.deletePlaylist(playlist)
+            self.viewModel.loadData()
+            self.collectionView.reloadData()
+        }
+        
+        let cancelAction = UIAlertAction(title: "Отмена", style: .cancel)
+        
+        alert.addAction(deleteAction)
+        alert.addAction(cancelAction)
+        
+        present(alert, animated: true)
     }
     
 }
